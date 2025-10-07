@@ -12,3 +12,11 @@ hs_err_pid*
 /bin/
 /.settings/
 /test.svg
+/target/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
