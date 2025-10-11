@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PackageDescriptionNodeRenderer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.rendering.nodes</a> &gt; <span class="el_source">PackageDescriptionNodeRenderer.java</span></div><h1>PackageDescriptionNodeRenderer.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.rendering.nodes;
+
+import static org.jetuml.geom.GeomUtils.max;
+
+import org.jetuml.diagram.DiagramElement;
+import org.jetuml.diagram.DiagramType;
+import org.jetuml.diagram.nodes.AbstractPackageNode;
+import org.jetuml.diagram.nodes.PackageDescriptionNode;
+import org.jetuml.geom.Dimension;
+import org.jetuml.geom.Rectangle;
+import org.jetuml.geom.Alignment;
+import org.jetuml.rendering.DiagramRenderer;
+import org.jetuml.rendering.GraphicsRenderingContext;
+import org.jetuml.rendering.RenderingContext;
+import org.jetuml.rendering.StringRenderer;
+
+import javafx.scene.canvas.Canvas;
+
+/**
+ * An object to render a package in a class diagram.
+ */
+public final class PackageDescriptionNodeRenderer extends AbstractPackageNodeRenderer
+{
+<span class="fc" id="L44">	private static final StringRenderer CONTENT_RENDERER = new StringRenderer(Alignment.CENTER);</span>
+	
+	/**
+	 * @param pParent Renderer of the parent diagram.
+	 */
+	public PackageDescriptionNodeRenderer(DiagramRenderer pParent)
+	{
+<span class="fc" id="L51">		super(pParent);</span>
+<span class="fc" id="L52">	}</span>
+	
+	@Override
+	public void draw(DiagramElement pElement, RenderingContext pContext)
+	{
+<span class="fc" id="L57">		super.draw(pElement, pContext);</span>
+<span class="fc" id="L58">		Rectangle bottomBounds = getBottomBounds((AbstractPackageNode)pElement);</span>
+<span class="fc" id="L59">		String content = ((PackageDescriptionNode)pElement).getContents();</span>
+<span class="fc" id="L60">		CONTENT_RENDERER.draw(((PackageDescriptionNode)pElement).getContents(), </span>
+<span class="fc" id="L61">				bottomBounds.centerSlice(CONTENT_RENDERER.getDimension(content).height()), </span>
+				pContext);
+<span class="fc" id="L63">	}</span>
+	
+	@Override
+	protected Rectangle getBottomBounds(AbstractPackageNode pNode)
+	{
+<span class="fc" id="L68">		Dimension contentsBounds = CONTENT_RENDERER.getDimension(((PackageDescriptionNode)pNode).getContents());</span>
+<span class="fc" id="L69">		int width = max(contentsBounds.width() + 2 * PADDING, DEFAULT_WIDTH);</span>
+<span class="fc" id="L70">		int height = max(contentsBounds.height() + 2 * PADDING, DEFAULT_BOTTOM_HEIGHT);</span>
+		
+<span class="fc" id="L72">		Dimension topDimension = getTopDimension(pNode);</span>
+<span class="fc" id="L73">		width = max( width, topDimension.width()+ (DEFAULT_WIDTH - DEFAULT_TOP_WIDTH));</span>
+		
+<span class="fc" id="L75">		return new Rectangle(pNode.position().x(), pNode.position().y() + topDimension.height(), </span>
+				width, height);
+	}
+	
+	/*
+	 * Custom version to distinguish package descriptions from package nodes.
+	 */
+	@Override
+	public Canvas createIcon(DiagramType pDiagramType, DiagramElement pElement)
+	{
+<span class="pc bpc" id="L85" title="1 of 2 branches missed.">		assert pElement instanceof AbstractPackageNode;</span>
+<span class="fc" id="L86">		Canvas icon = super.createIcon(pDiagramType, pElement);</span>
+<span class="fc" id="L87">		CONTENT_RENDERER.draw(&quot;description&quot;, </span>
+<span class="fc" id="L88">				getBottomBounds((AbstractPackageNode)pElement).centerSlice(CONTENT_RENDERER.lineHeight()), </span>
+<span class="fc" id="L89">				new GraphicsRenderingContext(icon.getGraphicsContext2D()));</span>
+<span class="fc" id="L90">		return icon;</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

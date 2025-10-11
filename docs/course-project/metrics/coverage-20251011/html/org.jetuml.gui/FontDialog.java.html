@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FontDialog.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.gui</a> &gt; <span class="el_source">FontDialog.java</span></div><h1>FontDialog.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.gui;
+
+import static org.jetuml.application.ApplicationResources.RESOURCES;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+
+import org.jetuml.application.UserPreferences;
+import org.jetuml.application.UserPreferences.IntegerPreference;
+import org.jetuml.application.UserPreferences.StringPreference;
+
+import javafx.collections.FXCollections;
+import javafx.geometry.HPos;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Label;
+import javafx.scene.image.Image;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Pane;
+import javafx.stage.Stage;
+
+/**
+ * A modal dialog that allows users to change the font
+ * and font size of text in diagrams.
+ */
+public class FontDialog 
+{
+	private static final int SPACING = 10;
+	private static final int HSPACE = 50;
+	private static final int VSPACE = 20;
+<span class="nc" id="L56">	private static final Insets EXTRA_MARGIN = new Insets(0, 0, 0, 10);</span>
+	
+<span class="nc" id="L58">	private static final ArrayList&lt;String&gt; FONT_FAMILIES = new ArrayList&lt;&gt;(Arrays.asList(&quot;System&quot;, &quot;SansSerif&quot;, &quot;Serif&quot;, &quot;Monospaced&quot;));</span>
+<span class="nc" id="L59">	private static final ArrayList&lt;Integer&gt; FONT_SIZES = new ArrayList&lt;&gt;(</span>
+<span class="nc" id="L60">			Arrays.asList(8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24));</span>
+	
+	private final Stage aStage;
+<span class="nc" id="L63">	private final GridPane aLayout = new GridPane();</span>
+<span class="nc" id="L64">	private final ComboBox&lt;String&gt; aFonts = new ComboBox&lt;&gt;(FXCollections.observableArrayList(FONT_FAMILIES));</span>
+<span class="nc" id="L65">	private final ComboBox&lt;Integer&gt; aSizes = new ComboBox&lt;&gt;(FXCollections.observableArrayList(FONT_SIZES));</span>
+<span class="nc" id="L66">	private final String aUserFamily = getCurrentFont();</span>
+<span class="nc" id="L67">	private final int aUserSize = getCurrentFontSize();</span>
+	
+	/**
+	 * Creates a new font dialog.
+	 * 
+	 * @param pDialogStage The stage that owns this dialog.
+	 */
+	public FontDialog( Stage pDialogStage )
+<span class="nc" id="L75">	{</span>
+<span class="nc" id="L76">		aStage = pDialogStage;</span>
+<span class="nc" id="L77">		prepareStage();</span>
+<span class="nc" id="L78">		aStage.getScene().setRoot(createRoot());</span>
+<span class="nc" id="L79">	}</span>
+	
+	private void prepareStage() 
+	{
+<span class="nc" id="L83">		aStage.setTitle(RESOURCES.getString(&quot;dialog.font.title&quot;));</span>
+<span class="nc" id="L84">		aStage.getIcons().add(new Image(RESOURCES.getString(&quot;application.icon&quot;)));</span>
+<span class="nc" id="L85">		aStage.setOnCloseRequest(pEvent -&gt;</span>
+		{
+<span class="nc" id="L87">			restoreUserSettings();</span>
+<span class="nc" id="L88">			aStage.setOnCloseRequest(null); // So the handler does not persist across different dialogs.</span>
+<span class="nc" id="L89">		});</span>
+<span class="nc" id="L90">	}</span>
+	
+	private Pane createRoot() 
+	{
+<span class="nc" id="L94">		aLayout.setHgap(HSPACE);</span>
+<span class="nc" id="L95">		aLayout.setVgap(VSPACE);</span>
+<span class="nc" id="L96">		aLayout.setPadding(new Insets(SPACING));</span>
+<span class="nc" id="L97">		aLayout.addEventHandler(KeyEvent.KEY_PRESSED, pEvent -&gt; </span>
+		{
+<span class="nc bnc" id="L99" title="All 2 branches missed.">			if( pEvent.getCode() == KeyCode.ESCAPE ) </span>
+			{
+<span class="nc" id="L101">				restoreUserSettings();</span>
+			}
+<span class="nc" id="L103">		});</span>
+		
+<span class="nc" id="L105">		createFont();</span>
+<span class="nc" id="L106">		createSize();</span>
+<span class="nc" id="L107">		createButton();</span>
+		
+<span class="nc" id="L109">		return aLayout;</span>
+	}
+	
+	private void createFont()
+	{
+<span class="nc" id="L114">		Label family = new Label(RESOURCES.getString(&quot;dialog.font.family&quot;));</span>
+<span class="nc" id="L115">		GridPane.setConstraints(family, 0, 0);</span>
+<span class="nc" id="L116">		GridPane.setMargin(family, EXTRA_MARGIN);</span>
+		
+<span class="nc" id="L118">		aFonts.getSelectionModel().select(getCurrentFont());</span>
+<span class="nc" id="L119">		aFonts.setOnAction(pEvent -&gt; onInput());</span>
+<span class="nc" id="L120">		GridPane.setConstraints(aFonts, 1, 0);</span>
+<span class="nc" id="L121">		GridPane.setHalignment(aFonts, HPos.RIGHT);</span>
+		
+<span class="nc" id="L123">		aLayout.getChildren().addAll(family, aFonts);</span>
+<span class="nc" id="L124">	}</span>
+	
+	private void createSize()
+	{
+<span class="nc" id="L128">		Label size = new Label(RESOURCES.getString(&quot;dialog.font.size&quot;));</span>
+<span class="nc" id="L129">		GridPane.setConstraints(size, 0, 1);</span>
+<span class="nc" id="L130">		GridPane.setMargin(size, EXTRA_MARGIN);</span>
+		
+<span class="nc" id="L132">		aSizes.getSelectionModel().select((Integer) getCurrentFontSize());</span>
+<span class="nc" id="L133">		aSizes.setOnAction(pEvent -&gt; onInput());</span>
+<span class="nc" id="L134">		GridPane.setConstraints(aSizes, 1, 1);</span>
+<span class="nc" id="L135">		GridPane.setHalignment(aSizes, HPos.RIGHT);</span>
+		
+<span class="nc" id="L137">		aLayout.getChildren().addAll(size, aSizes);</span>
+<span class="nc" id="L138">	}</span>
+	
+	private void createButton()
+	{	
+<span class="nc" id="L142">		Button ok = new Button(RESOURCES.getString(&quot;dialog.font.ok&quot;));</span>
+<span class="nc" id="L143">		ok.setOnAction(pEvent -&gt; aStage.close());</span>
+		
+<span class="nc" id="L145">		Button cancel = new Button(RESOURCES.getString(&quot;dialog.font.cancel&quot;));</span>
+<span class="nc" id="L146">		cancel.setOnAction(pEvent -&gt; </span>
+		{
+<span class="nc" id="L148">			restoreUserSettings();</span>
+<span class="nc" id="L149">			aStage.close();</span>
+<span class="nc" id="L150">		});</span>
+		
+<span class="nc" id="L152">		HBox layout = new HBox(SPACING);</span>
+<span class="nc" id="L153">		layout.setAlignment(Pos.CENTER_RIGHT);</span>
+<span class="nc" id="L154">		layout.getChildren().addAll(ok, cancel);</span>
+<span class="nc" id="L155">		GridPane.setConstraints(layout, 1, 3);</span>
+		
+<span class="nc" id="L157">		Button restoreDefault = new Button(RESOURCES.getString(&quot;dialog.font.default&quot;));</span>
+<span class="nc" id="L158">		restoreDefault.setOnAction(pEvent -&gt; </span>
+		{
+<span class="nc" id="L160">			aFonts.getSelectionModel().select(UserPreferences.DEFAULT_FONT_NAME);</span>
+<span class="nc" id="L161">			aSizes.getSelectionModel().select((Integer) UserPreferences.DEFAULT_FONT_SIZE);</span>
+<span class="nc" id="L162">		});</span>
+<span class="nc" id="L163">		GridPane.setConstraints(restoreDefault, 0, 3);</span>
+		
+<span class="nc" id="L165">		aLayout.getChildren().addAll(restoreDefault, layout);</span>
+<span class="nc" id="L166">	}</span>
+
+	private static int getCurrentFontSize()
+	{
+<span class="nc" id="L170">		return UserPreferences.instance().getInteger(IntegerPreference.fontSize);</span>
+	}
+	
+	private static String getCurrentFont()
+	{
+<span class="nc" id="L175">		return UserPreferences.instance().getString(StringPreference.fontName);</span>
+	}
+	
+	private void restoreUserSettings()
+	{
+<span class="nc" id="L180">		aFonts.getSelectionModel().select(aUserFamily);</span>
+<span class="nc" id="L181">		aSizes.getSelectionModel().select((Integer) aUserSize);</span>
+<span class="nc" id="L182">	}</span>
+	
+	private void onInput()
+	{
+<span class="nc bnc" id="L186" title="All 2 branches missed.">		if( !aFonts.getSelectionModel().getSelectedItem().equals(getCurrentFont()) )</span>
+		{
+<span class="nc" id="L188">			UserPreferences.instance().setString(StringPreference.fontName, aFonts.getSelectionModel().getSelectedItem());</span>
+		}
+		
+<span class="nc bnc" id="L191" title="All 2 branches missed.">		if( aSizes.getSelectionModel().getSelectedItem() != getCurrentFontSize() )</span>
+		{
+<span class="nc" id="L193">			UserPreferences.instance().setInteger(IntegerPreference.fontSize, aSizes.getSelectionModel().getSelectedItem());</span>
+		}
+<span class="nc" id="L195">	}</span>
+	
+	/**
+	 * Shows the dialog and blocks the remainder of the UI
+	 * until it is closed.
+	 */
+	public void show() 
+	{
+<span class="nc" id="L203">        aStage.showAndWait();</span>
+<span class="nc" id="L204">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FileExtensions.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.application</a> &gt; <span class="el_source">FileExtensions.java</span></div><h1>FileExtensions.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.application;
+
+import static java.util.Map.Entry.comparingByKey;
+import static java.util.stream.Collectors.toList;
+import static org.jetuml.application.ApplicationResources.RESOURCES;
+
+import java.io.File;
+import java.util.Collections;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Map;
+
+import org.jetuml.diagram.DiagramType;
+
+import javafx.stage.FileChooser.ExtensionFilter;
+
+/**
+ * A utility class to create and access diagram extension 
+ * filters used by the file chooser.
+ */
+public final class FileExtensions
+{
+	private static final String EXTENSION_JET = &quot;.jet&quot;;
+	
+<span class="fc" id="L45">	private static final ExtensionFilter FILTER_APPLICATION = </span>
+<span class="fc" id="L46">			new ExtensionFilter(RESOURCES.getString(&quot;application.file.name&quot;), &quot;*&quot; + EXTENSION_JET);</span>
+<span class="fc" id="L47">	private static final ExtensionFilter FILTER_ALL = </span>
+<span class="fc" id="L48">			new ExtensionFilter(RESOURCES.getString(&quot;application.file.all&quot;), &quot;*.*&quot;);</span>
+	
+<span class="fc" id="L50">	private static Map&lt;DiagramType, ExtensionFilter&gt; aExtensionFilters = createFilters();</span>
+	
+	private FileExtensions() {}
+	
+	private static Map&lt;DiagramType, ExtensionFilter&gt; createFilters()
+	{
+<span class="fc" id="L56">		Map&lt;DiagramType, ExtensionFilter&gt; map = new EnumMap&lt;&gt;(DiagramType.class);</span>
+<span class="fc bfc" id="L57" title="All 2 branches covered.">		for( DiagramType diagramType : DiagramType.values() )</span>
+		{
+<span class="fc" id="L59">			map.put(diagramType,  new ExtensionFilter(diagramType.getFileNameDescription(), </span>
+<span class="fc" id="L60">					&quot;*&quot; + diagramType.getFileExtension() + EXTENSION_JET));</span>
+		}
+<span class="fc" id="L62">		return map;</span>
+	}
+	
+	/**
+	 * @return An unmodifiable list of all filters applicable to the application. This list
+	 *     includes one filter for each diagram type, the general filter for all file 
+	 *     types, and the &quot;application&quot; filter for all diagram file types. Never null.
+	 */
+	public static List&lt;ExtensionFilter&gt; all()
+	{
+<span class="fc" id="L72">		List&lt;ExtensionFilter&gt; result = aExtensionFilters.entrySet().stream()</span>
+<span class="fc" id="L73">				.sorted(comparingByKey())</span>
+<span class="fc" id="L74">				.map(Map.Entry::getValue)</span>
+<span class="fc" id="L75">				.collect(toList());</span>
+<span class="fc" id="L76">		result.add(0, FILTER_APPLICATION);</span>
+<span class="fc" id="L77">		result.add(FILTER_ALL);</span>
+<span class="fc" id="L78">		return Collections.unmodifiableList(result);</span>
+	}
+	
+	/**
+	 * @param pDiagramType The diagram type to query.
+	 * @return The extension filter for pDiagram type. This object is the same
+	 *     object than the one contained in the return value of method all(), they 
+	 *     can be compared by identity.
+	 * @pre pDiagramType != null
+	 */
+	public static ExtensionFilter forDiagramType(DiagramType pDiagramType)
+	{
+<span class="pc bpc" id="L90" title="1 of 2 branches missed.">		assert pDiagramType != null;</span>
+<span class="fc" id="L91">		return aExtensionFilters.get(pDiagramType);</span>
+	}
+	
+	/**
+	 * @param pFile The file to clip, if applicable.
+	 * @return A file with the same name as pFile, but with
+	 *     the application extension removed. If there is no application
+	 *     extension to clip, the same file object is returned.
+	 * @pre pFile != null
+	 */
+	public static File clipApplicationExtension(File pFile)
+	{
+<span class="pc bpc" id="L103" title="1 of 2 branches missed.">		assert pFile != null;</span>
+<span class="fc bfc" id="L104" title="All 2 branches covered.">		if( !pFile.getAbsolutePath().endsWith(EXTENSION_JET))</span>
+		{
+<span class="fc" id="L106">			return pFile;</span>
+		}
+<span class="fc" id="L108">		return new File(pFile.getAbsolutePath()</span>
+<span class="fc" id="L109">				.substring(0, pFile.getAbsolutePath().length() - EXTENSION_JET.length()));</span>
+	}
+}
+	
+	
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

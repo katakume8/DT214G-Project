@@ -1,0 +1,531 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DiagramBuilder.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.diagram.builder</a> &gt; <span class="el_source">DiagramBuilder.java</span></div><h1>DiagramBuilder.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+
+package org.jetuml.diagram.builder;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import org.jetuml.diagram.Diagram;
+import org.jetuml.diagram.DiagramElement;
+import org.jetuml.diagram.DiagramType;
+import org.jetuml.diagram.Edge;
+import org.jetuml.diagram.Node;
+import org.jetuml.diagram.edges.NoteEdge;
+import org.jetuml.diagram.nodes.FieldNode;
+import org.jetuml.diagram.nodes.NoteNode;
+import org.jetuml.diagram.nodes.ObjectNode;
+import org.jetuml.diagram.nodes.PackageNode;
+import org.jetuml.diagram.nodes.PointNode;
+import org.jetuml.geom.Dimension;
+import org.jetuml.geom.Point;
+import org.jetuml.geom.Rectangle;
+import org.jetuml.rendering.DiagramRenderer;
+import org.jetuml.rendering.nodes.PackageNodeRenderer;
+
+/**
+ * Wrapper around a DiagramRenderer that provides the logic for converting
+ * requests to creates or remove nodes and edges, and convert these
+ * requests into operation. An object of this class should perform
+ * read-only access to the underlying diagram. However, executing the operations
+ * created by methods of this class will change the state of the 
+ * underlying diagram.
+ */
+<span class="fc" id="L58">public abstract class DiagramBuilder</span>
+{
+	// Arbitrary default value, used to simplify the testing code
+	private static final int DEFAULT_DIMENSION = 1000;
+	
+	protected final DiagramRenderer aDiagramRenderer;
+<span class="fc" id="L64">	private Dimension aCanvasDimension = new Dimension(DEFAULT_DIMENSION, DEFAULT_DIMENSION);</span>
+	
+	/**
+	 * Creates a builder for the diagram wrapped by pDiagram, and an embedded renderer.
+	 * 
+	 * @param pDiagram The diagram renderer to wrap around.
+	 * @pre pDiagram != null;
+	 */
+	protected DiagramBuilder( Diagram pDiagram )
+<span class="fc" id="L73">	{</span>
+<span class="pc bpc" id="L74" title="1 of 2 branches missed.">		assert pDiagram != null;</span>
+<span class="fc" id="L75">		aDiagramRenderer = DiagramType.newRendererInstanceFor(pDiagram);</span>
+<span class="fc" id="L76">	}</span>
+	
+	/**
+	 * @return The diagram wrapped by this builder.
+	 */
+	public final Diagram diagram()
+	{
+<span class="fc" id="L83">		return aDiagramRenderer.diagram();</span>
+	}
+	
+	/**
+	 * @return The encapsulated renderer.
+	 */
+	public final DiagramRenderer renderer()
+	{
+<span class="fc" id="L91">		return aDiagramRenderer;</span>
+	}
+	
+	/**
+	 * Provide information to this builder about the size
+	 * of the canvas the diagram is built on.
+	 * 
+	 * @param pDimension The canvas size.
+	 * @pre pDimension != null.
+	 */
+	public void setCanvasDimension(Dimension pDimension)
+	{
+<span class="pc bpc" id="L103" title="1 of 2 branches missed.">		assert pDimension != null;</span>
+<span class="fc" id="L104">		aCanvasDimension = pDimension;</span>
+<span class="fc" id="L105">	}</span>
+	
+	private static List&lt;Node&gt; getNodeAndAllChildren(Node pNode)
+	{
+<span class="fc" id="L109">		List&lt;Node&gt; result = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L110">		result.add(pNode);</span>
+<span class="fc" id="L111">		pNode.getChildren().forEach(node -&gt; result.addAll(getNodeAndAllChildren(node)));</span>
+<span class="fc" id="L112">		return result;</span>
+	}
+
+	/** 
+	 * The default behavior is to position the node so it entirely fits in the diagram, then 
+	 * add it as a root node.
+	 * @param pNode The node to add.
+	 * @param pRequestedPosition A point that is the requested position of the node.
+	 * @return The requested operation
+	 * @pre pNode != null &amp;&amp; pRequestedPosition != null
+	 * @pre canAdd(pNode, pRequestedPosition)
+	 */
+	public DiagramOperation createAddNodeOperation(Node pNode, Point pRequestedPosition)
+	{
+<span class="pc bpc" id="L126" title="2 of 4 branches missed.">		assert pNode != null &amp;&amp; pRequestedPosition != null;</span>
+		// Skip the condition check for add node
+		//assert canAdd(pNode, pRequestedPosition);
+<span class="fc" id="L129">		positionNode(pNode, pRequestedPosition);</span>
+<span class="fc" id="L130">		return new SimpleOperation( ()-&gt; aDiagramRenderer.diagram().addRootNode(pNode), </span>
+<span class="fc" id="L131">				()-&gt; aDiagramRenderer.diagram().removeRootNode(pNode));</span>
+	}
+	
+	/**
+	 * Creates an operation that adds all the elements in pElements. Assumes all nodes
+	 * are root nodes and all edges are connected, and that there are no dangling references.
+	 * 
+	 * @param pElements The elements to add.
+	 * @return The requested operation
+	 * @pre pElements != null
+	 */
+	public final DiagramOperation createAddElementsOperation(Iterable&lt;DiagramElement&gt; pElements)
+	{
+<span class="fc" id="L144">		CompoundOperation operation = new CompoundOperation();</span>
+<span class="fc bfc" id="L145" title="All 2 branches covered.">		for( DiagramElement element : pElements)</span>
+		{
+<span class="fc bfc" id="L147" title="All 2 branches covered.">			if( element instanceof Node node)</span>
+			{
+<span class="fc" id="L149">				operation.add(new SimpleOperation(</span>
+<span class="fc" id="L150">						()-&gt; aDiagramRenderer.diagram().addRootNode(node),</span>
+<span class="fc" id="L151">						()-&gt; aDiagramRenderer.diagram().removeRootNode(node)));</span>
+			}
+<span class="pc bpc" id="L153" title="1 of 2 branches missed.">			else if( element instanceof Edge edge)</span>
+			{
+				/* We need to re-connect the edge to set the correct value for the
+				 * reference to the diagram, to cover the cases where elements might 
+				 * be added by being copied from one diagram and pasted into another.
+				 */
+<span class="fc" id="L159">				operation.add(new SimpleOperation(</span>
+						()-&gt; 
+						{ 
+<span class="fc" id="L162">							aDiagramRenderer.diagram().addEdge(edge); </span>
+<span class="fc" id="L163">							edge.connect(edge.start(), edge.end());	</span>
+<span class="fc" id="L164">						},</span>
+<span class="fc" id="L165">						()-&gt; aDiagramRenderer.diagram().removeEdge((Edge)element)));</span>
+			}
+<span class="fc" id="L167">		}</span>
+		
+<span class="fc" id="L169">		return operation;</span>
+	}
+	
+	/**
+	 * Finds the elements that should be removed if pElement is removed,
+	 * to preserve the integrity of the diagram.
+	 * 
+	 * @param pElement The element to remove.
+	 * @return The list of elements that have to be removed with pElement.
+	 * @pre pElement != null &amp;&amp; aDiagramRenderer.contains(pElement);
+	 */
+	protected List&lt;DiagramElement&gt; getCoRemovals(DiagramElement pElement)
+	{
+<span class="pc bpc" id="L182" title="2 of 4 branches missed.">		assert pElement != null &amp;&amp; aDiagramRenderer.diagram().contains(pElement);</span>
+<span class="fc" id="L183">		ArrayList&lt;DiagramElement&gt; result = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L184">		result.add(pElement);</span>
+<span class="pc bpc" id="L185" title="1 of 2 branches missed.">		if( pElement.getClass() == PointNode.class )</span>
+		{
+<span class="nc bnc" id="L187" title="All 2 branches missed.">			for( Edge edge : aDiagramRenderer.diagram().edgesConnectedTo((Node)pElement))</span>
+			{
+<span class="nc" id="L189">				result.add(edge);</span>
+<span class="nc" id="L190">			}</span>
+		}
+<span class="fc bfc" id="L192" title="All 2 branches covered.">		if( pElement.getClass() == NoteEdge.class )</span>
+		{
+<span class="fc" id="L194">			Edge edge = (Edge)pElement;</span>
+<span class="pc bpc" id="L195" title="1 of 2 branches missed.">			if( edge.start().getClass() == PointNode.class )</span>
+			{
+<span class="nc" id="L197">				result.add(edge.start());</span>
+			}
+<span class="fc bfc" id="L199" title="All 2 branches covered.">			if( edge.end().getClass() == PointNode.class )</span>
+			{
+<span class="fc" id="L201">				result.add(edge.end());</span>
+			}
+		}
+<span class="fc bfc" id="L204" title="All 2 branches covered.">		if( pElement instanceof Node node)</span>
+		{
+<span class="fc" id="L206">			List&lt;Node&gt; descendants = getNodeAndAllChildren(node);</span>
+<span class="fc bfc" id="L207" title="All 2 branches covered.">			for(Edge edge : aDiagramRenderer.diagram().edges())</span>
+			{
+<span class="fc bfc" id="L209" title="All 4 branches covered.">				if(descendants.contains(edge.start() ) || descendants.contains(edge.end()))</span>
+				{
+<span class="fc" id="L211">					result.add(edge);</span>
+					// Special case that if we remove a note edge we must always 
+					// remove the point node as well.
+<span class="fc bfc" id="L214" title="All 2 branches covered.">					if( edge instanceof NoteEdge )</span>
+					{
+<span class="pc bpc" id="L216" title="1 of 2 branches missed.">						if( edge.start() instanceof PointNode )</span>
+						{
+<span class="nc" id="L218">							result.add(edge.start());</span>
+						}
+<span class="pc bpc" id="L220" title="1 of 2 branches missed.">						if( edge.end() instanceof PointNode )</span>
+						{
+<span class="fc" id="L222">							result.add(edge.end());</span>
+						}
+					}
+				}
+<span class="fc" id="L226">			}</span>
+		}
+<span class="fc" id="L228">		return result;</span>
+	}
+	
+	/*
+	 * Organize the elements to delete so that they can be reinserted properly
+	 */
+	private List&lt;DiagramElement&gt; tweakOrder(Set&lt;DiagramElement&gt; pElements)
+	{
+<span class="fc" id="L236">		List&lt;DiagramElement&gt; result = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L237">		Map&lt;ObjectNode, List&lt;FieldNode&gt;&gt; fields = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L238" title="All 2 branches covered.">		for( DiagramElement element : pElements )</span>
+		{
+<span class="fc bfc" id="L240" title="All 2 branches covered.">			if( element.getClass() != FieldNode.class )</span>
+			{
+<span class="fc" id="L242">				result.add(element);</span>
+			}
+			else
+			{
+<span class="fc" id="L246">				FieldNode field = (FieldNode) element;</span>
+<span class="fc bfc" id="L247" title="All 2 branches covered.">				if( !fields.containsKey(field.getParent()) )</span>
+				{
+<span class="fc" id="L249">					fields.put((ObjectNode)field.getParent(), new ArrayList&lt;&gt;());</span>
+				}
+<span class="fc" id="L251">				fields.get(field.getParent()).add(field);</span>
+			}
+<span class="fc" id="L253">		}</span>
+<span class="fc bfc" id="L254" title="All 2 branches covered.">		for( ObjectNode object : fields.keySet() )</span>
+		{
+<span class="fc" id="L256">			List&lt;FieldNode&gt; nodes = fields.get(object);</span>
+<span class="fc" id="L257">			Collections.sort(nodes, new Comparator&lt;FieldNode&gt;()</span>
+<span class="fc" id="L258">			{</span>
+				@Override
+				public int compare(FieldNode pField1, FieldNode pField2)
+				{
+<span class="fc" id="L262">					return pField2.getParent().getChildren().indexOf(pField2) - </span>
+<span class="fc" id="L263">							pField1.getParent().getChildren().indexOf(pField1);</span>
+				}
+			});
+<span class="fc bfc" id="L266" title="All 2 branches covered.">			for( FieldNode node : nodes )</span>
+			{
+<span class="fc" id="L268">				result.add(node);</span>
+<span class="fc" id="L269">			}</span>
+<span class="fc" id="L270">		}</span>
+<span class="fc" id="L271">		ArrayList&lt;DiagramElement&gt; result2 = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L272">		ArrayList&lt;Edge&gt; edges = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L273">		ArrayList&lt;Node&gt; nodes = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L274" title="All 2 branches covered.">		for( DiagramElement element : result )</span>
+		{
+<span class="fc bfc" id="L276" title="All 2 branches covered.">			if( element instanceof Edge edge)</span>
+			{
+<span class="fc" id="L278">				edges.add(edge);</span>
+			}
+<span class="pc bpc" id="L280" title="1 of 4 branches missed.">			else if( element instanceof Node node &amp;&amp; node.hasParent() )</span>
+			{
+<span class="fc" id="L282">				nodes.add(node);</span>
+			}
+			else
+			{
+<span class="fc" id="L286">				result2.add(element);</span>
+			}
+<span class="fc" id="L288">		}</span>
+<span class="fc" id="L289">		Collections.sort(edges, (pEdge1, pEdge2) -&gt; aDiagramRenderer.diagram().indexOf(pEdge2) - aDiagramRenderer.diagram().indexOf(pEdge1));</span>
+<span class="fc" id="L290">		Collections.sort(nodes, new Comparator&lt;Node&gt;() </span>
+<span class="fc" id="L291">		{</span>
+			@Override
+			public int compare(Node pNode1, Node pNode2)
+			{
+<span class="fc" id="L295">				Node parent1 = pNode1.getParent();</span>
+<span class="fc" id="L296">				Node parent2 = pNode2.getParent();</span>
+<span class="fc bfc" id="L297" title="All 2 branches covered.">				if( parent1 == parent2 )</span>
+				{
+<span class="fc" id="L299">					return parent2.getChildren().indexOf(pNode2) -  parent1.getChildren().indexOf(pNode1);</span>
+				}
+				else 
+				{
+<span class="fc" id="L303">					return aDiagramRenderer.diagram().rootNodes().indexOf(parent2) - </span>
+<span class="fc" id="L304">							aDiagramRenderer.diagram().rootNodes().indexOf(parent1);</span>
+				}
+			}
+		});
+<span class="fc" id="L308">		result2.addAll(edges);</span>
+<span class="fc" id="L309">		result2.addAll(nodes);</span>
+<span class="fc" id="L310">		return result2;</span>
+	}
+	
+	/**
+	 * Creates an operation that removes all the elements in pElements.
+	 * 
+	 * @param pElements The elements to remove.
+	 * @return The requested operation.
+	 * @pre pElements != null.
+	 */
+	public final DiagramOperation createRemoveElementsOperation(Iterable&lt;DiagramElement&gt; pElements)
+	{
+<span class="pc bpc" id="L322" title="1 of 2 branches missed.">		assert pElements != null;</span>
+<span class="fc" id="L323">		Set&lt;DiagramElement&gt; toDelete = new HashSet&lt;&gt;();</span>
+<span class="fc bfc" id="L324" title="All 2 branches covered.">		for( DiagramElement element : pElements)</span>
+		{
+<span class="fc" id="L326">			toDelete.addAll(getCoRemovals(element));</span>
+<span class="fc" id="L327">		}</span>
+<span class="fc" id="L328">		CompoundOperation result = new CompoundOperation();</span>
+		
+<span class="fc bfc" id="L330" title="All 2 branches covered.">		for( DiagramElement element : tweakOrder(toDelete))</span>
+		{
+<span class="fc bfc" id="L332" title="All 2 branches covered.">			if( element instanceof Edge edge)</span>
+			{
+<span class="fc" id="L334">				int index = aDiagramRenderer.diagram().indexOf(edge);</span>
+<span class="fc" id="L335">				result.add(new SimpleOperation(</span>
+<span class="fc" id="L336">						()-&gt; aDiagramRenderer.diagram().removeEdge(edge),</span>
+<span class="fc" id="L337">						()-&gt; aDiagramRenderer.diagram().addEdge(index, edge)));</span>
+<span class="fc" id="L338">			}</span>
+<span class="pc bpc" id="L339" title="1 of 2 branches missed.">			else if( element instanceof Node node)</span>
+			{
+<span class="fc bfc" id="L341" title="All 2 branches covered.">				if(node.hasParent())</span>
+				{
+<span class="fc" id="L343">					result.add(new SimpleOperation(</span>
+<span class="fc" id="L344">						createDetachOperation(node),</span>
+<span class="fc" id="L345">						createReinsertOperation(node)));</span>
+				}
+				else
+				{
+<span class="fc" id="L349">					result.add(new SimpleOperation(</span>
+<span class="fc" id="L350">						()-&gt; aDiagramRenderer.diagram().removeRootNode(node),</span>
+<span class="fc" id="L351">						()-&gt; aDiagramRenderer.diagram().addRootNode(node)));</span>
+				}
+			}
+<span class="fc" id="L354">		}</span>
+<span class="fc" id="L355">		return result;</span>
+	}
+	
+	/**
+	 * Create an operation to move a node.
+	 * 
+	 * @param pNode The node to move.
+	 * @param pX The amount to move the node in the x-coordinate.
+	 * @param pY The amount to move the node in the y-coordinate.
+ 	 * @return The requested operation.
+ 	 * @pre pNode != null.
+	 */
+	public static DiagramOperation createMoveNodeOperation(Node pNode, int pX, int pY)
+	{
+<span class="fc" id="L369">		return new SimpleOperation(</span>
+<span class="fc" id="L370">				()-&gt; pNode.translate(pX, pY),</span>
+<span class="fc" id="L371">				()-&gt; pNode.translate(-pX, -pY));</span>
+	}
+	
+	/**
+	 * Create an operation to add and edge. By default an edge is create between
+	 * the start and end point of the rubberband. The special cases are handled
+	 * by overriding the method.
+	 * 
+	 * @param pEdge The edge to add.
+	 * @param pStart The starting point.
+	 * @param pEnd The end point.
+	 * @return The requested operation.
+	 */
+	public final DiagramOperation createAddEdgeOperation(Edge pEdge, Point pStart, Point pEnd)
+	{ 
+<span class="pc bpc" id="L386" title="3 of 6 branches missed.">		assert pEdge != null &amp;&amp; pStart != null &amp;&amp; pEnd != null;</span>
+		
+<span class="fc" id="L388">		Node startNode = detectStartNode(pStart); 				// Must exist</span>
+<span class="fc" id="L389">		Node endNode = detectEndNode(pEdge, startNode, pEnd);   // Can be created as a result of the method call</span>
+<span class="fc" id="L390">		Edge edge = obtainEdge(pEdge, pStart, pEnd);</span>
+		
+<span class="fc" id="L392">		CompoundOperation addEdgeOperation = new CompoundOperation();</span>
+<span class="fc bfc" id="L393" title="All 2 branches covered.">		if(!diagram().allNodes().contains(endNode))</span>
+		{
+<span class="fc" id="L395">			addEdgeOperation.add(new SimpleOperation(()-&gt; aDiagramRenderer.diagram().addRootNode(endNode),</span>
+<span class="nc" id="L396">					() -&gt; aDiagramRenderer.diagram().removeRootNode(endNode)));</span>
+		}
+<span class="fc" id="L398">		completeEdgeAdditionOperation(addEdgeOperation, edge, startNode, endNode, pStart, pEnd);</span>
+<span class="fc" id="L399">		return addEdgeOperation;</span>
+	}
+	
+	/**
+	 * Allows subclasses to overried the edge used by the user to create an edge.
+	 * To support special cases where a different edge is more appropriate given the 
+	 * start and end points than the one chosen by the user. By default this method returns pOriginalEdge.
+	 * 
+	 * @param pOriginalEdge The edge originally selected by the user.
+	 * @param pStart The start point for the edge.
+	 * @param pEnd The end point for the edge.
+	 * @return An edge object to add to the diagram.
+	 */
+	protected Edge obtainEdge(Edge pOriginalEdge, Point pStart, Point pEnd)
+	{
+<span class="fc" id="L414">		return pOriginalEdge;</span>
+	}
+	
+	/*
+	 * Returns the node under pStartPoint. Using this method assumes that
+	 * there is one. This constraint must be enforced externally.
+	 */
+	private Node detectStartNode(Point pStartPoint)
+	{
+<span class="fc" id="L423">		Optional&lt;Node&gt; maybeNode1 = aDiagramRenderer.nodeAt(pStartPoint);</span>
+		// Because we should only reach here if the edge creation gesture was started from a node
+<span class="pc bpc" id="L425" title="1 of 2 branches missed.">		assert maybeNode1.isPresent(); </span>
+<span class="fc" id="L426"> 		return maybeNode1.get();</span>
+	}
+	
+	/*
+	 * Returns the node under pEndPoint. If there is no such node, this 
+	 * method creates a PointNode at pEndPoint. If the edge is a note 
+	 * edge, a PointNode is created if the end node is not an note node
+	 */
+	private Node detectEndNode(Edge pEdge, Node pStartNode, Point pEndPoint)
+	{
+<span class="fc" id="L436">		Optional&lt;Node&gt; optionalEndNode = aDiagramRenderer.nodeAt(pEndPoint);</span>
+
+<span class="pc bpc" id="L438" title="1 of 4 branches missed.">		if( pStartNode.getClass() == NoteNode.class &amp;&amp; pEdge.getClass() == NoteEdge.class || </span>
+<span class="fc bfc" id="L439" title="All 2 branches covered.">				optionalEndNode.isEmpty() )</span>
+		{
+<span class="fc" id="L441">			Node endNode = new PointNode();</span>
+<span class="fc" id="L442">			endNode.translate(pEndPoint.x(), pEndPoint.y());</span>
+<span class="fc" id="L443">			return endNode;</span>
+		}
+		else
+		{
+<span class="fc" id="L447">			return optionalEndNode.get();</span>
+		}
+	}
+	
+	/**
+	 * Finishes the addition operation. By default, this just connects the edge to the nodes
+	 * and adds the edge to the diagram.
+	 * 
+	 * @param pOperation The operation being constructed. 
+	 * @param pEdge The edge to add.
+	 * @param pStartNode The start node.
+	 * @param pEndNode The end node.
+	 * @param pStartPoint The start point.
+	 * @param pEndPoint The end point.
+	 * @pre No null references as arguments.
+	 */
+	protected void completeEdgeAdditionOperation( CompoundOperation pOperation, Edge pEdge, Node pStartNode, Node pEndNode,
+			Point pStartPoint, Point pEndPoint)
+	{
+<span class="fc" id="L466">		pEdge.connect(pStartNode, pEndNode);</span>
+<span class="fc" id="L467">		pOperation.add(new SimpleOperation(()-&gt; aDiagramRenderer.diagram().addEdge(pEdge),</span>
+<span class="fc" id="L468">				()-&gt; aDiagramRenderer.diagram().removeEdge(pEdge)));</span>
+<span class="fc" id="L469">	}</span>
+	
+	private static Runnable createReinsertOperation(Node pNode)
+	{
+<span class="fc" id="L473">		Node parent = pNode.getParent();</span>
+<span class="fc" id="L474">		int index = parent.getChildren().indexOf(pNode);</span>
+<span class="fc" id="L475">		return ()-&gt; parent.addChild(index, pNode);</span>
+	}
+	
+	private Runnable createDetachOperation(Node pNode)
+	{
+<span class="fc" id="L480">		Node parent = pNode.getParent();</span>
+<span class="pc bpc" id="L481" title="1 of 4 branches missed.">		if(parent.getClass()==PackageNode.class &amp;&amp; parent.getChildren().size()==1)</span>
+		{
+<span class="nc" id="L483">			return ()-&gt; </span>
+			{ 
+<span class="nc" id="L485">				Rectangle parentBound = packageNodeRenderer().getBounds(parent);</span>
+<span class="nc" id="L486">				parent.removeChild(pNode); </span>
+<span class="nc" id="L487">				parent.translate( parentBound.x()-parent.position().x(),  parentBound.y()-parent.position().y() );</span>
+<span class="nc" id="L488">			};</span>
+		}
+<span class="fc" id="L490">		return ()-&gt; </span>
+		{ 
+<span class="fc" id="L492">			parent.removeChild(pNode); </span>
+<span class="fc" id="L493">		};</span>
+	}
+	
+	protected PackageNodeRenderer packageNodeRenderer()
+	{
+<span class="fc" id="L498">		return (PackageNodeRenderer)aDiagramRenderer.rendererFor(PackageNode.class);</span>
+	}
+	
+	private Point computePosition(Dimension pDimension, Point pRequestedPosition)
+	{
+<span class="fc" id="L503">		int newX = pRequestedPosition.x();</span>
+<span class="fc" id="L504">		int newY = pRequestedPosition.y();</span>
+<span class="fc bfc" id="L505" title="All 2 branches covered.">		if(newX + pDimension.width() &gt; aCanvasDimension.width())</span>
+		{
+<span class="fc" id="L507">			newX = aCanvasDimension.width() - pDimension.width();</span>
+		}
+<span class="fc bfc" id="L509" title="All 2 branches covered.">		if(newY + pDimension.height() &gt; aCanvasDimension.height())</span>
+		{
+<span class="fc" id="L511">			newY = aCanvasDimension.height() - pDimension.height();</span>
+		}
+<span class="fc" id="L513">		return new Point(newX, newY);</span>
+	}
+	
+	/**
+	 * Positions pNode as close to the requested position as possible.
+	 * 
+	 * @param pNode The node to position. 
+	 * @param pRequestedPosition The requested position.
+	 * @pre pNode != null &amp;&amp; pRequestedPosition != null
+	 */
+	protected void positionNode(Node pNode, Point pRequestedPosition)
+	{
+<span class="pc bpc" id="L525" title="2 of 4 branches missed.">		assert pNode != null &amp;&amp; pRequestedPosition != null;</span>
+<span class="fc" id="L526">		Dimension bounds = renderer().getDefaultDimension(pNode);</span>
+<span class="fc" id="L527">		Point position = computePosition(bounds, pRequestedPosition);</span>
+<span class="fc" id="L528">		pNode.translate(position.x(), position.y());</span>
+<span class="fc" id="L529">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

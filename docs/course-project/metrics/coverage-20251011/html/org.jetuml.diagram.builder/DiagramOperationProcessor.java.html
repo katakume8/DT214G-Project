@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DiagramOperationProcessor.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.diagram.builder</a> &gt; <span class="el_source">DiagramOperationProcessor.java</span></div><h1>DiagramOperationProcessor.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+
+package org.jetuml.diagram.builder;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
+/**
+ * Responsible for executing and undoing operations, and managing the collection 
+ * of previously executed and undone operations. Can also compute whether a 
+ * diagram has unsaved modifications.
+ */
+<span class="fc" id="L33">public class DiagramOperationProcessor</span>
+{
+<span class="fc" id="L35">	private final List&lt;DiagramOperation&gt; aExecutedOperations = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L36">	private final List&lt;DiagramOperation&gt; aUndoneOperations = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L37">	private Optional&lt;DiagramOperation&gt; aLastSavedOperation = Optional.empty();</span>
+	
+	/**
+	 * Executes pOperation and adds it to the list of executed
+	 * operations.
+	 * 
+	 * @param pOperation The operation to execute.
+	 * @pre pOperation != null;
+	 */
+	public void executeNewOperation(DiagramOperation pOperation)
+	{
+<span class="pc bpc" id="L48" title="1 of 2 branches missed.">		assert pOperation != null;</span>
+<span class="fc" id="L49">		pOperation.execute();</span>
+<span class="fc" id="L50">		aExecutedOperations.add(pOperation);</span>
+<span class="fc" id="L51">	}</span>
+	
+	/**
+	 * @return True if the diagram has operations that have not been saved yet.
+	 */
+	public boolean hasUnsavedOperations()
+	{
+<span class="fc bfc" id="L58" title="All 2 branches covered.">		if( aLastSavedOperation.isPresent() )</span>
+		{
+<span class="fc bfc" id="L60" title="All 2 branches covered.">			if( aExecutedOperations.isEmpty() )</span>
+			{
+<span class="fc" id="L62">				return true;</span>
+			}
+			else
+			{
+<span class="fc bfc" id="L66" title="All 2 branches covered.">				return aLastSavedOperation.get() != peek();</span>
+			}
+		}
+		else
+		{
+<span class="fc bfc" id="L71" title="All 2 branches covered.">			return !aExecutedOperations.isEmpty();</span>
+		}
+	}
+	
+	private DiagramOperation peek()
+	{
+<span class="fc" id="L77">		return aExecutedOperations.get(aExecutedOperations.size()-1);</span>
+	}
+	
+	/**
+	 * Indicates that the diagram managed by this processor has been saved.
+	 */
+	public void diagramSaved()
+	{
+<span class="fc" id="L85">		aLastSavedOperation = Optional.empty();</span>
+<span class="fc bfc" id="L86" title="All 2 branches covered.">		if( aExecutedOperations.size() &gt; 0 )</span>
+		{
+<span class="fc" id="L88">			aLastSavedOperation = Optional.of(peek());</span>
+		}
+<span class="fc" id="L90">	}</span>
+	
+	/**
+	 * Adds pOperation to the list of already executed operations,
+	 * without first executing it. 
+	 * 
+	 * @param pOperation The operation to store.
+	 * @pre pOperation != null
+	 */
+	public void storeAlreadyExecutedOperation(DiagramOperation pOperation)
+	{
+<span class="nc bnc" id="L101" title="All 2 branches missed.">		assert pOperation != null;</span>
+<span class="nc" id="L102">		aExecutedOperations.add(pOperation);</span>
+<span class="nc" id="L103">	}</span>
+	
+	/**
+	 * Undoes the last executed operation, and adds it to the list
+	 * of undone operations.
+	 * @pre canUndo()
+	 */
+	public void undoLastExecutedOperation()
+	{
+<span class="pc bpc" id="L112" title="1 of 2 branches missed.">		assert canUndo();</span>
+<span class="fc" id="L113">		DiagramOperation operation = aExecutedOperations.remove(aExecutedOperations.size() - 1);</span>
+<span class="fc" id="L114">		operation.undo();</span>
+<span class="fc" id="L115">		aUndoneOperations.add(operation);</span>
+<span class="fc" id="L116">	}</span>
+	
+	/**
+	 * Re-executes the last undone operation, and adds it to the list 
+	 * of executes operations.
+	 * @pre canRedo();
+	 */
+	public void redoLastUndoneOperation()
+	{
+<span class="pc bpc" id="L125" title="1 of 2 branches missed.">		assert canRedo();</span>
+<span class="fc" id="L126">		DiagramOperation operation = aUndoneOperations.remove(aUndoneOperations.size() - 1);</span>
+<span class="fc" id="L127">		operation.execute();</span>
+<span class="fc" id="L128">		aExecutedOperations.add(operation);</span>
+<span class="fc" id="L129">	}</span>
+
+	/**
+	 * @return True if there is at least one operation to undo.
+	 */
+	public boolean canUndo()
+	{
+<span class="fc bfc" id="L136" title="All 2 branches covered.">		return !aExecutedOperations.isEmpty();</span>
+	}
+	
+	/**
+	 * @return True if there is at least one operation to redo.
+	 */
+	public boolean canRedo()
+	{
+<span class="fc bfc" id="L144" title="All 2 branches covered.">		return !aUndoneOperations.isEmpty();</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,313 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PropertySheet.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.gui</a> &gt; <span class="el_source">PropertySheet.java</span></div><h1>PropertySheet.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.gui;
+
+import java.lang.reflect.InvocationTargetException;
+
+import org.jetuml.application.ApplicationResources;
+import org.jetuml.diagram.DiagramElement;
+import org.jetuml.diagram.Property;
+import org.jetuml.diagram.PropertyName;
+import org.jetuml.diagram.nodes.ClassNode;
+import org.jetuml.diagram.nodes.InterfaceNode;
+import org.jetuml.diagram.nodes.NoteNode;
+import org.jetuml.diagram.nodes.PackageDescriptionNode;
+
+import javafx.collections.FXCollections;
+import javafx.event.EventHandler;
+import javafx.geometry.Insets;
+import javafx.scene.control.CheckBox;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Control;
+import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
+import javafx.scene.control.TextInputControl;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCombination;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.layout.GridPane;
+
+/**
+ *  A layout that presents the properties of a DiagramElement
+ *  and allow editing them.
+ */
+public class PropertySheet extends GridPane
+{
+<span class="nc" id="L57">    private static final KeyCombination STEREOTYPE_DELIMITER_TRIGGER = </span>
+    		new KeyCodeCombination(KeyCode.Q, KeyCombination.CONTROL_DOWN);
+
+	/**
+	 * A handler for whenever a property is being detected
+	 * as being edited. This allows a more responsive UI,
+	 * where properties can be shown as they are typed, as
+	 * opposed to only when the value is entered.
+	 */
+	interface PropertyChangeListener
+	{
+		void propertyChanged();
+	}
+	
+	private static final int TEXT_FIELD_WIDTH = 10;
+	private static final int LAYOUT_SPACING = 10;
+	private static final int LAYOUT_PADDING = 20;
+
+	private final PropertyChangeListener aListener;
+	private final DiagramElement aElement;
+
+	/**
+	 * Constructs a PropertySheet to show and support editing all the properties 
+	 * for pElement.
+	 * 
+	 * @param pElement The element whose properties we wish to edit.
+	 * @param pListener An object that responds to property change events.
+	 * @pre pElement != null
+	 */
+	public PropertySheet(DiagramElement pElement, PropertyChangeListener pListener)
+<span class="nc" id="L87">	{</span>
+<span class="nc bnc" id="L88" title="All 2 branches missed.">		assert pElement != null;</span>
+<span class="nc" id="L89">		aListener = pListener;</span>
+<span class="nc" id="L90">		aElement = pElement;</span>
+<span class="nc" id="L91">		int row = 0;</span>
+<span class="nc bnc" id="L92" title="All 2 branches missed.">		for( Property property : aElement.properties() )</span>
+		{
+<span class="nc" id="L94">			Control editor = getEditorControl(property);</span>
+<span class="nc bnc" id="L95" title="All 2 branches missed.">			if( editor != null )</span>
+			{
+<span class="nc" id="L97">				add(new Label(labelName(pElement, property.name())), 0, row);</span>
+<span class="nc" id="L98">				add(editor, 1, row);</span>
+<span class="nc" id="L99">				row++;</span>
+			}
+<span class="nc" id="L101">		}</span>
+<span class="nc" id="L102">		setVgap(LAYOUT_SPACING);</span>
+<span class="nc" id="L103">		setHgap(LAYOUT_SPACING);</span>
+<span class="nc" id="L104">		setPadding(new Insets(LAYOUT_PADDING));</span>
+<span class="nc" id="L105">	}</span>
+	
+	/*
+	 * Special case due to the poor decision in the past to declare NodeNodes as a 
+	 * subclass of Name nodes, which means that its control would use the NAME
+	 * property and thus be labeled with &quot;Name&quot; instead of &quot;Text&quot;. Ideally, the 
+	 * property for NodeNodes should be a new enum called TEXT, and NoteNode should 
+	 * not be children of NamedNodes. However, changing this would break backward
+	 * compatibility.
+	 * TODO: Next time we do a backward-incompatible release, we'll fix this.
+	 */
+	private static String labelName(DiagramElement pElement, PropertyName pPropertyName)
+	{
+<span class="nc bnc" id="L118" title="All 4 branches missed.">		if( pElement.getClass() == NoteNode.class &amp;&amp; pPropertyName == PropertyName.NAME )</span>
+		{
+<span class="nc" id="L120">			return ApplicationResources.RESOURCES.getString(&quot;NoteNode.name&quot;);</span>
+		}
+<span class="nc" id="L122">		return pPropertyName.visible();</span>
+	}
+	
+	/**
+	 * @return aEmpty whether this PropertySheet has fields to edit or not.
+	 */
+	public boolean isEmpty()
+	{
+<span class="nc" id="L130">		return getChildren().isEmpty();</span>
+	}
+	
+	/**
+	 * @return The element being edited.
+	 */
+	public DiagramElement getElement()
+	{
+<span class="nc" id="L138">		return aElement;</span>
+	}
+
+	private Control getEditorControl(Property pProperty)   
+	{      
+<span class="nc bnc" id="L143" title="All 2 branches missed.">		if( pProperty.get() instanceof String )</span>
+		{
+<span class="nc bnc" id="L145" title="All 2 branches missed.">			if( extended(pProperty.name()))</span>
+			{
+<span class="nc" id="L147">				return createExtendedStringEditor(pProperty);</span>
+			}
+			else
+			{
+<span class="nc" id="L151">				return createStringEditor(pProperty);</span>
+			}
+		}
+<span class="nc bnc" id="L154" title="All 2 branches missed.">		else if( pProperty.get() instanceof Enum )</span>
+		{
+<span class="nc" id="L156">			return createEnumEditor(pProperty);</span>
+		}
+<span class="nc bnc" id="L158" title="All 2 branches missed.">		else if( pProperty.get() instanceof Boolean)</span>
+		{
+<span class="nc" id="L160">			return createBooleanEditor(pProperty);</span>
+		}
+<span class="nc" id="L162">		return null;</span>
+	}
+	
+	/*
+	 * Not the greatest but avoids over-engineering the rest of the properties API. CSOFF:
+	 */
+	private boolean extended(PropertyName pProperty)
+	{
+<span class="nc bnc" id="L170" title="All 2 branches missed.">		return 	aElement.getClass() == ClassNode.class ||</span>
+<span class="nc bnc" id="L171" title="All 2 branches missed.">				aElement.getClass() == InterfaceNode.class ||</span>
+<span class="nc bnc" id="L172" title="All 4 branches missed.">				aElement.getClass() == PackageDescriptionNode.class &amp;&amp; pProperty == PropertyName.CONTENTS ||</span>
+<span class="nc bnc" id="L173" title="All 2 branches missed.">				aElement.getClass() == NoteNode.class;</span>
+	} // CSON:
+	
+	private Control createExtendedStringEditor(Property pProperty)
+	{
+<span class="nc" id="L178">		final int rows = 5;</span>
+<span class="nc" id="L179">		final int columns = 30;</span>
+<span class="nc" id="L180">		final TextArea textArea = new TextArea();</span>
+<span class="nc" id="L181">		textArea.setPrefRowCount(rows);</span>
+<span class="nc" id="L182">		textArea.setPrefColumnCount(columns);</span>
+
+<span class="nc" id="L184">		addTabbingFeature(textArea);</span>
+<span class="nc" id="L185">		addStereotypeDelimiterFeature(textArea);</span>
+
+<span class="nc" id="L187">		textArea.setText((String) pProperty.get());</span>
+<span class="nc" id="L188">		textArea.textProperty().addListener((pObservable, pOldValue, pNewValue) -&gt; </span>
+		{
+<span class="nc" id="L190">		   pProperty.set(textArea.getText());</span>
+<span class="nc" id="L191">		   aListener.propertyChanged();</span>
+<span class="nc" id="L192">		});</span>
+		
+		// Necessary to fix scroll bar problem. See issue #553.
+<span class="nc" id="L195">		ScrollPane sp = new ScrollPane(textArea);</span>
+<span class="nc" id="L196">		sp.setFitToHeight(true);</span>
+<span class="nc" id="L197">		sp.setFitToWidth(true);</span>
+<span class="nc" id="L198">		return sp;</span>
+	}
+	
+	/*
+	 * Add a feature to the control that adds the stereotype delimiters to the input control
+	 * if Ctrl-Q is typed, and position the caret between the delimiters.
+	 */
+	private static void addStereotypeDelimiterFeature(TextInputControl pTextInput)
+	{
+<span class="nc" id="L207">		pTextInput.addEventFilter(KeyEvent.KEY_PRESSED, new EventHandler&lt;KeyEvent&gt;() </span>
+<span class="nc" id="L208">		{</span>
+			@Override
+		    public void handle(KeyEvent pKeyEvent) 
+		    {
+<span class="nc bnc" id="L212" title="All 2 branches missed.">		    	if(STEREOTYPE_DELIMITER_TRIGGER.match(pKeyEvent)) </span>
+		    	{
+<span class="nc" id="L214">		    		pTextInput.setText(pTextInput.getText() + &quot;\u00AB\u00BB&quot;);</span>
+<span class="nc" id="L215">		    		pTextInput.end();</span>
+<span class="nc" id="L216">		    		pTextInput.backward();</span>
+<span class="nc" id="L217">		    		pKeyEvent.consume();</span>
+		    	}
+<span class="nc" id="L219">		    }</span>
+		});
+<span class="nc" id="L221">	}</span>
+	
+	/*
+	 * Make it possible to insert tab characters in a text area using Ctrl-Tab.
+	 * The tab character is otherwise used to switch between fields.
+	 */
+	private static void addTabbingFeature(TextArea pTextArea)
+	{
+<span class="nc" id="L229">		pTextArea.addEventFilter(KeyEvent.KEY_PRESSED, pKeyEvent -&gt;</span>
+		{
+<span class="nc" id="L231">			final String aFocusEventText = &quot;TAB_TO_FOCUS_EVENT&quot;;</span>
+			
+<span class="nc bnc" id="L233" title="All 2 branches missed.">			if(!KeyCode.TAB.equals(pKeyEvent.getCode()))</span>
+	        {
+<span class="nc" id="L235">	            return;</span>
+	        }
+<span class="nc bnc" id="L237" title="All 8 branches missed.">	        if(pKeyEvent.isAltDown() || pKeyEvent.isMetaDown() || pKeyEvent.isShiftDown() || !(pKeyEvent.getSource() instanceof TextArea))</span>
+	        {
+<span class="nc" id="L239">	            return;</span>
+	        }
+<span class="nc" id="L241">	        final TextArea textAreaSource = (TextArea) pKeyEvent.getSource();</span>
+<span class="nc bnc" id="L242" title="All 2 branches missed.">	        if(pKeyEvent.isControlDown())</span>
+	        {
+<span class="nc bnc" id="L244" title="All 2 branches missed.">	            if(!aFocusEventText.equalsIgnoreCase(pKeyEvent.getText()))</span>
+	            {
+<span class="nc" id="L246">	            	pKeyEvent.consume();</span>
+<span class="nc" id="L247">	                textAreaSource.replaceSelection(&quot;\t&quot;);</span>
+	            }
+	        }
+	        else
+	        {
+<span class="nc" id="L252">	        	pKeyEvent.consume();</span>
+<span class="nc" id="L253">	            final KeyEvent tabControlEvent = new KeyEvent(pKeyEvent.getSource(), pKeyEvent.getTarget(), pKeyEvent.getEventType(), </span>
+<span class="nc" id="L254">	            		pKeyEvent.getCharacter(), aFocusEventText, pKeyEvent.getCode(), pKeyEvent.isShiftDown(), true, pKeyEvent.isAltDown(),</span>
+<span class="nc" id="L255">	            		pKeyEvent.isMetaDown());</span>
+<span class="nc" id="L256">	            textAreaSource.fireEvent(tabControlEvent);</span>
+	        }
+<span class="nc" id="L258">	    });</span>
+<span class="nc" id="L259">	}</span>
+	
+	private Control createStringEditor(Property pProperty)
+	{
+<span class="nc" id="L263">		TextField textField = new TextField((String) pProperty.get());</span>
+<span class="nc" id="L264">		textField.setPrefColumnCount(TEXT_FIELD_WIDTH);</span>
+<span class="nc" id="L265">		addStereotypeDelimiterFeature(textField);</span>
+		
+<span class="nc" id="L267">		textField.textProperty().addListener((pObservable, pOldValue, pNewValue) -&gt; </span>
+		{
+<span class="nc" id="L269">			pProperty.set(textField.getText());</span>
+<span class="nc" id="L270">			aListener.propertyChanged();</span>
+<span class="nc" id="L271">		});</span>
+
+<span class="nc" id="L273">		return textField;</span>
+	}
+	
+	private Control createEnumEditor(Property pProperty)
+	{
+<span class="nc" id="L278">		Enum&lt;?&gt; value = (Enum&lt;?&gt;)pProperty.get();</span>
+		try 
+		{
+<span class="nc" id="L281">			Enum&lt;?&gt;[] enumValues = (Enum&lt;?&gt;[])value.getClass().getMethod(&quot;values&quot;).invoke(null);</span>
+<span class="nc" id="L282">			final ComboBox&lt;Enum&lt;?&gt;&gt; comboBox = new ComboBox&lt;&gt;(FXCollections.observableArrayList(enumValues));</span>
+			
+<span class="nc" id="L284">			comboBox.getSelectionModel().select(value);</span>
+<span class="nc" id="L285">			comboBox.valueProperty().addListener((pObservable, pOldValue, pNewValue) -&gt; </span>
+			{
+<span class="nc" id="L287">				pProperty.set(pNewValue.toString());</span>
+<span class="nc" id="L288">				aListener.propertyChanged();</span>
+<span class="nc" id="L289">			});</span>
+		
+<span class="nc" id="L291">			return comboBox;</span>
+		}
+<span class="nc" id="L293">		catch(NoSuchMethodException | InvocationTargetException | IllegalAccessException e) </span>
+		{ 
+<span class="nc" id="L295">			return null; </span>
+		}
+	}
+	
+	private Control createBooleanEditor(Property pProperty)
+	{
+<span class="nc" id="L301">		CheckBox checkBox = new CheckBox();</span>
+<span class="nc" id="L302">		checkBox.setSelected((boolean)pProperty.get());</span>
+<span class="nc" id="L303">		checkBox.selectedProperty().addListener((pObservable, pOldValue, pNewValue) -&gt; </span>
+		{
+<span class="nc" id="L305">			pProperty.set(pNewValue);</span>
+<span class="nc" id="L306">			aListener.propertyChanged();</span>
+<span class="nc" id="L307">		});</span>
+
+<span class="nc" id="L309">		return checkBox;</span>
+	}
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

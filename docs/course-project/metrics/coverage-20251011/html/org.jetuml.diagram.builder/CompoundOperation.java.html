@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CompoundOperation.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.diagram.builder</a> &gt; <span class="el_source">CompoundOperation.java</span></div><h1>CompoundOperation.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.diagram.builder;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import org.jetuml.annotations.Composite;
+
+/**
+ * An operation that is composed of other operations, following
+ * the Composite Design Pattern.
+ * 
+ * Executing a compound operation executes all the sub-operations
+ * in the order they were added. Undoing a compound operation
+ * undoes all the sub-operation in the reverse order in which 
+ * they were added.
+ */
+@Composite
+<span class="fc" id="L39">public class CompoundOperation implements DiagramOperation</span>
+{
+<span class="fc" id="L41">	private List&lt;DiagramOperation&gt; aOperations = new ArrayList&lt;&gt;();</span>
+	
+	/**
+	 * Adds a sub-operation.
+	 * 
+	 * @param pOperation The operation to add. 
+	 * @pre pOperation != null;
+	 */
+	public void add(DiagramOperation pOperation)
+	{
+<span class="fc" id="L51">		aOperations.add(pOperation);</span>
+<span class="fc" id="L52">	}</span>
+
+	@Override
+	public void execute()
+	{
+<span class="fc bfc" id="L57" title="All 2 branches covered.">		for( DiagramOperation operation : aOperations)</span>
+		{
+<span class="fc" id="L59">			operation.execute();</span>
+<span class="fc" id="L60">		}</span>
+<span class="fc" id="L61">	}</span>
+
+	@Override
+	public void undo()
+	{
+<span class="fc" id="L66">		ArrayList&lt;DiagramOperation&gt; reverse = new ArrayList&lt;&gt;(aOperations);</span>
+<span class="fc" id="L67">		Collections.reverse(reverse);</span>
+<span class="fc bfc" id="L68" title="All 2 branches covered.">		for( DiagramOperation operation : reverse)</span>
+		{
+<span class="fc" id="L70">			operation.undo();</span>
+<span class="fc" id="L71">		}</span>
+<span class="fc" id="L72">	}</span>
+	
+	/**
+	 * @return True if this CompoundOperation contains
+	 *     no sub-operation.
+	 */
+	public boolean isEmpty()
+	{
+<span class="fc" id="L80">		return aOperations.isEmpty();</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

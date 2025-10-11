@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Version.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.application</a> &gt; <span class="el_source">Version.java</span></div><h1>Version.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.application;
+
+import java.util.StringJoiner;
+
+import org.jetuml.annotations.Immutable;
+
+/**
+ * Represents a version of JetUML. 
+ * @param major The major version number.
+ * @param minor The minor version number.
+ * @param patch The patch number.
+ */
+<span class="fc" id="L33">@Immutable</span>
+<span class="fc" id="L34">public record Version(int major, int minor, int patch)</span>
+{	
+	@Override
+	public String toString()
+	{
+<span class="fc" id="L39">		StringJoiner versionString = new StringJoiner(&quot;.&quot;);</span>
+<span class="fc" id="L40">		versionString.add(Integer.toString(major));</span>
+<span class="fc" id="L41">		versionString.add(Integer.toString(minor));</span>
+<span class="fc bfc" id="L42" title="All 2 branches covered.">		if( patch &gt; 0 )</span>
+		{
+<span class="fc" id="L44">			versionString.add(Integer.toString(patch));</span>
+		}
+<span class="fc" id="L46">		return versionString.toString();</span>
+	}
+	
+	/**
+	 * Parses a string representing a version.
+	 * 
+	 * @param pVersionString The string to parse.
+	 * @return A Version object
+	 * @throws IllegalArgumentException if the string cannot be parsed into a valid version
+	 * @pre pVersionString != null
+	 */
+	public static Version parse(String pVersionString)
+	{
+<span class="fc" id="L59">		String[] tokens = pVersionString.split(&quot;\\.&quot;);</span>
+<span class="fc bfc" id="L60" title="All 2 branches covered.">		if( tokens.length &lt; 2)</span>
+		{
+<span class="fc" id="L62">			throw new IllegalArgumentException(&quot;Invalid version string: &quot; + pVersionString);</span>
+		}
+<span class="fc" id="L64">		int major = 0;</span>
+<span class="fc" id="L65">		int minor = 0;</span>
+<span class="fc" id="L66">		int patch = 0;</span>
+		try
+		{
+<span class="fc" id="L69">			major = Integer.parseInt(tokens[0]);</span>
+<span class="fc" id="L70">			minor = Integer.parseInt(tokens[1]);</span>
+<span class="fc bfc" id="L71" title="All 2 branches covered.">			if( tokens.length == 3 )</span>
+			{
+<span class="fc" id="L73">				patch = Integer.parseInt(tokens[2]);</span>
+			}
+<span class="fc bfc" id="L75" title="All 2 branches covered.">			else if( tokens.length &gt; 3 )</span>
+			{
+<span class="fc" id="L77">				throw new IllegalArgumentException(&quot;Invalid version string: &quot; + pVersionString);</span>
+			}
+		}
+<span class="fc" id="L80">		catch( NumberFormatException e )</span>
+		{
+<span class="fc" id="L82">			throw new IllegalArgumentException(&quot;Invalid version string: &quot; + pVersionString);</span>
+<span class="fc" id="L83">		}</span>
+<span class="fc" id="L84">		return new Version(major, minor, patch);</span>
+	}
+	
+	/**
+	 * This method is functionally equivalent to the canonical constructor and 
+	 * is included to provide a complete and coherent API for creating versions.
+	 * Using this method is preferred over the constructor because it performs
+	 * an assertion check on the input.
+	 * 
+	 * @param pMajor The major component.
+	 * @param pMinor The minor component.
+	 * @param pPatch The patch component.
+	 * @return The object that corresponds to the specified version.
+	 * @pre pMajor &gt;= 0 &amp;&amp; pMinor &gt;= 0 &amp;&amp; pPatch &gt;=0
+	 */
+	public static Version create(int pMajor, int pMinor, int pPatch)
+	{
+<span class="pc bpc" id="L101" title="3 of 6 branches missed.">		assert pMajor &gt;= 0 &amp;&amp; pMinor &gt;= 0 &amp;&amp; pPatch &gt;=0;</span>
+<span class="fc" id="L102">		return new Version(pMajor, pMinor, pPatch);</span>
+	}
+	
+	/**
+	 * A convenience method to create a version without a patch number.
+	 * 
+	 * @param pMajor The major component.
+	 * @param pMinor The minor component.
+	 * @return The object that corresponds to the specified version.
+	 * @pre pMajor &gt;= 0 &amp;&amp; pMinor &gt;= 0
+	 */
+	public static Version create(int pMajor, int pMinor)
+	{
+<span class="fc" id="L115">		return create(pMajor, pMinor, 0);</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

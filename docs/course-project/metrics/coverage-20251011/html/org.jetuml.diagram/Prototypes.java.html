@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Prototypes.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.diagram</a> &gt; <span class="el_source">Prototypes.java</span></div><h1>Prototypes.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.diagram;
+
+import static org.jetuml.application.ApplicationResources.RESOURCES;
+
+import java.util.IdentityHashMap;
+import java.util.Map;
+
+import org.jetuml.annotations.Singleton;
+import org.jetuml.diagram.edges.AggregationEdge;
+import org.jetuml.diagram.edges.AssociationEdge;
+import org.jetuml.diagram.edges.CallEdge;
+import org.jetuml.diagram.edges.DependencyEdge;
+import org.jetuml.diagram.edges.GeneralizationEdge;
+import org.jetuml.diagram.edges.NoteEdge;
+import org.jetuml.diagram.edges.ObjectCollaborationEdge;
+import org.jetuml.diagram.edges.ObjectReferenceEdge;
+import org.jetuml.diagram.edges.ReturnEdge;
+import org.jetuml.diagram.edges.StateTransitionEdge;
+import org.jetuml.diagram.edges.UseCaseAssociationEdge;
+import org.jetuml.diagram.edges.UseCaseDependencyEdge;
+import org.jetuml.diagram.edges.UseCaseGeneralizationEdge;
+import org.jetuml.diagram.nodes.ActorNode;
+import org.jetuml.diagram.nodes.ClassNode;
+import org.jetuml.diagram.nodes.FieldNode;
+import org.jetuml.diagram.nodes.FinalStateNode;
+import org.jetuml.diagram.nodes.ImplicitParameterNode;
+import org.jetuml.diagram.nodes.InitialStateNode;
+import org.jetuml.diagram.nodes.InterfaceNode;
+import org.jetuml.diagram.nodes.NoteNode;
+import org.jetuml.diagram.nodes.ObjectNode;
+import org.jetuml.diagram.nodes.PackageDescriptionNode;
+import org.jetuml.diagram.nodes.PackageNode;
+import org.jetuml.diagram.nodes.StateNode;
+import org.jetuml.diagram.nodes.UseCaseNode;
+
+/**
+ * Prototype objects for creating diagram elements.
+ */
+@Singleton
+public final class Prototypes
+{   // CSOFF:
+<span class="fc" id="L62">	private static final Prototypes INSTANCE = new Prototypes();</span>
+<span class="fc" id="L63">	private final Map&lt;DiagramElement, String&gt; aKeys = new IdentityHashMap&lt;&gt;();</span>
+	
+<span class="fc" id="L65">	public static final DiagramElement NOTE = create(new NoteNode(), &quot;note&quot;);</span>
+<span class="fc" id="L66">	public static final DiagramElement NOTE_CONNECTOR = create(new NoteEdge(), &quot;note_connector&quot;);</span>
+	
+<span class="fc" id="L68">	public static final DiagramElement CLASS = create(new ClassNode(), &quot;class&quot;);</span>
+<span class="fc" id="L69">	public static final DiagramElement INTERFACE = create(new InterfaceNode(), &quot;interface&quot;);</span>
+<span class="fc" id="L70">	public static final DiagramElement PACKAGE = create(new PackageNode(), &quot;package&quot;);</span>
+<span class="fc" id="L71">	public static final DiagramElement PACKAGE_DESCRIPTION = </span>
+<span class="fc" id="L72">			create(new PackageDescriptionNode(), &quot;package_description&quot;);</span>
+<span class="fc" id="L73">	public static final DiagramElement DEPENDENCY = create(new DependencyEdge(), &quot;dependency&quot;);</span>
+<span class="fc" id="L74">	public static final DiagramElement GENERALIZATION = create(new GeneralizationEdge(), &quot;generalization&quot;);</span>
+<span class="fc" id="L75">	public static final DiagramElement REALIZATION = </span>
+<span class="fc" id="L76">			create(new GeneralizationEdge(GeneralizationEdge.Type.Implementation), &quot;realization&quot;);</span>
+<span class="fc" id="L77">	public static final DiagramElement ASSOCIATION = create(new AssociationEdge(), &quot;association&quot;);</span>
+<span class="fc" id="L78">	public static final DiagramElement AGGREGATION = create(new AggregationEdge(), &quot;aggregation&quot;);</span>
+<span class="fc" id="L79">	public static final DiagramElement COMPOSITION = </span>
+<span class="fc" id="L80">			create(new AggregationEdge(AggregationEdge.Type.Composition), &quot;composition&quot;);</span>
+	
+<span class="fc" id="L82">	public static final DiagramElement IMPLICIT_PARAMETER = </span>
+<span class="fc" id="L83">			create(new ImplicitParameterNode(), &quot;implicit_parameter&quot;);</span>
+<span class="fc" id="L84">	public static final DiagramElement METHOD_CALL = create(new CallEdge(), &quot;method_call&quot;);</span>
+<span class="fc" id="L85">	public static final DiagramElement METHOD_RETURN = create(new ReturnEdge(), &quot;method_return&quot;);</span>
+	
+<span class="fc" id="L87">	public static final DiagramElement STATE = create(new StateNode(), &quot;state&quot;);</span>
+<span class="fc" id="L88">	public static final DiagramElement START_STATE = create(new InitialStateNode(), &quot;start_state&quot;);</span>
+<span class="fc" id="L89">	public static final DiagramElement END_STATE = create(new FinalStateNode(), &quot;end_state&quot;);</span>
+<span class="fc" id="L90">	public static final DiagramElement TRANSITION = create(new StateTransitionEdge(), &quot;transition&quot;);</span>
+	
+<span class="fc" id="L92">	public static final DiagramElement OBJECT = create(new ObjectNode(), &quot;object&quot;);</span>
+<span class="fc" id="L93">	public static final DiagramElement FIELD = create(new FieldNode(), &quot;field&quot;);</span>
+<span class="fc" id="L94">	public static final DiagramElement REFERENCE = create(new ObjectReferenceEdge(), &quot;reference&quot;);</span>
+<span class="fc" id="L95">	public static final DiagramElement COLLABORATION = create(new ObjectCollaborationEdge(), &quot;collaboration&quot;);	</span>
+	
+<span class="fc" id="L97">	public static final DiagramElement ACTOR = create(new ActorNode(), &quot;actor&quot;);	</span>
+<span class="fc" id="L98">	public static final DiagramElement USE_CASE = create(new UseCaseNode(), &quot;use_case&quot;);	</span>
+<span class="fc" id="L99">	public static final DiagramElement USE_CASE_ASSOCIATION = </span>
+<span class="fc" id="L100">			create(new UseCaseAssociationEdge(), &quot;use_case_association&quot;);	</span>
+<span class="fc" id="L101">	public static final DiagramElement USE_CASE_EXTENDS = </span>
+<span class="fc" id="L102">			create(new UseCaseDependencyEdge(UseCaseDependencyEdge.Type.Extend), &quot;use_case_extends&quot;);	</span>
+<span class="fc" id="L103">	public static final DiagramElement USE_CASE_INCLUDES = </span>
+<span class="fc" id="L104">			create(new UseCaseDependencyEdge(UseCaseDependencyEdge.Type.Include), &quot;use_case_includes&quot;);	</span>
+<span class="fc" id="L105">	public static final DiagramElement USE_CASE_GENERALIZATION = </span>
+<span class="fc" id="L106">			create(new UseCaseGeneralizationEdge(), &quot;use_case_generalization&quot;);	// CSON:</span>
+	
+<span class="fc" id="L108">	private Prototypes() {}</span>
+	
+	/**
+	 * @return The singleton instance of this class.
+	 */
+	public static Prototypes instance()
+	{
+<span class="fc" id="L115">		return INSTANCE;</span>
+	}
+	
+	private static DiagramElement create(DiagramElement pElement, String pKey)
+	{
+<span class="fc" id="L120">		INSTANCE.aKeys.put(pElement, pKey);</span>
+<span class="fc" id="L121">		return pElement;</span>
+	}
+	
+	/**
+	 * @param pPrototype The requested prototype
+	 * @param pVerbose true if we want the verbose version of this tooltip.
+	 * @return The tooltip associated with this prototype.
+	 * @pre pPrototype != null
+	 */
+	public String tooltip(DiagramElement pPrototype, boolean pVerbose)
+	{
+<span class="pc bpc" id="L132" title="1 of 2 branches missed.">		if( !aKeys.containsKey(pPrototype))</span>
+		{
+<span class="nc" id="L134">			return &quot;[tooltip not found]&quot;;</span>
+		}
+<span class="fc" id="L136">		String basicKey = aKeys.get(pPrototype) + &quot;.tooltip&quot;;</span>
+<span class="fc" id="L137">		String verboseKey = basicKey + &quot;.verbose&quot;;</span>
+<span class="pc bpc" id="L138" title="3 of 4 branches missed.">		if( pVerbose &amp;&amp; RESOURCES.containsKey(verboseKey))</span>
+		{
+<span class="nc" id="L140">			return RESOURCES.getString(basicKey) + &quot;: &quot; + RESOURCES.getString(verboseKey);</span>
+		}
+		else
+		{
+<span class="fc" id="L144">			return RESOURCES.getString(basicKey);</span>
+		}
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

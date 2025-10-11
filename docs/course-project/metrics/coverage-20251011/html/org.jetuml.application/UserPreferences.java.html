@@ -1,0 +1,309 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UserPreferences.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.application</a> &gt; <span class="el_source">UserPreferences.java</span></div><h1>UserPreferences.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.application;
+
+import java.util.ArrayList;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.prefs.Preferences;
+
+import org.jetuml.JetUML;
+import org.jetuml.annotations.Singleton;
+
+/**
+ * A Singleton that manages all user preferences global to
+ * the application.
+ */
+@Singleton
+public final class UserPreferences
+{
+	public static final String DEFAULT_FONT_NAME = &quot;System&quot;;
+	public static final int DEFAULT_FONT_SIZE = 12;
+	
+	/**
+	 * A boolean preference.
+	 */
+<span class="fc" id="L44">	public enum BooleanPreference</span>
+	{	
+<span class="fc" id="L46">		showGrid(true), showToolHints(false), autoEditNode(false), verboseToolTips(false),</span>
+<span class="fc" id="L47">		showTips(true), darkMode(false);</span>
+		
+		private boolean aDefault;
+		
+		BooleanPreference( boolean pDefault )
+<span class="fc" id="L52">		{ </span>
+<span class="fc" id="L53">			aDefault = pDefault;</span>
+<span class="fc" id="L54">		}</span>
+		
+		String getDefault()
+		{
+<span class="fc" id="L58">			return Boolean.toString(aDefault);</span>
+		}
+	}
+	
+	/**
+	 * An integer preference.
+	 */
+<span class="fc" id="L65">	public enum IntegerPreference</span>
+	{
+<span class="fc" id="L67">		diagramWidth(0), diagramHeight(0), nextTipId(1), fontSize(DEFAULT_FONT_SIZE), notificationDuration(5);</span>
+		
+		private int aDefault;
+		
+		IntegerPreference( int pDefault )
+<span class="fc" id="L72">		{</span>
+<span class="fc" id="L73">			aDefault = pDefault;</span>
+<span class="fc" id="L74">		}</span>
+		
+		/**
+		 * @return The default value for this preference.
+		 */
+		public String getDefault()
+		{
+<span class="fc" id="L81">			return Integer.toString(aDefault);</span>
+		}
+	}
+	
+	/**
+	 * A string preference.
+	 */
+<span class="fc" id="L88">	public enum StringPreference</span>
+	{
+<span class="fc" id="L90">		fontName(DEFAULT_FONT_NAME);</span>
+		
+		private String aDefault;
+		
+		StringPreference( String pDefault )
+<span class="fc" id="L95">		{</span>
+<span class="fc" id="L96">			aDefault = pDefault;</span>
+<span class="fc" id="L97">		}</span>
+		
+		/**
+		 * @return The default value for this preference.
+		 */
+		public String getDefault()
+		{
+<span class="fc" id="L104">			return aDefault;</span>
+		}
+	}
+	
+	/**
+	 * An object that can react to a change to a boolean user preference.
+	 */
+	public interface BooleanPreferenceChangeHandler
+	{
+		/**
+		 * Callback for change in boolean preference values.
+		 * 
+		 * @param pPreference The preference that just changed.
+		 */
+		void booleanPreferenceChanged(BooleanPreference pPreference);
+	}
+
+	/**
+	 * An object that can react to a change to an integer user preference.
+	 */
+	public interface IntegerPreferenceChangeHandler
+	{
+		/**
+		 * Callback for change in integer preference values.
+		 * 
+		 * @param pPreference The preference that just changed.
+		 */
+		void integerPreferenceChanged(IntegerPreference pPreference);
+	}
+	
+	/**
+	 * An object that can react to a change to a string user preference.
+	 */
+	public interface StringPreferenceChangeHandler
+	{
+		/**
+		 * Callback for change in string preference values.
+		 * 
+		 * @param pPreference The preference that just changed.
+		 */
+		void stringPreferenceChanged(StringPreference pPreference);
+	}
+	
+<span class="fc" id="L147">	private static final UserPreferences INSTANCE = new UserPreferences();</span>
+	
+<span class="fc" id="L149">	private EnumMap&lt;BooleanPreference, Boolean&gt; aBooleanPreferences = new EnumMap&lt;&gt;(BooleanPreference.class);</span>
+<span class="fc" id="L150">	private final List&lt;BooleanPreferenceChangeHandler&gt; aBooleanPreferenceChangeHandlers = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L151">	private EnumMap&lt;IntegerPreference, Integer&gt; aIntegerPreferences = new EnumMap&lt;&gt;(IntegerPreference.class);</span>
+<span class="fc" id="L152">	private final List&lt;IntegerPreferenceChangeHandler&gt; aIntegerPreferenceChangeHandlers = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L153">	private EnumMap&lt;StringPreference, String&gt; aStringPreferences = new EnumMap&lt;&gt;(StringPreference.class);</span>
+<span class="fc" id="L154">	private final List&lt;StringPreferenceChangeHandler&gt; aStringPreferenceChangeHandlers = new ArrayList&lt;&gt;();</span>
+	
+	private UserPreferences()
+<span class="fc" id="L157">	{</span>
+<span class="fc bfc" id="L158" title="All 2 branches covered.">		for( BooleanPreference preference : BooleanPreference.values() )</span>
+		{
+<span class="fc" id="L160">			aBooleanPreferences.put(preference, </span>
+<span class="fc" id="L161">					Boolean.valueOf(Preferences.userNodeForPackage(JetUML.class)</span>
+<span class="fc" id="L162">							.get(preference.name(), preference.getDefault())));</span>
+		}
+<span class="fc bfc" id="L164" title="All 2 branches covered.">		for( IntegerPreference preference : IntegerPreference.values() )</span>
+		{
+<span class="fc" id="L166">			aIntegerPreferences.put( preference, </span>
+<span class="fc" id="L167">					Integer.valueOf(Preferences.userNodeForPackage(JetUML.class)</span>
+<span class="fc" id="L168">							.get(preference.name(), preference.getDefault())));</span>
+		}
+<span class="fc bfc" id="L170" title="All 2 branches covered.">		for( StringPreference preference : StringPreference.values() )</span>
+		{
+<span class="fc" id="L172">			aStringPreferences.put(preference, </span>
+<span class="fc" id="L173">					Preferences.userNodeForPackage(JetUML.class)</span>
+<span class="fc" id="L174">							.get(preference.name(), preference.getDefault()));</span>
+		}
+<span class="fc" id="L176">	}</span>
+	
+	public static UserPreferences instance() 
+<span class="fc" id="L179">	{ return INSTANCE; }</span>
+	
+	/**
+	 * @param pPreference The property whose value to obtain.
+	 * @return The value of the property.
+	 */
+	public boolean getBoolean(BooleanPreference pPreference)
+	{
+<span class="fc" id="L187">		return aBooleanPreferences.get(pPreference);</span>
+	}
+	
+	/**
+	 * @param pPreference The property whose value to obtain.
+	 * @return The value of the property.
+	 */
+	public int getInteger(IntegerPreference pPreference)
+	{
+<span class="fc" id="L196">		return aIntegerPreferences.get(pPreference);</span>
+	}
+	
+	/**
+	 * @param pPreference The property whose value to obtain.
+	 * @return The value of the property.
+	 */
+	public String getString(StringPreference pPreference)
+	{
+<span class="fc" id="L205">		return aStringPreferences.get(pPreference);</span>
+	}
+	
+	/**
+	 * Sets and persists the value of a preference.
+	 * 
+	 * @param pPreference The property to set.
+	 * @param pValue The value to set.
+	 */
+	public void setBoolean(BooleanPreference pPreference, boolean pValue)
+	{
+<span class="fc" id="L216">		aBooleanPreferences.put(pPreference, pValue);</span>
+<span class="fc" id="L217">		Preferences.userNodeForPackage(JetUML.class).put(pPreference.name(), Boolean.toString(pValue));</span>
+<span class="fc" id="L218">		aBooleanPreferenceChangeHandlers.forEach(handler -&gt; handler.booleanPreferenceChanged(pPreference));</span>
+<span class="fc" id="L219">	}</span>
+	
+	/**
+	 * Sets and persists the value of a preference.
+	 * 
+	 * @param pPreference The property to set.
+	 * @param pValue The value to set.
+	 */
+	public void setInteger(IntegerPreference pPreference, int pValue)
+	{
+<span class="fc" id="L229">		aIntegerPreferences.put(pPreference, pValue);</span>
+<span class="fc" id="L230">		Preferences.userNodeForPackage(JetUML.class).put(pPreference.name(), Integer.toString(pValue));</span>
+<span class="pc" id="L231">		aIntegerPreferenceChangeHandlers.forEach(handler -&gt; handler.integerPreferenceChanged(pPreference));</span>
+<span class="fc" id="L232">	}</span>
+	
+	/**
+	 * Sets and persists the value of a preference.
+	 * 
+	 * @param pPreference The property to set.
+	 * @param pValue The value to set.
+	 */
+	public void setString(StringPreference pPreference, String pValue)
+	{
+<span class="fc" id="L242">		aStringPreferences.put(pPreference, pValue);</span>
+<span class="fc" id="L243">		Preferences.userNodeForPackage(JetUML.class).put(pPreference.name(), pValue);</span>
+<span class="pc" id="L244">		aStringPreferenceChangeHandlers.forEach(handler -&gt; handler.stringPreferenceChanged(pPreference));</span>
+<span class="fc" id="L245">	}</span>
+	
+	/**
+	 * Adds a handler for a boolean property change. Don't forget to remove handers if 
+	 * objects are removed, e.g., diagram Tabs.
+	 * 
+	 * @param pHandler A handler for a change in boolean preferences.
+	 */
+	public void addBooleanPreferenceChangeHandler(BooleanPreferenceChangeHandler pHandler)
+	{
+<span class="fc" id="L255">		aBooleanPreferenceChangeHandlers.add(pHandler);</span>
+<span class="fc" id="L256">	}</span>
+	
+	/**
+	 * Removes a handler.
+	 * 
+	 * @param pHandler The handler to remove.
+	 */
+	public void removeBooleanPreferenceChangeHandler(BooleanPreferenceChangeHandler pHandler)
+	{
+<span class="nc" id="L265">		aBooleanPreferenceChangeHandlers.remove(pHandler);</span>
+<span class="nc" id="L266">	}</span>
+	
+	/**
+	 * Adds a handler for an integer property change. Don't forget to remove handers if 
+	 * objects are removed, e.g., diagram Tabs.
+	 * 
+	 * @param pHandler A handler for a change in integer preferences.
+	 */
+	public void addIntegerPreferenceChangeHandler(IntegerPreferenceChangeHandler pHandler)
+	{
+<span class="nc" id="L276">		aIntegerPreferenceChangeHandlers.add(pHandler);</span>
+<span class="nc" id="L277">	}</span>
+
+	/**
+	 * Removes a handler.
+	 * 
+	 * @param pHandler The handler to remove.
+	 */
+	public void removeIntegerPreferenceChangeHandler(IntegerPreferenceChangeHandler pHandler)
+	{
+<span class="nc" id="L286">		aIntegerPreferenceChangeHandlers.remove(pHandler);</span>
+<span class="nc" id="L287">	}</span>
+	
+	/**
+	 * Adds a handler for a string property change.
+	 * 
+	 * @param pHandler A handler for a change in integer preferences.
+	 */
+	public void addStringPreferenceChangeHandler(StringPreferenceChangeHandler pHandler)
+	{
+<span class="nc" id="L296">		aStringPreferenceChangeHandlers.add(pHandler);</span>
+<span class="nc" id="L297">	}</span>
+
+	/**
+	 * Removes a handler.
+	 * 
+	 * @param pHandler The handler to remove.
+	 */
+	public void removeStringPreferenceChangeHandler(StringPreferenceChangeHandler pHandler)
+	{
+<span class="nc" id="L306">		aStringPreferenceChangeHandlers.remove(pHandler);</span>
+<span class="nc" id="L307">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ToastNotification.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.gui</a> &gt; <span class="el_source">ToastNotification.java</span></div><h1>ToastNotification.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.gui;
+
+import java.util.Timer;
+import java.util.TimerTask;
+
+import org.jetuml.application.UserPreferences;
+
+import javafx.animation.KeyFrame;
+import javafx.animation.KeyValue;
+import javafx.animation.Timeline;
+import javafx.scene.Scene;
+import javafx.scene.layout.StackPane;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
+import javafx.scene.text.Text;
+import javafx.stage.Stage;
+import javafx.stage.StageStyle;
+import javafx.util.Duration;
+
+/**
+ * A toast notification object (that pops up and disappears without requiring any user interaction).
+ */
+public final class ToastNotification implements Notification
+{
+	private static final int MILLISECONDS_PER_SECOND = 1000;
+<span class="fc" id="L46">	private static final Color TEXT_COLOR = Color.grayRgb(50);</span>
+
+    /**
+     * Defines the color of the toast notification.
+     */
+<span class="fc" id="L51">    public enum Type</span>
+    {
+<span class="fc" id="L53">        ERROR(&quot;-fx-padding: 8px; -fx-background-color: rgb(255, 217, 217); -fx-background-radius: 7&quot;),</span>
+<span class="fc" id="L54">        SUCCESS(&quot;-fx-padding: 8px; -fx-background-color: rgb(224, 255, 217); -fx-background-radius: 7&quot;),</span>
+<span class="fc" id="L55">        WARNING(&quot;-fx-padding: 8px; -fx-background-color: rgb(255, 253, 217); -fx-background-radius: 7&quot;),</span>
+<span class="fc" id="L56">        INFO(&quot;-fx-padding: 8px; -fx-background-color: rgb(217, 245, 255); -fx-background-radius: 7&quot;);</span>
+
+        private final String aStyle;
+
+        Type(String pStyle)
+<span class="fc" id="L61">        {</span>
+<span class="fc" id="L62">            aStyle = pStyle;</span>
+<span class="fc" id="L63">        }</span>
+
+        /**
+         * @return A string containing the CSS style of the type
+         */
+        public String getStyle()
+        {
+<span class="fc" id="L70">            return aStyle;</span>
+        }
+    }
+
+    private static final int FADE_IN_DELAY = 500;
+    private static final int FADE_OUT_DELAY = 500;
+
+    private final Stage aStage;
+
+    /**
+     * Creates a new Toast notification object using default fade in delay, fade out delay and lifespan.
+     *
+     * @param pMessage The message to display
+     * @param pType The type of the toast notification
+     * @param pOwnerStage The main window stage
+     */
+    public ToastNotification(String pMessage, Type pType, Stage pOwnerStage)
+<span class="fc" id="L87">    {</span>
+<span class="fc" id="L88">        aStage = createStage(pMessage, pType, pOwnerStage);</span>
+<span class="fc" id="L89">    }</span>
+
+    private static Stage createStage(String pMessage, Type pType, Stage pOwnerStage)
+    {
+<span class="fc" id="L93">        Stage stage = new Stage();</span>
+
+<span class="fc" id="L95">        stage.initOwner(pOwnerStage);</span>
+<span class="fc" id="L96">        stage.setResizable(false);</span>
+<span class="fc" id="L97">        stage.initStyle(StageStyle.TRANSPARENT);</span>
+
+<span class="fc" id="L99">        Text text = new Text(pMessage);</span>
+
+<span class="fc" id="L101">        text.setFont(Font.font(&quot;System&quot;, UserPreferences.instance().getInteger(UserPreferences.IntegerPreference.fontSize)));</span>
+<span class="fc" id="L102">        text.setFill(TEXT_COLOR);</span>
+
+<span class="fc" id="L104">        StackPane pane = new StackPane(text);</span>
+
+<span class="fc" id="L106">        pane.setStyle(pType.getStyle());</span>
+<span class="fc" id="L107">        pane.setOpacity(0);</span>
+
+<span class="fc" id="L109">        Scene scene = new Scene(pane);</span>
+<span class="fc" id="L110">        scene.setFill(Color.TRANSPARENT);</span>
+<span class="fc" id="L111">        stage.setScene(scene);</span>
+
+<span class="fc" id="L113">        return stage;</span>
+    }
+
+    /**
+     * Shows the Notification object to the screen. This method is also responsible for
+     * terminating the notification and deleting it from the NotificationService notification list.
+     *
+     * @param pCleanUpCallback The Runnable to run when the notification should be removed from the notification list
+     */
+    @Override
+    public void show(Runnable pCleanUpCallback)
+    {
+<span class="fc" id="L125">    	int duration = notificationDurationInMilliseconds();</span>
+    	// A duration of zero disables notifications
+<span class="pc bpc" id="L127" title="1 of 2 branches missed.">    	if( duration == 0 )</span>
+    	{
+<span class="nc" id="L129">    		return;</span>
+    	}
+    	
+<span class="fc" id="L132">        aStage.show();</span>
+<span class="fc" id="L133">        aStage.getOwner().requestFocus(); // Keeps the main Stage focused (and not the notifications)</span>
+
+        // We define the Timeline for the fadein animation
+<span class="fc" id="L136">        Timeline fadeInTimeline = new Timeline();</span>
+<span class="fc" id="L137">        KeyFrame fadeInKey = new KeyFrame(Duration.millis(FADE_IN_DELAY), new KeyValue(aStage.getScene().getRoot().opacityProperty(), 1));</span>
+<span class="fc" id="L138">        fadeInTimeline.getKeyFrames().add(fadeInKey);</span>
+
+        // We define the Timeline for the fadeout animation
+<span class="fc" id="L141">        Timeline fadeOutTimeline = new Timeline();</span>
+<span class="fc" id="L142">        KeyFrame fadeOutKey = new KeyFrame(Duration.millis(FADE_OUT_DELAY),</span>
+<span class="fc" id="L143">                new KeyValue(aStage.getScene().getRoot().opacityProperty(), 0));</span>
+
+<span class="fc" id="L145">        fadeOutTimeline.getKeyFrames().add(fadeOutKey);</span>
+        // We close the stage and execute the callback at the end of the fadeout animation
+<span class="pc" id="L147">        fadeOutTimeline.setOnFinished(actionEvent1 -&gt; pCleanUpCallback.run());</span>
+
+<span class="fc" id="L149">        Timer notificationTimer = new Timer();</span>
+<span class="fc" id="L150">        TimerTask lifespan = new TimerTask()</span>
+<span class="fc" id="L151">        {</span>
+            @Override
+			public void run()
+            {
+<span class="fc" id="L155">                fadeOutTimeline.play();</span>
+<span class="fc" id="L156">            }</span>
+        };
+
+        // When the fadein animation ends, we start a timer that will execute the fadeout animation
+<span class="fc" id="L160">        fadeInTimeline.setOnFinished(actionEvent -&gt; notificationTimer.schedule(lifespan, duration));</span>
+
+        // We trigger the fadein animation
+<span class="fc" id="L163">        fadeInTimeline.play();</span>
+<span class="fc" id="L164">    }</span>
+
+    private static int notificationDurationInMilliseconds()
+    {
+<span class="fc" id="L168">    	return UserPreferences.instance().getInteger(</span>
+    			UserPreferences.IntegerPreference.notificationDuration) * MILLISECONDS_PER_SECOND;
+    }
+    
+    /**
+     * Close the stage of the Notification object (to end it prematurely).
+     * Useful when the notifications go beyond the window.
+     */
+    @Override
+    public void close()
+    {
+<span class="fc" id="L179">        aStage.close();</span>
+<span class="fc" id="L180">    }</span>
+
+    /**
+     * Moves the Notification object to the desired position on the screen.
+     *
+     * @param pX The target X position
+     * @param pY The target Y position
+     */
+    @Override
+    public void setPosition(double pX, double pY)
+    {
+<span class="fc" id="L191">        aStage.setX(pX);</span>
+<span class="fc" id="L192">        aStage.setY(pY - aStage.getHeight()); // We consider the bottom-left corner as the y position reference point</span>
+<span class="fc" id="L193">    }</span>
+
+    /**
+     * @return The height of the Notification object.
+     */
+    @Override
+    public double getHeight()
+    {
+<span class="fc" id="L201">        return aStage.getHeight();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

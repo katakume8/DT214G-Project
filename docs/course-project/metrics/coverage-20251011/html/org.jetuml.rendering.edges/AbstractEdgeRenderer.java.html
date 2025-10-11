@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AbstractEdgeRenderer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.rendering.edges</a> &gt; <span class="el_source">AbstractEdgeRenderer.java</span></div><h1>AbstractEdgeRenderer.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.rendering.edges;
+
+import org.jetuml.diagram.DiagramElement;
+import org.jetuml.diagram.Edge;
+import org.jetuml.geom.Alignment;
+import org.jetuml.geom.Dimension;
+import org.jetuml.geom.Direction;
+import org.jetuml.geom.Line;
+import org.jetuml.geom.Point;
+import org.jetuml.geom.Rectangle;
+import org.jetuml.rendering.DiagramRenderer;
+import org.jetuml.rendering.StringRenderer;
+
+import javafx.geometry.Bounds;
+import javafx.scene.shape.LineTo;
+import javafx.scene.shape.MoveTo;
+import javafx.scene.shape.Path;
+import javafx.scene.shape.Shape;
+
+/**
+ * Provides shared services for viewing an edge.
+ */
+public abstract class AbstractEdgeRenderer implements EdgeRenderer
+{
+	protected static final int MAX_DISTANCE = 3;
+	protected static final int BUTTON_SIZE = 25;
+	protected static final int OFFSET = 3;
+	protected static final int MAX_LENGTH_FOR_NORMAL_FONT = 15;
+<span class="fc" id="L49">	private static final StringRenderer SIZE_TESTER = new StringRenderer(Alignment.LEFT);</span>
+	
+	private static final int DEGREES_180 = 180;
+	
+	private final DiagramRenderer aParent;
+	
+	protected AbstractEdgeRenderer(DiagramRenderer pParent)
+<span class="fc" id="L56">	{</span>
+<span class="fc" id="L57">		aParent = pParent;</span>
+<span class="fc" id="L58">	}</span>
+	
+	protected DiagramRenderer parent()
+	{
+<span class="fc" id="L62">		return aParent;</span>
+	}
+	
+	/**
+	 * The default behavior is to draw a straight line between
+	 * the connections points oriented in the direction of each 
+	 * other node.
+	 * 
+	 * @param pEdge The edge whose shape we want
+	 * @return The shape. 
+	 * @pre pEdge != null
+	 */
+	protected Shape getShape(Edge pEdge)
+	{
+<span class="pc bpc" id="L76" title="1 of 2 branches missed.">		assert pEdge != null;</span>
+<span class="fc" id="L77">		Line endPoints = getConnectionPoints(pEdge);</span>
+<span class="fc" id="L78">		Path path = new Path();</span>
+<span class="fc" id="L79">		path.getElements().addAll(new MoveTo(endPoints.x1(), endPoints.y1()), </span>
+<span class="fc" id="L80">				new LineTo(endPoints.x2(), endPoints.y2()));</span>
+<span class="fc" id="L81">		return path;</span>
+	}
+	
+	/**
+	 * @param pText Some text to test.
+	 * @return The width and height of the text.
+	 */
+	protected static Dimension textDimensions( String pText )
+	{
+<span class="fc" id="L90">		return SIZE_TESTER.getDimension(pText);</span>
+	}
+	
+	@Override
+	public boolean contains(DiagramElement pElement, Point pPoint)
+	{
+<span class="nc" id="L96">		Edge edge = (Edge) pElement;</span>
+		// Purposefully does not include the arrow head and labels, which create large bounds.
+<span class="nc" id="L98">		Line conn = getConnectionPoints(edge);</span>
+<span class="nc bnc" id="L99" title="All 4 branches missed.">		if(pPoint.distance(conn.point1()) &lt;= MAX_DISTANCE || pPoint.distance(conn.point2()) &lt;= MAX_DISTANCE)</span>
+		{
+<span class="nc" id="L101">			return false;</span>
+		}
+
+<span class="nc" id="L104">		Shape fatPath = getShape(edge);</span>
+<span class="nc" id="L105">		fatPath.setStrokeWidth(2 * MAX_DISTANCE);</span>
+<span class="nc" id="L106">		return fatPath.contains(pPoint.x(), pPoint.y());</span>
+	}
+	
+	@Override
+	public Rectangle getBounds(DiagramElement pElement)
+	{
+<span class="fc" id="L112">		Bounds bounds = getShape((Edge)pElement).getBoundsInLocal();</span>
+<span class="fc" id="L113">		return new Rectangle((int)bounds.getMinX(), (int)bounds.getMinY(), (int)bounds.getWidth(), (int)bounds.getHeight());</span>
+	}
+	
+	/*
+	 * The default behavior implemented by this method
+	 * is to find the connection point that each start/end
+	 * node provides for a direction that is oriented
+	 * following a straight line connecting the center
+	 * of the rectangular bounds for each node.
+	 */
+	@Override
+	public Line getConnectionPoints(Edge pEdge)
+	{
+<span class="fc" id="L126">		Rectangle startBounds = parent().getBounds(pEdge.start());</span>
+<span class="fc" id="L127">		Rectangle endBounds = parent().getBounds(pEdge.end());</span>
+<span class="fc" id="L128">		Point startCenter = startBounds.center();</span>
+<span class="fc" id="L129">		Point endCenter = endBounds.center();</span>
+<span class="fc" id="L130">		Direction toEnd = Direction.fromLine(startCenter, endCenter);</span>
+<span class="fc" id="L131">		return new Line(parent().getConnectionPoints(pEdge.start(), toEnd), </span>
+<span class="fc" id="L132">				parent().getConnectionPoints(pEdge.end(), toEnd.rotatedBy(DEGREES_180)));</span>
+	}
+
+	protected String wrapLabel(String pString, int pDistanceInX, int pDistanceInY)
+	{
+<span class="fc" id="L137">		final int singleCharWidth = SIZE_TESTER.getDimension(&quot; &quot;).width();</span>
+<span class="fc" id="L138">		final int singleCharHeight = SIZE_TESTER.getDimension(&quot; &quot;).height();</span>
+
+<span class="fc" id="L140">		int lineLength = MAX_LENGTH_FOR_NORMAL_FONT;</span>
+<span class="fc" id="L141">		double distanceInX = pDistanceInX / singleCharWidth;</span>
+<span class="fc" id="L142">		double distanceInY = pDistanceInY / singleCharHeight;</span>
+<span class="fc bfc" id="L143" title="All 2 branches covered.">		if(distanceInX &gt; 0)</span>
+		{
+<span class="fc" id="L145">			double angleInDegrees = Math.toDegrees(Math.atan(distanceInY/distanceInX));</span>
+<span class="fc" id="L146">			lineLength = Math.max(MAX_LENGTH_FOR_NORMAL_FONT, (int)((distanceInX / 4) * (1 - angleInDegrees / DEGREES_180)));</span>
+		}
+<span class="fc" id="L148">		return wrapString(pString, lineLength);</span>
+	}
+	
+	/**
+	 * Breaks up a string such that each multi-word line has at most pWidth
+	 * characters.
+	 * 
+	 * @param pString The string to wrap.
+	 * @param pWidth The maximum number of characters on a line.
+	 * @return The new string.
+	 */
+	protected static String wrapString(String pString, int pWidth)
+	{
+<span class="fc" id="L161">		int remainingEmptySpace = pWidth;</span>
+<span class="fc" id="L162">		final int spaceLength = 1;</span>
+<span class="fc" id="L163">		String[] words = pString.split(&quot; &quot;);</span>
+<span class="fc" id="L164">		StringBuilder formattedString = new StringBuilder();</span>
+
+<span class="fc bfc" id="L166" title="All 2 branches covered.">		for( String word : words )</span>
+		{
+			// Replace last space with newline (if last space exists)
+<span class="fc bfc" id="L169" title="All 4 branches covered.">			if( word.length() &gt; remainingEmptySpace &amp;&amp; formattedString.length() &gt; 0 )</span>
+			{
+<span class="fc" id="L171">				formattedString.deleteCharAt(formattedString.length() - 1);</span>
+<span class="fc" id="L172">				formattedString.append('\n');</span>
+<span class="fc" id="L173">				remainingEmptySpace = pWidth;</span>
+			}
+
+<span class="fc" id="L176">			remainingEmptySpace = remainingEmptySpace - word.length() - spaceLength;</span>
+<span class="fc" id="L177">			formattedString.append(word);</span>
+<span class="fc" id="L178">			formattedString.append(' ');</span>
+		}
+
+		// Remove extraneous space
+<span class="fc" id="L182">		formattedString.deleteCharAt(formattedString.length() - 1);</span>
+<span class="fc" id="L183">		return formattedString.toString();</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

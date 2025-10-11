@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MenuFactory.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.gui</a> &gt; <span class="el_source">MenuFactory.java</span></div><h1>MenuFactory.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.gui;
+
+import org.jetuml.application.ApplicationResources;
+
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
+import javafx.scene.control.CheckMenuItem;
+import javafx.scene.control.Menu;
+import javafx.scene.control.MenuItem;
+import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCombination;
+
+/**
+ * A class for creating menus from strings in a resource bundle. The class does not 
+ * depend on the Singleton ApplicationResource instance to improve testability.
+ * 
+ * An instance of this class is intended to be initialized with a resource bundle,
+ * used to create any number of menus, then discarded.
+ * 
+ * The user data for a menu item is a boolean flag that indicates whether the
+ * menu is only relevant to a current diagram (true) or generally relevant (false).
+ * 
+ * To create a menu item, the creation methods will look for the following resources
+ * in the specified ApplicationResources object, with a key followed by a prefix P.
+ * 
+ * - P.text (required):        The text of the menu
+ * - P.mnemonic (optional):    The single letter mnemonic for opening the menu with the keyboard 
+ * - P.icon (optional):	 	   The path to the menu icon
+ * - P.accelerator (optional): The shortcut key combination.  Add &quot;.mac&quot; for macs.
+ */
+class MenuFactory
+{
+<span class="fc" id="L53">	private static final boolean IS_MAC = isMacOS();</span>
+	private static final String KEY_TEXT = &quot;.text&quot;;
+	private static final String KEY_MNEMONIC = &quot;.mnemonic&quot;;
+	private static final String KEY_ICON = &quot;.icon&quot;;
+	private static final String KEY_ACCELERATOR_MAC = &quot;.accelerator.mac&quot;;
+	private static final String KEY_ACCELERATOR = &quot;.accelerator&quot;;
+	
+	private final ApplicationResources aResources;
+	
+	MenuFactory(ApplicationResources pResources)
+<span class="fc" id="L63">	{</span>
+<span class="fc" id="L64">		aResources = pResources;</span>
+<span class="fc" id="L65">	}</span>
+	
+	private static boolean isMacOS()
+	{
+<span class="fc" id="L69">		boolean result = false;</span>
+		try
+		{
+<span class="fc" id="L72">			result = System.getProperty(&quot;os.name&quot;, &quot;unknown&quot;).toLowerCase().startsWith(&quot;mac&quot;);</span>
+		}
+<span class="nc" id="L74">		catch( SecurityException exception )</span>
+		{ 
+			/* Result stays false */ 
+<span class="fc" id="L77">		}</span>
+<span class="fc" id="L78">		return result;</span>
+	}
+	
+	/**
+	 * Creates a normal menu item with pHandler as the event handler.
+	 * @param pPrefix A string such as &quot;file.open&quot; that indicates the menu-&gt;submenu path
+	 * @param pHandler The callback to execute when the menu item is selected.
+	 * @param pDiagramSpecific True if the action requires a diagram tab to be active. A value of false
+	 *     will indicate that the menu should be disabled if the welcome tab is showing. See setMenuVisibility
+	 * @return A menu item for the action described.
+	 */
+	public MenuItem createMenuItem(String pPrefix,  boolean pDiagramSpecific, EventHandler&lt;ActionEvent&gt; pHandler)
+	{
+<span class="fc" id="L91">		MenuItem item = new MenuItem();</span>
+<span class="fc" id="L92">		item.setUserData(pDiagramSpecific);</span>
+<span class="fc" id="L93">		initialize(item, pPrefix);</span>
+<span class="fc" id="L94">		item.setOnAction(pHandler);</span>
+<span class="fc" id="L95">		return item;</span>
+	}
+
+	/**
+	 * Create a checkbox menu.
+	 * @param pPrefix A string such as &quot;file.open&quot; that indicates the menu-&gt;submenu path
+	 * @param pHandler The callback to execute when the menu item is selected.
+	 * @return A menu item for the action described.
+	 */
+	public MenuItem createCheckMenuItem(String pPrefix, boolean pDiagramSpecific, boolean pInitialState, EventHandler&lt;ActionEvent&gt; pHandler) 
+	{
+<span class="nc" id="L106">		CheckMenuItem item = new CheckMenuItem();</span>
+<span class="nc" id="L107">		item.setUserData(pDiagramSpecific);</span>
+<span class="nc" id="L108">		initialize(item, pPrefix);</span>
+<span class="nc" id="L109">		item.setOnAction(pHandler);</span>
+<span class="nc" id="L110">		item.setSelected(pInitialState);</span>
+<span class="nc" id="L111">		return item;</span>
+	}	
+	
+	/*
+	 * Initializes pMenuItem with text, mnemonic, accelerator, etc., and returns it.
+	 */
+	private void initialize(MenuItem pMenuItem, String pPrefix)
+	{
+<span class="pc bpc" id="L119" title="1 of 2 branches missed.">		assert aResources.containsKey(pPrefix + KEY_TEXT);</span>
+		
+<span class="fc" id="L121">		String text = aResources.getString(pPrefix + KEY_TEXT);</span>
+<span class="fc bfc" id="L122" title="All 2 branches covered.">		if( aResources.containsKey(pPrefix + KEY_MNEMONIC))</span>
+		{
+<span class="fc" id="L124">			text = installMnemonic(text, aResources.getString(pPrefix + KEY_MNEMONIC));</span>
+		}
+		
+<span class="fc" id="L127">		pMenuItem.setText(text);</span>
+<span class="fc bfc" id="L128" title="All 2 branches covered.">		if( aResources.containsKey(pPrefix + KEY_ICON))</span>
+		{
+<span class="fc" id="L130">			pMenuItem.setGraphic(new ImageView(aResources.getString(pPrefix + KEY_ICON)));</span>
+		}
+		
+<span class="pc bpc" id="L133" title="3 of 4 branches missed.">		if( IS_MAC &amp;&amp; aResources.containsKey(pPrefix + KEY_ACCELERATOR_MAC))</span>
+		{
+<span class="nc" id="L135">			pMenuItem.setAccelerator(KeyCombination.keyCombination(aResources.getString(pPrefix + KEY_ACCELERATOR_MAC)));	</span>
+		}
+<span class="fc bfc" id="L137" title="All 2 branches covered.">		else if( aResources.containsKey(pPrefix + KEY_ACCELERATOR))</span>
+		{
+<span class="fc" id="L139">			pMenuItem.setAccelerator(KeyCombination.keyCombination(aResources.getString(pPrefix + KEY_ACCELERATOR)));</span>
+		}
+<span class="fc" id="L141">	}</span>
+	
+	/*
+	 * @param pText The text to install the mnemonic on
+	 * @param pMnemonic The letter that is the mnemonic
+	 * @return A new text string with the character '_' before the letter
+	 * that is to be the mnemonic for the menu item. The resulting
+	 * string is intended to be set as the text of the menu. 
+	 * If pMnemonic is not a single letter that is part of pText, it
+	 * is simply ignored.
+	 */
+	private static String installMnemonic(String pText, String pMnemonic)
+	{
+<span class="pc bpc" id="L154" title="1 of 4 branches missed.">		if( pMnemonic.length() != 1 || !pText.contains(pMnemonic))</span>
+		{
+<span class="fc" id="L156">			return pText;</span>
+		}
+<span class="fc" id="L158">		int index = pText.indexOf(pMnemonic.charAt(0));</span>
+<span class="pc bpc" id="L159" title="2 of 4 branches missed.">		assert index &gt;=0 &amp;&amp; index &lt; pText.length();</span>
+<span class="fc" id="L160">		return pText.substring(0, index) + &quot;_&quot; + pText.substring(index);</span>
+	}
+	
+	/**
+	 * Create a menu with the resources for key pPrefix.
+	 * @param pPrefix A string such as &quot;file&quot; that indicates where to find the related
+	 *     resources in the resource bundle.
+	 * @return A configured menu.
+	 * @pre The .text and .mnemonic properties exist in the resource bundle
+	 */
+	public Menu createMenu(String pPrefix, boolean pDiagramSpecific)
+	{
+<span class="fc" id="L172">		Menu menu = new Menu();</span>
+<span class="fc" id="L173">		menu.setUserData(pDiagramSpecific);</span>
+<span class="fc" id="L174">		initialize(menu, pPrefix);</span>
+<span class="fc" id="L175">		return menu;</span>
+	}
+	
+	/**
+	 * Create a menu with the resources for key pPrefix, with submenus that 
+	 * correspond to the NamedHandlers.
+	 * @param pPrefix A string such as &quot;file&quot; that indicates where to find the related
+	 *     resources in the resource bundle.
+	 * @param pMenuItems The items to add to the menu
+	 * @return A configured menu.
+	 * @pre The .text and .mnemonic properties exist in the resource bundle
+	 */
+	public Menu createMenu(String pPrefix, boolean pDiagramSpecific, MenuItem... pMenuItems)
+	{
+<span class="nc" id="L189">		Menu menu = new Menu();</span>
+<span class="nc" id="L190">		menu.setUserData(pDiagramSpecific);</span>
+<span class="nc" id="L191">		initialize(menu, pPrefix);</span>
+<span class="nc bnc" id="L192" title="All 2 branches missed.">		for( MenuItem item : pMenuItems )</span>
+		{
+<span class="nc" id="L194">			menu.getItems().add(item);</span>
+		}
+<span class="nc" id="L196">		return menu;</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

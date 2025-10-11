@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JsonObject.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.persistence.json</a> &gt; <span class="el_source">JsonObject.java</span></div><h1>JsonObject.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ * 
+ * See: https://github.com/prmr/JetUML
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *******************************************************************************/
+package org.jetuml.persistence.json;
+
+import static org.jetuml.persistence.json.JsonValueValidator.validateType;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+
+/**
+ * A JSONObject is an unordered collection of name/value pairs referred to as
+ * &quot;properties&quot;. Its external form is a string wrapped in curly braces with
+ * colons between the names and values, and commas between the values and names.
+ * The values can be any of these types: Boolean, JsonArray, JsonObject,
+ * Integer, String. Null values and non-integer number formats are not supported
+ * by this implementation.
+ * 
+ * Any attempt at an illegal operation will raise a JsonException.
+ * 
+ * As an additional robustness feature, this class makes not type conversion.
+ * This means that values can only be obtained in the same type as they were put
+ * in. For example, putting a property &quot;size&quot; as a string will store it
+ * internally as a string, and attempting to retrieve it as an int will throw a
+ * JsonException.
+ */
+public class JsonObject
+{
+	/*
+	 * HashMap is used on purpose to ensure that elements are unordered by the
+	 * specification. JSON tends to be a portable transfer format to allows the
+	 * container implementations to rearrange their items for a faster element
+	 * retrieval based on associative access. Therefore, an implementation
+	 * mustn't rely on the order of the item.
+	 */
+<span class="fc" id="L53">	private Map&lt;String, Object&gt; aProperties = new HashMap&lt;&gt;();</span>
+
+	/**
+	 * Construct a JsonObject with no property.
+	 */
+<span class="fc" id="L58">	public JsonObject() {}</span>
+	
+	private void validateProperty(String pName)
+	{
+<span class="pc bpc" id="L62" title="1 of 2 branches missed.">		if( pName == null )</span>
+		{
+<span class="nc" id="L64">			throw new JsonException(&quot;Property name cannot be null&quot;);</span>
+		}
+<span class="fc bfc" id="L66" title="All 2 branches covered.">		if( !aProperties.containsKey(pName) )</span>
+		{
+<span class="fc" id="L68">			throw new JsonException(&quot;Property &quot; + pName + &quot; not found&quot;);</span>
+		}
+<span class="fc" id="L70">	}</span>
+
+	/**
+	 * Get the value associated with a name.
+	 *
+	 * @param pName The property name
+	 * @return The property value.
+	 * @throws JsonException If the name is null or the property is not found.
+	 */
+	public Object get(String pName)
+	{
+<span class="fc" id="L81">		validateProperty(pName);</span>
+<span class="fc" id="L82">		return aProperties.get(pName);</span>
+	}
+
+	/**
+	 * Get a property value as an int.
+	 *
+	 * @param pName The property name
+	 * @return The integer value.
+	 * @throws JsonException if the key is null or not found or if the value was
+	 * not originally stored as an integer.
+	 */
+	public int getInt(String pName)
+	{
+<span class="fc" id="L95">		validateProperty(pName);</span>
+<span class="fc" id="L96">		return JsonValueValidator.asInt(get(pName));</span>
+	}
+
+	/**
+	 * Get a property value as a JsonArray.
+	 *
+	 * @param pName The property name
+	 * @return The JsonArray value.
+	 * @throws JsonException if the key is null or not found or if the value was
+	 * not originally stored as a JsonArray.
+	 */
+	public JsonArray getJsonArray(String pName)
+	{
+<span class="fc" id="L109">		validateProperty(pName);</span>
+<span class="fc" id="L110">		return JsonValueValidator.asJsonArray(get(pName));</span>
+	}
+	
+	/**
+	 * Get a property value as a JsonObject.
+	 *
+	 * @param pName The property name
+	 * @return The JsonObject value.
+	 * @throws JsonException if the key is null or not found or if the value was
+	 * not originally stored as a JsonObject.
+	 */
+	public JsonObject getJsonObject(String pName)
+	{
+<span class="nc" id="L123">		validateProperty(pName);</span>
+<span class="nc" id="L124">		return JsonValueValidator.asJsonObject(get(pName));</span>
+	}
+
+	/**
+	 * Get a property value as a String.
+	 *
+	 * @param pName The property name
+	 * @return The String value.
+	 * @throws JsonException if the key is null or not found or if the value was
+	 * not originally stored as a String.
+	 */
+	public String getString(String pName)
+	{
+<span class="fc" id="L137">		validateProperty(pName);</span>
+<span class="fc" id="L138">		return JsonValueValidator.asString(get(pName));</span>
+	}
+	
+	/**
+	 * Get a property value as a boolean.
+	 *
+	 * @param pName The property name
+	 * @return The boolean value.
+	 * @throws JsonException if the key is null or not found or if the value was
+	 * not originally stored as a boolean.
+	 */
+	public boolean getBoolean(String pName)
+	{
+<span class="nc" id="L151">		validateProperty(pName);</span>
+<span class="nc" id="L152">		return JsonValueValidator.asBoolean(get(pName));</span>
+	}
+
+	/**
+	 * Determine if this object contains a given property.
+	 *
+	 * @param pName The property name. Null is accepted but 
+	 * will always return false as it is not possible for
+	 * an object of this class to store a property with a null name.
+	 * @return true if the property exists in this object.
+	 */
+	public boolean hasProperty(String pName)
+	{
+<span class="fc" id="L165">		return aProperties.containsKey(pName);</span>
+	}
+
+	/**
+	 * Get the number of properties stored by this object.
+	 *
+	 * @return The number of properties in the object.
+	 */
+	public int numberOfProperties()
+	{
+<span class="fc" id="L175">		return aProperties.size();</span>
+	}
+	
+	/**
+	 * @return A set of all property names in this object.
+	 */
+	public Set&lt;String&gt; properties()
+	{
+<span class="fc" id="L183">		return aProperties.keySet();</span>
+	}
+
+	/**
+	 * Adds a property to this object. Overrides any previous value associated with
+	 * the property name.
+	 *
+	 * @param pName The name of the property. Should not be null.
+	 * @param pValue The value of the property. It should not be null and be of one of these
+	 * types: boolean/Boolean, int/Integer, JsonArray, JsonObject, or String.
+	 * @throws JsonException If the name is null or if the value is not of a valid Json value.
+	 */
+	public void put(String pName, Object pValue)
+	{
+<span class="pc bpc" id="L197" title="1 of 2 branches missed.">		if(pName == null)</span>
+		{
+<span class="nc" id="L199">			throw new JsonException(&quot;Null property name&quot;);</span>
+		}
+<span class="fc" id="L201">		validateType(pValue);</span>
+<span class="fc" id="L202">		aProperties.put(pName, pValue);</span>
+<span class="fc" id="L203">	}</span>
+
+	/**
+	 * Make a JSON text of this object. For compactness, no whitespace is
+	 * added. This method assumes that the data structure is acyclical.
+	 *
+	 * @return A serialized version of this object.
+	 */
+	@Override
+	public String toString()
+	{
+<span class="fc" id="L214">		return JsonObjectParser.writeJsonObject(this);</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

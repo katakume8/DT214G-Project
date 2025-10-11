@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ActorNodeRenderer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.rendering.nodes</a> &gt; <span class="el_source">ActorNodeRenderer.java</span></div><h1>ActorNodeRenderer.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.rendering.nodes;
+
+import org.jetuml.diagram.DiagramElement;
+import org.jetuml.diagram.Node;
+import org.jetuml.diagram.nodes.ActorNode;
+import org.jetuml.geom.Dimension;
+import org.jetuml.geom.GeomUtils;
+import org.jetuml.geom.Rectangle;
+import org.jetuml.geom.Alignment;
+import org.jetuml.gui.ColorScheme;
+import org.jetuml.rendering.DiagramRenderer;
+import org.jetuml.rendering.LineStyle;
+import org.jetuml.rendering.RenderingContext;
+import org.jetuml.rendering.StringRenderer;
+
+import javafx.scene.shape.LineTo;
+import javafx.scene.shape.MoveTo;
+import javafx.scene.shape.Path;
+import javafx.scene.shape.QuadCurveTo;
+
+/**
+ * An object to render an actor in a use case diagram.
+ */
+public final class ActorNodeRenderer extends AbstractNodeRenderer
+{
+<span class="fc" id="L46">	private static final StringRenderer LABEL_RENDERER = new StringRenderer(Alignment.CENTER);</span>
+	
+	private static final int HEAD_SIZE = 16;
+	private static final int BODY_SIZE = 20;
+	private static final int LEG_SIZE  = 20;
+	private static final int ARMS_SIZE = 24;
+<span class="fc" id="L52">	private static final int WIDTH = GeomUtils.round(LEG_SIZE / Math.sqrt(2)) * 2;</span>
+<span class="fc" id="L53">	private static final int HEIGHT = HEAD_SIZE + BODY_SIZE + GeomUtils.round(LEG_SIZE / Math.sqrt(2));</span>
+	
+	/**
+	 * @param pParent The renderer for the parent diagram.
+	 */
+	public ActorNodeRenderer(DiagramRenderer pParent)
+	{
+<span class="fc" id="L60">		super(pParent);</span>
+<span class="fc" id="L61">	}</span>
+	
+	@Override
+	public Dimension getDefaultDimension(Node pNode)
+	{
+<span class="fc" id="L66">		Rectangle bounds = internalGetBounds(pNode);</span>
+<span class="fc" id="L67">		return new Dimension(bounds.width(), bounds.height());</span>
+	}
+	
+	@Override
+	protected Rectangle internalGetBounds(Node pNode)
+	{
+<span class="fc" id="L73">		Dimension textDimension = LABEL_RENDERER.getDimension(((ActorNode)pNode).getName());</span>
+<span class="fc" id="L74">		Rectangle bounds = </span>
+		new Rectangle(
+<span class="fc" id="L76">				pNode.position().x() + Math.min(0, (WIDTH - textDimension.width()) / 2), </span>
+<span class="fc" id="L77">				pNode.position().y(),</span>
+<span class="fc" id="L78">				Math.max(WIDTH, textDimension.width()),</span>
+<span class="fc" id="L79">				HEIGHT + textDimension.height());</span>
+<span class="fc" id="L80">		return bounds;</span>
+	}
+
+	@Override
+	public void draw(DiagramElement pElement, RenderingContext pContext)
+	{
+<span class="nc" id="L86">		Rectangle bounds = getBounds(pElement);</span>
+<span class="nc" id="L87">		Node node = (Node) pElement;</span>
+<span class="nc" id="L88">		Dimension textDimension = LABEL_RENDERER.getDimension(((ActorNode)node).getName());</span>
+<span class="nc" id="L89">		Rectangle nameBox = new Rectangle(node.position().x() + (WIDTH - textDimension.width()) / 2, </span>
+<span class="nc" id="L90">				bounds.y() + HEIGHT, textDimension.width(), textDimension.height());</span>
+<span class="nc" id="L91">		LABEL_RENDERER.draw(((ActorNode)node).getName(), nameBox, pContext);</span>
+<span class="nc" id="L92">		pContext.strokePath(createStickManPath(node), ColorScheme.get().stroke(), LineStyle.SOLID);</span>
+<span class="nc" id="L93">	}</span>
+	
+	private static Path createStickManPath(Node pNode)
+	{
+<span class="nc" id="L97">		Path path = new Path();</span>
+		
+<span class="nc" id="L99">		int neckX = pNode.position().x() + WIDTH / 2;</span>
+<span class="nc" id="L100">		int neckY = pNode.position().y() + HEAD_SIZE;</span>
+<span class="nc" id="L101">		int hipX = neckX;</span>
+<span class="nc" id="L102">		int hipY = neckY + BODY_SIZE;</span>
+<span class="nc" id="L103">		float dx = (float) (LEG_SIZE / Math.sqrt(2));</span>
+<span class="nc" id="L104">		float feetX1 = hipX - dx;</span>
+<span class="nc" id="L105">		float feetX2 = hipX + dx + 1;</span>
+<span class="nc" id="L106">		float feetY  = hipY + dx + 1;</span>
+		
+<span class="nc" id="L108">		path.getElements().addAll(</span>
+				new MoveTo(neckX, neckY),
+				new QuadCurveTo(neckX + HEAD_SIZE / 2, neckY, neckX + HEAD_SIZE / 2, neckY - HEAD_SIZE / 2),
+				new QuadCurveTo(neckX + HEAD_SIZE / 2, neckY - HEAD_SIZE, neckX, neckY - HEAD_SIZE),
+				new QuadCurveTo(neckX - HEAD_SIZE / 2, neckY - HEAD_SIZE, neckX-HEAD_SIZE / 2, neckY - HEAD_SIZE / 2),
+				new QuadCurveTo(neckX - HEAD_SIZE / 2, neckY, neckX, neckY),
+				new LineTo(hipX, hipY),
+				new MoveTo(neckX - ARMS_SIZE / 2, neckY + BODY_SIZE / 3),
+				new LineTo(neckX + ARMS_SIZE / 2, neckY + BODY_SIZE / 3),
+				new MoveTo(feetX1, feetY),
+				new LineTo(hipX, hipY),
+				new LineTo(feetX2, feetY));	
+<span class="nc" id="L120">		return path;</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

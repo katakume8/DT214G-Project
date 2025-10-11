@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DeserializationContext.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.persistence</a> &gt; <span class="el_source">DeserializationContext.java</span></div><h1>DeserializationContext.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.persistence;
+
+import java.util.Map;
+
+import org.jetuml.diagram.Diagram;
+import org.jetuml.diagram.Node;
+
+/**
+ * A deserialization context allows clients to incrementally build
+ * up the context. The identifiers that correspond to objects must be 
+ * specified explicitly. 
+ */
+<span class="fc" id="L33">public class DeserializationContext extends AbstractContext</span>
+{
+	/**
+	 * Initializes an empty context and associates it with
+	 * pDiagram.
+	 * 
+	 * @param pDiagram The diagram associated with the context.
+	 * @pre pDiagram != null.
+	 */
+	public DeserializationContext(Diagram pDiagram)
+	{
+<span class="fc" id="L44">		super( pDiagram );</span>
+<span class="fc" id="L45">	}</span>
+	
+	/**
+	 * Adds a node to the context.
+	 * 
+	 * @param pNode The node to add.
+	 * @param pId The id to associated with this node.
+	 * @pre pNode != null;
+	 */
+	public void addNode(Node pNode, int pId)
+	{
+<span class="pc bpc" id="L56" title="1 of 2 branches missed.">		assert pNode != null;</span>
+<span class="fc" id="L57">		aNodes.put(pNode, pId);</span>
+<span class="fc" id="L58">	}</span>
+	
+	/**
+	 * @param pId The identifier to search for.
+	 * @return The node associated with this identifier.
+	 * @pre idExists(pId)
+	 */
+	public Node getNode(int pId)
+	{
+<span class="pc bpc" id="L67" title="1 of 2 branches missed.">		assert idExists(pId);</span>
+<span class="fc" id="L68">		return aNodes.entrySet().stream()</span>
+<span class="fc bfc" id="L69" title="All 2 branches covered.">			.filter(entry -&gt; entry.getValue() == pId)</span>
+<span class="fc" id="L70">			.map(Map.Entry::getKey)</span>
+<span class="fc" id="L71">			.findFirst()</span>
+<span class="fc" id="L72">			.get();</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

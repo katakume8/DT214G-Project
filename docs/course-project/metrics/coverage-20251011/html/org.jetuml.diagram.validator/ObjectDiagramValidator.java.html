@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ObjectDiagramValidator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.diagram.validator</a> &gt; <span class="el_source">ObjectDiagramValidator.java</span></div><h1>ObjectDiagramValidator.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.diagram.validator;
+
+import java.util.Set;
+
+import org.jetuml.diagram.Diagram;
+import org.jetuml.diagram.DiagramType;
+import org.jetuml.diagram.Edge;
+import org.jetuml.diagram.Node;
+import org.jetuml.diagram.edges.ObjectCollaborationEdge;
+import org.jetuml.diagram.edges.ObjectReferenceEdge;
+import org.jetuml.diagram.nodes.FieldNode;
+import org.jetuml.diagram.nodes.ObjectNode;
+import org.jetuml.diagram.validator.constraints.ConstraintMaxNumberOfEdgesOfGivenTypeBetweenNodes;
+import org.jetuml.diagram.validator.constraints.ConstraintNoSelfEdgeForEdgeType;
+import org.jetuml.diagram.validator.constraints.ConstraintValidCollaborationEdge;
+import org.jetuml.diagram.validator.constraints.ConstraintValidReferenceEdge;
+import org.jetuml.diagram.validator.constraints.ConstraintNoDirectCyclesForEdgeType;
+
+/**
+ * Validator for object diagrams.
+ */
+public class ObjectDiagramValidator extends AbstractDiagramValidator
+{
+<span class="fc" id="L44">	private static final Set&lt;EdgeConstraint&gt; CONSTRAINTS = Set.of(</span>
+			new ConstraintValidReferenceEdge(),
+			new ConstraintValidCollaborationEdge(),
+			new ConstraintNoSelfEdgeForEdgeType(ObjectCollaborationEdge.class),
+			new ConstraintMaxNumberOfEdgesOfGivenTypeBetweenNodes(1),
+			new ConstraintNoDirectCyclesForEdgeType(ObjectCollaborationEdge.class));
+	
+<span class="fc" id="L51">	private static final Set&lt;Class&lt;? extends Node&gt;&gt; VALID_NODE_TYPES = Set.of(</span>
+			ObjectNode.class, 
+			FieldNode.class);
+	
+<span class="fc" id="L55">	private static final Set&lt;Class&lt;? extends Edge&gt;&gt; VALID_EDGE_TYPES = Set.of(</span>
+			ObjectReferenceEdge.class,
+			ObjectCollaborationEdge.class);
+
+	/**
+	 * Creates a new validator for one object diagram.
+	 *
+	 * @param pDiagram The diagram to do semantic validity check on.
+	 * @pre pDiagram != null &amp;&amp; pDiagram.getType() == DiagramType.OBJECT
+	 */
+	public ObjectDiagramValidator(Diagram pDiagram)
+	{
+<span class="fc" id="L67">		super(pDiagram, VALID_NODE_TYPES, VALID_EDGE_TYPES, CONSTRAINTS);</span>
+<span class="pc bpc" id="L68" title="1 of 2 branches missed.">		assert pDiagram.getType() == DiagramType.OBJECT;</span>
+<span class="fc" id="L69">	}</span>
+
+	/**
+	 * All root nodes must not be FieldNode.
+	 */
+	@Override
+	protected boolean hasValidDiagramNodes()
+	{
+<span class="fc" id="L77">		return diagram().rootNodes().stream().noneMatch(node -&gt; node instanceof FieldNode);</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

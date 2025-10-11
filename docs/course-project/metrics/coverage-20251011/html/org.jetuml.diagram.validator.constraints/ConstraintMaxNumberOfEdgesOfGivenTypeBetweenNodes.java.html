@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ConstraintMaxNumberOfEdgesOfGivenTypeBetweenNodes.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.diagram.validator.constraints</a> &gt; <span class="el_source">ConstraintMaxNumberOfEdgesOfGivenTypeBetweenNodes.java</span></div><h1>ConstraintMaxNumberOfEdgesOfGivenTypeBetweenNodes.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.diagram.validator.constraints;
+
+import org.jetuml.diagram.Diagram;
+import org.jetuml.diagram.Edge;
+import org.jetuml.diagram.validator.EdgeConstraint;
+
+/**
+ * There can't be more than a given number of edges of the same type between two nodes.
+ */
+<span class="fc" id="L30">public final class ConstraintMaxNumberOfEdgesOfGivenTypeBetweenNodes implements EdgeConstraint</span>
+{
+    private final int aMaxNumberOfEdges;
+
+    /**
+     * @param pMaxNumberOfEdges The max number of edges of the same type 
+     * allowed between two nodes
+     */
+    public ConstraintMaxNumberOfEdgesOfGivenTypeBetweenNodes(int pMaxNumberOfEdges)
+<span class="fc" id="L39">    {</span>
+<span class="fc" id="L40">        aMaxNumberOfEdges = pMaxNumberOfEdges;</span>
+<span class="fc" id="L41">    }</span>
+
+    @Override
+    public boolean satisfied(Edge pEdge, Diagram pDiagram)
+    {
+<span class="fc bfc" id="L46" title="All 2 branches covered.">        return numberOfEdges(pEdge, pDiagram) &lt;= aMaxNumberOfEdges;</span>
+    }
+
+    /*
+     * Returns the number of edges of type pType between pStart and pEnd
+     */
+    private static int numberOfEdges(Edge pEdge, Diagram pDiagram)
+    {
+<span class="pc bpc" id="L54" title="2 of 4 branches missed.">        assert pEdge != null &amp;&amp; pDiagram != null;</span>
+<span class="fc" id="L55">        int result = 0;</span>
+<span class="fc bfc" id="L56" title="All 2 branches covered.">        for( Edge edge : pDiagram.edges() )</span>
+        {
+<span class="fc bfc" id="L58" title="All 6 branches covered.">            if( edge.getClass() == pEdge.getClass() &amp;&amp; edge.start() == pEdge.start() &amp;&amp; edge.end() == pEdge.end() )</span>
+            {
+<span class="fc" id="L60">                result++;</span>
+            }
+<span class="fc" id="L62">        }</span>
+<span class="fc" id="L63">        return result;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

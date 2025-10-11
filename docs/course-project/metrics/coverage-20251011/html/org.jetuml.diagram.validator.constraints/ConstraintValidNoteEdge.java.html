@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ConstraintValidNoteEdge.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.diagram.validator.constraints</a> &gt; <span class="el_source">ConstraintValidNoteEdge.java</span></div><h1>ConstraintValidNoteEdge.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.diagram.validator.constraints;
+
+import org.jetuml.diagram.Diagram;
+import org.jetuml.diagram.Edge;
+import org.jetuml.diagram.edges.NoteEdge;
+import org.jetuml.diagram.nodes.NoteNode;
+import org.jetuml.diagram.nodes.PointNode;
+import org.jetuml.diagram.validator.EdgeConstraint;
+
+/**
+ * Validates that a note edge is semantically correct. A note edge can come in
+ * two flavors:
+ * 1. From a note node to a point node
+ * 2. From any node except a note node or a point node to a note node
+ */
+<span class="fc" id="L36">public final class ConstraintValidNoteEdge implements EdgeConstraint</span>
+{
+    @Override
+    public boolean satisfied(Edge pEdge, Diagram pDiagram)
+    {
+<span class="fc bfc" id="L41" title="All 2 branches covered.">        if( pEdge.getClass() != NoteEdge.class )</span>
+        {
+<span class="fc" id="L43">            return true;</span>
+        }
+<span class="fc bfc" id="L45" title="All 2 branches covered.">        if( pEdge.end().getClass() == PointNode.class )</span>
+        {
+<span class="fc bfc" id="L47" title="All 2 branches covered.">            return pEdge.start().getClass() == NoteNode.class;</span>
+        }
+<span class="fc bfc" id="L49" title="All 4 branches covered.">        return pEdge.start().getClass() != PointNode.class &amp;&amp; pEdge.start().getClass() != NoteNode.class &amp;&amp;</span>
+<span class="fc bfc" id="L50" title="All 2 branches covered.">                pEdge.end().getClass() == NoteNode.class;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

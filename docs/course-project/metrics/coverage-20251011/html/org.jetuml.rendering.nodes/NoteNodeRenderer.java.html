@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NoteNodeRenderer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.rendering.nodes</a> &gt; <span class="el_source">NoteNodeRenderer.java</span></div><h1>NoteNodeRenderer.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.rendering.nodes;
+
+import java.util.Optional;
+
+import org.jetuml.diagram.DiagramElement;
+import org.jetuml.diagram.Node;
+import org.jetuml.diagram.nodes.NoteNode;
+import org.jetuml.geom.Dimension;
+import org.jetuml.geom.Rectangle;
+import org.jetuml.geom.Alignment;
+import org.jetuml.gui.ColorScheme;
+import org.jetuml.rendering.DiagramRenderer;
+import org.jetuml.rendering.RenderingContext;
+import org.jetuml.rendering.StringRenderer;
+
+import javafx.scene.paint.Color;
+import javafx.scene.shape.LineTo;
+import javafx.scene.shape.MoveTo;
+import javafx.scene.shape.Path;
+
+/**
+ * An object to render a NoteNode.
+ */
+public final class NoteNodeRenderer extends AbstractNodeRenderer
+{
+	private static final int DEFAULT_WIDTH = 60;
+	private static final int DEFAULT_HEIGHT = 40;
+	private static final int FOLD_LENGTH = 8;
+	private static final int PADDING = 3;
+<span class="fc" id="L50">	private static final StringRenderer NOTE_VIEWER = new StringRenderer(Alignment.LEFT);</span>
+	
+	/**
+	 * @param pParent Renderer for the parent diagram.
+	 */
+	public NoteNodeRenderer(DiagramRenderer pParent)
+	{
+<span class="fc" id="L57">		super(pParent);</span>
+<span class="fc" id="L58">	}</span>
+	
+	@Override
+	public Dimension getDefaultDimension(Node pNode)
+	{
+<span class="fc" id="L63">		return new Dimension(DEFAULT_WIDTH, DEFAULT_HEIGHT);</span>
+	}
+	
+	@Override
+	public void draw(DiagramElement pElement, RenderingContext pContext)
+	{
+<span class="fc" id="L69">		Node node = (Node) pElement;</span>
+<span class="fc" id="L70">		pContext.drawClosedPath(createNotePath(node), ColorScheme.get().note(), ColorScheme.get().stroke(),  </span>
+<span class="fc" id="L71">				Optional.of(ColorScheme.get().dropShadow()));</span>
+<span class="fc" id="L72">		pContext.drawClosedPath(createFoldPath(node), Color.WHITE, ColorScheme.get().stroke(), Optional.empty());</span>
+<span class="fc" id="L73">		NOTE_VIEWER.draw(((NoteNode)node).getName(), </span>
+<span class="fc" id="L74">				new Rectangle(node.position().x() + PADDING, </span>
+<span class="fc" id="L75">						      node.position().y() + PADDING, </span>
+						      DEFAULT_WIDTH - FOLD_LENGTH - PADDING * 2, 
+						      DEFAULT_HEIGHT - FOLD_LENGTH - PADDING -2), pContext);
+<span class="fc" id="L78">	}</span>
+	
+	private Path createNotePath(Node pNode)
+	{
+<span class="fc" id="L82">		Path path = new Path();</span>
+<span class="fc" id="L83">		Rectangle bounds = getBounds(pNode);		</span>
+<span class="fc" id="L84">		path.getElements().addAll(</span>
+<span class="fc" id="L85">				new MoveTo(bounds.x(), bounds.y()),</span>
+<span class="fc" id="L86">				new LineTo(bounds.maxX() - FOLD_LENGTH, bounds.y()),</span>
+<span class="fc" id="L87">				new LineTo(bounds.maxX(), bounds.y() + FOLD_LENGTH),</span>
+<span class="fc" id="L88">				new LineTo(bounds.maxX(), bounds.maxY()),</span>
+<span class="fc" id="L89">				new LineTo(bounds.x(), bounds.maxY()),</span>
+<span class="fc" id="L90">				new LineTo(bounds.x(), bounds.y()));</span>
+<span class="fc" id="L91">		return path;</span>
+	}
+	
+	/**
+	 * Fills in note fold.
+	 * @param pGraphics GraphicsContext in which to fill the fold
+	 */
+	private Path createFoldPath(Node pNode)
+	{
+<span class="fc" id="L100">		Rectangle bounds = getBounds(pNode);</span>
+<span class="fc" id="L101">		Path path = new Path();</span>
+<span class="fc" id="L102">		path.getElements().addAll(</span>
+<span class="fc" id="L103">				new MoveTo(bounds.maxX() - FOLD_LENGTH, bounds.y()),</span>
+<span class="fc" id="L104">				new LineTo(bounds.maxX() - FOLD_LENGTH, bounds.y() + FOLD_LENGTH),</span>
+<span class="fc" id="L105">				new LineTo(bounds.maxX(), bounds.y() + FOLD_LENGTH),</span>
+<span class="fc" id="L106">				new LineTo(bounds.maxX() - FOLD_LENGTH, bounds.y())</span>
+		);
+<span class="fc" id="L108">		return path;</span>
+	}
+	
+	@Override
+	protected Rectangle internalGetBounds(Node pNode)
+	{
+<span class="fc" id="L114">		Dimension textDimension = NOTE_VIEWER.getDimension(((NoteNode)pNode).getName());</span>
+<span class="fc" id="L115">		return new Rectangle(pNode.position().x(), pNode.position().y(), </span>
+<span class="fc" id="L116">				Math.max(textDimension.width() + FOLD_LENGTH + PADDING * 2, DEFAULT_WIDTH), </span>
+<span class="fc" id="L117">				Math.max(textDimension.height() + PADDING * 2, DEFAULT_HEIGHT));</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

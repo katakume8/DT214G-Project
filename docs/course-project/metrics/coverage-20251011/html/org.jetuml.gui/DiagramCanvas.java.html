@@ -1,0 +1,1025 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DiagramCanvas.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.gui</a> &gt; <span class="el_source">DiagramCanvas.java</span></div><h1>DiagramCanvas.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.gui;
+import static java.util.stream.Collectors.toList;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+
+import org.jetuml.application.Clipboard;
+import org.jetuml.application.UserPreferences;
+import org.jetuml.application.UserPreferences.BooleanPreference;
+import org.jetuml.application.UserPreferences.BooleanPreferenceChangeHandler;
+import org.jetuml.application.UserPreferences.IntegerPreference;
+import org.jetuml.application.UserPreferences.IntegerPreferenceChangeHandler;
+import org.jetuml.application.UserPreferences.StringPreference;
+import org.jetuml.application.UserPreferences.StringPreferenceChangeHandler;
+import org.jetuml.diagram.Diagram;
+import org.jetuml.diagram.DiagramElement;
+import org.jetuml.diagram.DiagramType;
+import org.jetuml.diagram.Edge;
+import org.jetuml.diagram.Node;
+import org.jetuml.diagram.builder.ClassDiagramBuilder;
+import org.jetuml.diagram.builder.CompoundOperation;
+import org.jetuml.diagram.builder.DiagramBuilder;
+import org.jetuml.diagram.builder.DiagramOperationProcessor;
+import org.jetuml.diagram.nodes.FieldNode;
+import org.jetuml.diagram.nodes.PackageNode;
+import org.jetuml.diagram.validator.DiagramValidator;
+import org.jetuml.diagram.validator.Violation;
+import org.jetuml.geom.Dimension;
+import org.jetuml.geom.Direction;
+import org.jetuml.geom.GridUtils;
+import org.jetuml.geom.Line;
+import org.jetuml.geom.Point;
+import org.jetuml.geom.Rectangle;
+import org.jetuml.rendering.AccessoriesRenderer;
+import org.jetuml.rendering.GraphicsRenderingContext;
+import org.jetuml.rendering.RenderingContext;
+import org.jetuml.rendering.SvgRenderingContext;
+
+import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.image.Image;
+import javafx.scene.image.WritableImage;
+import javafx.scene.input.MouseEvent;
+
+/**
+ * A canvas on which to view diagrams.
+ */
+<span class="nc" id="L72">public class DiagramCanvas extends Canvas implements SelectionObserver, BooleanPreferenceChangeHandler, IntegerPreferenceChangeHandler,</span>
+StringPreferenceChangeHandler
+{	
+	private static final double LINE_WIDTH = 0.6;
+	/* The number of pixels to leave around a diagram when the canvas size
+	 * is automatically increased to accommodate a diagram larger than the 
+	 * preferred size. */
+	private static final int DIMENSION_BUFFER = 20;
+	private static final int GRID_SIZE = 10;
+	private static final int DIAGRAM_PADDING = 4;
+	private static final int CONNECT_THRESHOLD = 8;
+	
+<span class="nc" id="L84">	private DiagramOperationProcessor aProcessor = new DiagramOperationProcessor();</span>
+	private final DiagramBuilder aDiagramBuilder;
+	private final DiagramValidator aDiagramValidator;
+	private final DiagramTabToolBar aToolBar;
+	private MouseDraggedGestureHandler aHandler;
+	private final RenderingContext aRenderingContext;
+	private final AccessoriesRenderer aAccessoriesRenderer;
+	
+<span class="nc" id="L92">	private enum DragMode </span>
+<span class="nc" id="L93">	{ DRAG_NONE, DRAG_MOVE, DRAG_RUBBERBAND, DRAG_LASSO }</span>
+		
+	private final MoveTracker aMoveTracker;
+	private DragMode aDragMode;
+	private Point aLastMousePoint;
+	private Point aMouseDownPoint;  
+	
+<span class="nc" id="L100">	private List&lt;DiagramElement&gt; aSelected = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L101">	private Optional&lt;Line&gt; aRubberband = Optional.empty();</span>
+<span class="nc" id="L102">	private Optional&lt;Rectangle&gt; aLasso = Optional.empty();</span>
+	
+	/**
+	 * Constructs the canvas, assigns the diagram to it.
+	 * 
+	 * @param pDiagramBuilder The builder wrapping the diagram to draw on this canvas.
+	 * @param pDiagramValidator The validator that checks the diagram's semantic validity.
+	 * @pre pDiagramBuilder != null;
+	 */
+	public DiagramCanvas(DiagramBuilder pDiagramBuilder,
+						 DiagramTabToolBar pToolBar,
+						 DiagramValidator pDiagramValidator, MouseDraggedGestureHandler pHandler)
+<span class="nc" id="L114">	{</span>
+<span class="nc bnc" id="L115" title="All 4 branches missed.">		assert pDiagramBuilder != null &amp;&amp; pDiagramValidator.isValid();</span>
+<span class="nc" id="L116">		aToolBar = pToolBar;</span>
+<span class="nc" id="L117">		aDiagramBuilder = pDiagramBuilder;</span>
+<span class="nc" id="L118">		aDiagramValidator = pDiagramValidator;</span>
+<span class="nc" id="L119">		aMoveTracker = new MoveTracker(aDiagramBuilder.renderer()::getBounds);</span>
+<span class="nc" id="L120">		Dimension dimension = getDiagramCanvasWidth();</span>
+<span class="nc" id="L121">		setWidth(dimension.width());</span>
+<span class="nc" id="L122">		setHeight(dimension.height());</span>
+<span class="nc" id="L123">		aDiagramBuilder.setCanvasDimension(new Dimension(width(), height()));</span>
+<span class="nc" id="L124">		aRenderingContext = new GraphicsRenderingContext(getGraphicsContext2D());</span>
+<span class="nc" id="L125">		aAccessoriesRenderer = new AccessoriesRenderer(aRenderingContext);</span>
+<span class="nc" id="L126">		aHandler = pHandler;</span>
+<span class="nc" id="L127">		setOnMousePressed(this::mousePressed);</span>
+<span class="nc" id="L128">		setOnMouseReleased(this::mouseReleased);</span>
+<span class="nc" id="L129">		setOnMouseDragged(this::mouseDragged);</span>
+<span class="nc" id="L130">	}</span>
+	
+	private int width()
+	{
+<span class="nc" id="L134">		return (int) getWidth();</span>
+	}
+	
+	private int height()
+	{
+<span class="nc" id="L139">		return (int) getHeight();</span>
+	}
+	
+	/**
+	 * Removes any element in the selection model that is not in the diagram.
+	 * TODO a hack which will hopefully be factored out.
+	 */
+	public void synchronizeSelectionModel()
+	{
+<span class="nc" id="L148">		Set&lt;DiagramElement&gt; toBeRemoved = new HashSet&lt;&gt;();</span>
+<span class="nc bnc" id="L149" title="All 2 branches missed.">		for(DiagramElement selected : aSelected )</span>
+		{
+<span class="nc bnc" id="L151" title="All 2 branches missed.">			if(!diagram().contains(selected)) </span>
+			{
+<span class="nc" id="L153">				toBeRemoved.add(selected);</span>
+			}
+<span class="nc" id="L155">		}</span>
+<span class="nc" id="L156">		toBeRemoved.forEach( element -&gt; removeFromSelection(element));            </span>
+<span class="nc" id="L157">	}</span>
+	
+	/**
+	 * Notify the controller that its diagram has been saved.
+	 */
+	public void diagramSaved()
+	{
+<span class="nc" id="L164">		aProcessor.diagramSaved();</span>
+<span class="nc" id="L165">	}</span>
+	
+	/**
+	 * @return True if the diagram controlled by this controller 
+	 *     has unsaved changes.
+	 */
+	public boolean hasUnsavedChanges()
+	{
+<span class="nc" id="L173">		return aProcessor.hasUnsavedOperations();</span>
+	}
+	
+	/**
+	 * Pastes the content of the clip board into the graph managed by this panel.
+	 */
+	public void paste()
+	{
+<span class="nc bnc" id="L181" title="All 2 branches missed.">		if( !Clipboard.instance().validPaste(aDiagramBuilder.diagram()))</span>
+		{
+<span class="nc" id="L183">			return;</span>
+		}
+<span class="nc" id="L185">		Iterable&lt;DiagramElement&gt; newElements = Clipboard.instance().getElements();</span>
+<span class="nc bnc" id="L186" title="All 2 branches missed.">		if(Clipboard.instance().overlapsWithElementOf(aDiagramBuilder.diagram()))</span>
+		{
+<span class="nc" id="L188">			shiftElements(newElements, GRID_SIZE);</span>
+		}
+<span class="nc" id="L190">		aProcessor.executeNewOperation(aDiagramBuilder.createAddElementsOperation(newElements));</span>
+<span class="nc" id="L191">		List&lt;DiagramElement&gt; newElementList = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L192" title="All 2 branches missed.">		for( DiagramElement element : newElements )</span>
+		{
+<span class="nc" id="L194">			newElementList.add(element);</span>
+<span class="nc" id="L195">		}</span>
+<span class="nc" id="L196">		setSelectionTo(newElementList);</span>
+<span class="nc" id="L197">		Clipboard.instance().copy(newElements);</span>
+<span class="nc" id="L198">		paintPanel(); // TODO double-check if this is necessary since it's already called in setSelectionTo</span>
+<span class="nc" id="L199">	}</span>
+	
+	/**
+	 * @param pElements The elements to shift.
+	 * @param pShiftAmount Amount to shift elements by to prevent overlapping.
+	 */
+	private static void shiftElements(Iterable&lt;DiagramElement&gt; pElements, int pShiftAmount) 
+	{
+<span class="nc bnc" id="L207" title="All 2 branches missed.">		for(DiagramElement element: pElements) </span>
+		{
+<span class="nc bnc" id="L209" title="All 2 branches missed.">			if(element instanceof Node node) </span>
+			{
+<span class="nc" id="L211">				node.translate(pShiftAmount, pShiftAmount);</span>
+			}
+<span class="nc" id="L213">		}</span>
+<span class="nc" id="L214">	}</span>
+	
+	/**
+	 * Edits the properties of the selected graph element.
+	 */
+	public void editSelected()
+	{
+<span class="nc" id="L221">		Optional&lt;DiagramElement&gt; edited = getLastSelected();</span>
+<span class="nc bnc" id="L222" title="All 2 branches missed.">		if( edited.isPresent() )</span>
+		{
+<span class="nc" id="L224">			PropertyEditorDialog dialog = new PropertyEditorDialog( ((EditorFrame) getScene().getRoot()).getDialogStage(), </span>
+<span class="nc" id="L225">					edited.get(), ()-&gt; paintPanel());</span>
+			
+<span class="nc" id="L227">			CompoundOperation operation = dialog.show();</span>
+<span class="nc bnc" id="L228" title="All 2 branches missed.">			if(!operation.isEmpty())</span>
+			{
+<span class="nc" id="L230">				aProcessor.storeAlreadyExecutedOperation(operation);</span>
+			}
+		}
+<span class="nc" id="L233">	}</span>
+	
+	@Override
+	public boolean isResizable()
+	{
+<span class="nc" id="L238">	    return false;</span>
+	}
+	
+	/**
+	 * @return The diagram painted on this canvas.
+	 */
+	public Diagram diagram()
+	{
+<span class="nc" id="L246">		return aDiagramBuilder.diagram();</span>
+	}
+	
+	/**
+	 * Paints the panel and all the graph elements in aDiagramView.
+	 * Called after the panel is resized.
+	 */
+	public void paintPanel()
+	{
+<span class="nc" id="L255">		Rectangle area = new Rectangle(0, 0, width(), height());</span>
+<span class="nc" id="L256">		aRenderingContext.drawRectangle(area, ColorScheme.get().background(), </span>
+<span class="nc" id="L257">				ColorScheme.get().background(), Optional.empty());</span>
+<span class="nc bnc" id="L258" title="All 2 branches missed.">		if(UserPreferences.instance().getBoolean(BooleanPreference.showGrid)) </span>
+		{
+<span class="nc" id="L260">			aAccessoriesRenderer.drawGrid(area);</span>
+		}
+<span class="nc" id="L262">		aDiagramBuilder.renderer().draw(aRenderingContext);</span>
+<span class="nc" id="L263">		synchronizeSelectionModel();</span>
+<span class="nc" id="L264">		drawHandlesOnSelectedEdges();</span>
+<span class="nc" id="L265">		drawHandlesOnSelectedNodes();</span>
+<span class="nc" id="L266">		aRubberband.ifPresent( rubberband -&gt; aAccessoriesRenderer.drawRubberband(rubberband));</span>
+<span class="nc" id="L267">		aLasso.ifPresent( lasso -&gt; aAccessoriesRenderer.drawLasso(lasso));</span>
+<span class="nc" id="L268">	}</span>
+	
+	private void drawHandlesOnSelectedEdges()
+	{
+<span class="nc" id="L272">		aSelected.stream()</span>
+<span class="nc" id="L273">		.filter(Edge.class::isInstance)</span>
+<span class="nc" id="L274">		.map(Edge.class::cast)</span>
+<span class="nc" id="L275">		.forEach(edge -&gt; aAccessoriesRenderer.drawHandles(aDiagramBuilder.renderer().getConnectionPoints(edge)));</span>
+<span class="nc" id="L276">	}</span>
+	
+	private void drawHandlesOnSelectedNodes()
+	{
+<span class="nc" id="L280">		aSelected.stream()</span>
+<span class="nc" id="L281">		.filter(Node.class::isInstance)</span>
+<span class="nc" id="L282">		.map(Node.class::cast)</span>
+<span class="nc" id="L283">		.forEach(node -&gt; aAccessoriesRenderer.drawHandles(aDiagramBuilder.renderer().getBounds(node)));</span>
+<span class="nc" id="L284">	}</span>
+	
+	/**
+	 * Undoes the most recent command.
+	 * If the UndoManager performs a command, the method 
+	 * it calls will repaint on its own
+	 */
+	public void undo()
+	{
+<span class="nc bnc" id="L293" title="All 2 branches missed.">		if( aProcessor.canUndo() )</span>
+		{
+<span class="nc" id="L295">			aProcessor.undoLastExecutedOperation();</span>
+<span class="nc" id="L296">			paintPanel();</span>
+		}
+<span class="nc" id="L298">	}</span>
+	
+	/**
+	 * Removes the last undone action and performs it.
+	 * If the UndoManager performs a command, the method 
+	 * it calls will repaint on its own
+	 */
+	public void redo()
+	{
+<span class="nc bnc" id="L307" title="All 2 branches missed.">		if( aProcessor.canRedo() )</span>
+		{
+<span class="nc" id="L309">			aProcessor.redoLastUndoneOperation();</span>
+<span class="nc" id="L310">			paintPanel();</span>
+		}
+<span class="nc" id="L312">	}</span>
+	
+	@Override
+	public void selectionModelChanged()
+	{
+<span class="nc" id="L317">		paintPanel();		</span>
+<span class="nc" id="L318">	}</span>
+	
+	/**
+	 * Copy the currently selected elements to the clip board.
+	 */
+	public void copy()
+	{
+<span class="nc" id="L325">		Clipboard.instance().copy(aSelected);</span>
+<span class="nc" id="L326">	}</span>
+	
+	/**
+	 * Removes the selected graph elements.
+	 */
+	public void removeSelected()
+	{
+<span class="nc" id="L333">		aProcessor.executeNewOperation(aDiagramBuilder.createRemoveElementsOperation(aSelected));</span>
+<span class="nc" id="L334">		clearSelection();</span>
+<span class="nc" id="L335">		paintPanel();</span>
+<span class="nc" id="L336">	}</span>
+	
+	/**
+	 * Copy the currently selected elements to the clip board and removes them
+	 * from the graph managed by this panel.
+	 */
+	public void cut()
+	{
+<span class="nc" id="L344">		Clipboard.instance().copy(aSelected);</span>
+<span class="nc" id="L345">		removeSelected();</span>
+<span class="nc" id="L346">	}</span>
+	
+	/**
+	 * Select all elements in the diagram.
+	 */
+	public void selectAll()
+	{
+<span class="nc" id="L353">		aToolBar.setToolToBeSelect();</span>
+<span class="nc" id="L354">		clearSelection();</span>
+<span class="nc" id="L355">		aDiagramBuilder.diagram().rootNodes().forEach(this::internalAddToSelection);</span>
+<span class="nc" id="L356">		aDiagramBuilder.diagram().edges().forEach(this::internalAddToSelection);</span>
+<span class="nc" id="L357">		paintPanel();</span>
+<span class="nc" id="L358">	}</span>
+	
+	/**
+	 * When the shift key is pressed on a class diagram, perform node attachment or detachment if possible.
+	 */
+	public void shiftKeyPressed()
+	{
+<span class="nc bnc" id="L365" title="All 2 branches missed.">		if(diagram().getType() != DiagramType.CLASS)</span>
+		{
+<span class="nc" id="L367">			return;</span>
+		}
+<span class="nc" id="L369">		List&lt;Node&gt; selectedNodes = selectedNodes();</span>
+<span class="nc bnc" id="L370" title="All 2 branches missed.">		if(((ClassDiagramBuilder)aDiagramBuilder).canLinkToPackage(selectedNodes))</span>
+		{
+<span class="nc" id="L372">			aProcessor.executeNewOperation(((ClassDiagramBuilder)aDiagramBuilder).createLinkToPackageOperation(selectedNodes));</span>
+		}
+<span class="nc bnc" id="L374" title="All 2 branches missed.">		else if(((ClassDiagramBuilder)aDiagramBuilder).canUnlinkFromPackage(selectedNodes))</span>
+		{
+<span class="nc" id="L376">			aProcessor.executeNewOperation(((ClassDiagramBuilder)aDiagramBuilder).createUnlinkFromPackageOperation(selectedNodes));</span>
+		}
+		// Place the modified nodes on the top
+<span class="nc" id="L379">		selectedNodes.forEach(node -&gt; diagram().placeOnTop(node));</span>
+<span class="nc" id="L380">		paintPanel();</span>
+<span class="nc" id="L381">	}</span>
+
+	@Override
+	public void booleanPreferenceChanged(BooleanPreference pPreference)
+	{
+<span class="nc bnc" id="L386" title="All 4 branches missed.">		if( pPreference == BooleanPreference.showGrid || pPreference == BooleanPreference.darkMode )</span>
+		{
+<span class="nc" id="L388">			paintPanel();</span>
+		}
+<span class="nc" id="L390">	}</span>
+	
+	@Override
+	public void integerPreferenceChanged(IntegerPreference pPreference) 
+	{
+<span class="nc bnc" id="L395" title="All 2 branches missed.">		if( pPreference == IntegerPreference.fontSize )</span>
+		{
+<span class="nc" id="L397">			paintPanel();</span>
+		}
+<span class="nc" id="L399">	}</span>
+	
+	@Override
+	public void stringPreferenceChanged(StringPreference pPreference) 
+	{
+<span class="nc bnc" id="L404" title="All 2 branches missed.">		if( pPreference == StringPreference.fontName )</span>
+		{
+<span class="nc" id="L406">			paintPanel();</span>
+		}
+<span class="nc" id="L408">	}</span>
+	
+	/*
+	 * If the diagram is smaller than the preferred dimension, return
+	 * the preferred dimension. Otherwise, grow the dimensions to accommodate
+	 * the diagram.
+	 */
+	private Dimension getDiagramCanvasWidth()
+	{
+<span class="nc" id="L417">		Rectangle bounds = aDiagramBuilder.renderer().getBounds();</span>
+<span class="nc" id="L418">		return new Dimension(</span>
+<span class="nc" id="L419">				Math.max(getPreferredDiagramWidth(), bounds.maxX() + DIMENSION_BUFFER),</span>
+<span class="nc" id="L420">				Math.max(getPreferredDiagramHeight(), bounds.maxY() + DIMENSION_BUFFER));</span>
+	}
+	
+	private static int getPreferredDiagramWidth()
+	{
+<span class="nc" id="L425">		int preferredWidth = UserPreferences.instance().getInteger(IntegerPreference.diagramWidth);</span>
+<span class="nc bnc" id="L426" title="All 2 branches missed.">		if( preferredWidth == 0 )</span>
+		{
+<span class="nc" id="L428">			int width = GuiUtils.defaultDiagramWidth();</span>
+<span class="nc" id="L429">			UserPreferences.instance().setInteger(IntegerPreference.diagramWidth, width);</span>
+<span class="nc" id="L430">			return width;</span>
+		}
+		else
+		{
+<span class="nc" id="L434">			return preferredWidth;</span>
+		}
+	}
+	
+	private static int getPreferredDiagramHeight()
+	{
+<span class="nc" id="L440">		int preferredHeight = UserPreferences.instance().getInteger(IntegerPreference.diagramHeight);</span>
+<span class="nc bnc" id="L441" title="All 2 branches missed.">		if( preferredHeight == 0 )</span>
+		{
+<span class="nc" id="L443">			int height = GuiUtils.defaultDiagramHeight();</span>
+<span class="nc" id="L444">			UserPreferences.instance().setInteger(IntegerPreference.diagramHeight, height);</span>
+<span class="nc" id="L445">			return height;</span>
+		}
+		else
+		{
+<span class="nc" id="L449">			return preferredHeight;</span>
+		}
+	}
+	
+	private Line computeRubberband()
+	{
+<span class="nc" id="L455">		return new Line(new Point(aMouseDownPoint.x(), aMouseDownPoint.y()), </span>
+<span class="nc" id="L456">				new Point(aLastMousePoint.x(), aLastMousePoint.y()));</span>
+	}
+	
+	private Rectangle computeLasso()
+	{
+<span class="nc" id="L461">		return new Rectangle(Math.min(aMouseDownPoint.x(), aLastMousePoint.x()), </span>
+<span class="nc" id="L462">						     Math.min(aMouseDownPoint.y(), aLastMousePoint.y()), </span>
+<span class="nc" id="L463">						     Math.abs(aMouseDownPoint.x() - aLastMousePoint.x()) , </span>
+<span class="nc" id="L464">						     Math.abs(aMouseDownPoint.y() - aLastMousePoint.y()));</span>
+	}
+	
+	private static Point getMousePoint(MouseEvent pEvent)
+	{
+<span class="nc" id="L469">		return new Point((int)pEvent.getX(), (int)pEvent.getY());</span>
+	}
+
+	private Optional&lt;? extends DiagramElement&gt; getSelectedElement(MouseEvent pEvent)
+	{
+<span class="nc" id="L474">		Point mousePoint = getMousePoint(pEvent);</span>
+<span class="nc" id="L475">		Optional&lt;? extends DiagramElement&gt; element = </span>
+<span class="nc" id="L476">				aDiagramBuilder.renderer().edgeAt(mousePoint);</span>
+<span class="nc bnc" id="L477" title="All 2 branches missed.">		if(!element.isPresent())</span>
+		{
+<span class="nc" id="L479">			element = aDiagramBuilder.renderer()</span>
+<span class="nc" id="L480">					.selectableNodeAt(new Point(mousePoint.x(), mousePoint.y())); </span>
+		}
+<span class="nc" id="L482">		return element;</span>
+	}
+
+	private void handleSelection(MouseEvent pEvent)
+	{
+<span class="nc" id="L487">		Optional&lt;? extends DiagramElement&gt; element = getSelectedElement(pEvent);</span>
+<span class="nc bnc" id="L488" title="All 2 branches missed.">		if(element.isPresent()) </span>
+		{
+<span class="nc bnc" id="L490" title="All 2 branches missed.">			if(pEvent.isControlDown())</span>
+			{
+<span class="nc bnc" id="L492" title="All 2 branches missed.">				if(!contains(element.get()))</span>
+				{
+<span class="nc" id="L494">					addToSelection(element.get());</span>
+				}
+				else
+				{
+<span class="nc" id="L498">					removeFromSelection(element.get());</span>
+				}
+			}
+<span class="nc bnc" id="L501" title="All 2 branches missed.">			else if(!contains(element.get()))</span>
+			{
+				// The test is necessary to ensure we don't undo multiple selections
+<span class="nc" id="L504">				setSelection(element.get());</span>
+			}
+			// Reorder the selected nodes to ensure that they appear on the top
+<span class="nc bnc" id="L507" title="All 2 branches missed.">			for(Node pSelected: selectedNodes()) </span>
+			{
+<span class="nc" id="L509">				diagram().placeOnTop(pSelected);</span>
+<span class="nc" id="L510">			}</span>
+<span class="nc" id="L511">			aDragMode = DragMode.DRAG_MOVE;</span>
+<span class="nc" id="L512">			aMoveTracker.start(aSelected);</span>
+		}
+		else // Nothing is selected
+		{
+<span class="nc bnc" id="L516" title="All 2 branches missed.">			if(!pEvent.isControlDown()) </span>
+			{
+<span class="nc" id="L518">				clearSelection();</span>
+			}
+<span class="nc" id="L520">			aDragMode = DragMode.DRAG_LASSO;</span>
+		}
+<span class="nc" id="L522">	}</span>
+		
+	private void handleSingleClick(MouseEvent pEvent)
+	{
+<span class="nc" id="L526">		Optional&lt;DiagramElement&gt; tool = aToolBar.getCreationPrototype();</span>
+<span class="nc" id="L527">		Optional&lt;? extends DiagramElement&gt; element = getSelectedElement(pEvent);</span>
+<span class="nc bnc" id="L528" title="All 2 branches missed.">		if(tool.isEmpty())</span>
+		{
+<span class="nc" id="L530">			handleSelection(pEvent);</span>
+		}
+		else
+		{
+<span class="nc bnc" id="L534" title="All 2 branches missed.">			if(tool.get() instanceof Node)</span>
+			{
+<span class="nc bnc" id="L536" title="All 2 branches missed.">				if( creationEnabled(element, tool.get()) )</span>
+				{
+<span class="nc" id="L538">					handleNodeCreation(pEvent);</span>
+				}
+				else 
+				{
+<span class="nc" id="L542">					handleSelection(pEvent);</span>
+				}
+			}
+<span class="nc bnc" id="L545" title="All 2 branches missed.">			else if(tool.get() instanceof Edge)</span>
+			{
+<span class="nc" id="L547">				handleEdgeStart(pEvent);</span>
+			}
+		}
+<span class="nc" id="L550">	}</span>
+	
+	/*
+	 * The creation of a node is not allowed if there is an element under the mouse,
+	 * except if the target node is a PackageNode OR the tool is a field node.
+	 */
+	private static boolean creationEnabled(Optional&lt;? extends DiagramElement&gt; pElement, DiagramElement pTool)
+	{
+<span class="nc bnc" id="L558" title="All 2 branches missed.">		if( pElement.isEmpty() )</span>
+		{
+<span class="nc" id="L560">			return true;</span>
+		}
+<span class="nc bnc" id="L562" title="All 4 branches missed.">		if( pElement.get() instanceof PackageNode || pTool instanceof FieldNode)</span>
+		{
+<span class="nc" id="L564">			return true;</span>
+		}
+<span class="nc" id="L566">		return false;</span>
+	}
+	
+	private void handleNodeCreation(MouseEvent pEvent)
+	{
+<span class="nc bnc" id="L571" title="All 2 branches missed.">		assert aToolBar.getCreationPrototype().isPresent();</span>
+<span class="nc" id="L572">		Node newNode = ((Node) aToolBar.getCreationPrototype().get()).clone();</span>
+<span class="nc" id="L573">		Point point = GridUtils.snapped(getMousePoint(pEvent));</span>
+<span class="nc" id="L574">		aProcessor.executeNewOperation(aDiagramBuilder.createAddNodeOperation(newNode, new Point(point.x(), point.y())));</span>
+<span class="nc" id="L575">		Optional&lt;Violation&gt; violation = aDiagramValidator.validate();</span>
+		
+<span class="nc bnc" id="L577" title="All 2 branches missed.">		if(violation.isEmpty())</span>
+		{
+<span class="nc" id="L579">			setSelection(newNode);</span>
+<span class="nc" id="L580">			diagram().placeOnTop(newNode);</span>
+<span class="nc" id="L581">			paintPanel();</span>
+<span class="nc bnc" id="L582" title="All 2 branches missed.">			if( UserPreferences.instance().getBoolean(BooleanPreference.autoEditNode))</span>
+			{
+<span class="nc" id="L584">				editSelected();</span>
+			}
+		}
+		else
+		{
+<span class="nc" id="L589">			aProcessor.undoLastExecutedOperation();</span>
+<span class="nc" id="L590">			handleSelection(pEvent);</span>
+<span class="nc" id="L591">			NotificationService.instance().spawnNotification(violation.get().description(), ToastNotification.Type.ERROR);</span>
+		}
+<span class="nc" id="L593">	}</span>
+
+	private void handleEdgeStart(MouseEvent pEvent)
+	{
+<span class="nc" id="L597">		Optional&lt;? extends DiagramElement&gt; element = getSelectedElement(pEvent);</span>
+<span class="nc bnc" id="L598" title="All 4 branches missed.">		if(element.isPresent() &amp;&amp; element.get() instanceof Node) </span>
+		{
+<span class="nc" id="L600">			aDragMode = DragMode.DRAG_RUBBERBAND;</span>
+		}
+<span class="nc" id="L602">	}</span>
+
+	private void mousePressed(MouseEvent pEvent)
+	{
+<span class="nc bnc" id="L606" title="All 2 branches missed.">		if( pEvent.isSecondaryButtonDown() )</span>
+		{
+<span class="nc" id="L608">			aToolBar.showPopup(pEvent.getScreenX(), pEvent.getScreenY());</span>
+		}
+<span class="nc bnc" id="L610" title="All 2 branches missed.">		else if( pEvent.getClickCount() &gt; 1 )</span>
+		{
+<span class="nc" id="L612">			editSelected();</span>
+		}
+		else
+		{
+<span class="nc" id="L616">			handleSingleClick(pEvent);</span>
+		}
+<span class="nc" id="L618">		Point point = getMousePoint(pEvent);</span>
+<span class="nc" id="L619">		aLastMousePoint = new Point(point.x(), point.y()); </span>
+<span class="nc" id="L620">		aMouseDownPoint = aLastMousePoint;</span>
+<span class="nc" id="L621">		paintPanel();</span>
+<span class="nc" id="L622">	}</span>
+
+	private void mouseReleased(MouseEvent pEvent)
+	{
+<span class="nc bnc" id="L626" title="All 2 branches missed.">		if( aDragMode == DragMode.DRAG_RUBBERBAND)</span>
+		{
+<span class="nc" id="L628">			releaseRubberband(getMousePoint(pEvent));</span>
+		}
+<span class="nc bnc" id="L630" title="All 2 branches missed.">		else if( aDragMode == DragMode.DRAG_MOVE)</span>
+		{
+<span class="nc" id="L632">			alignMoveToGrid();</span>
+<span class="nc" id="L633">			releaseMove();</span>
+		}
+<span class="nc bnc" id="L635" title="All 2 branches missed.">		else if( aDragMode == DragMode.DRAG_LASSO )</span>
+		{
+<span class="nc" id="L637">			deactivateLasso();</span>
+		}
+<span class="nc" id="L639">		aDragMode = DragMode.DRAG_NONE;</span>
+<span class="nc" id="L640">	}</span>
+	
+	/*
+	 * Move by a delta that will align the result of the move gesture with the grid.
+	 */
+	private void alignMoveToGrid()
+	{
+<span class="nc" id="L647">		Iterator&lt;Node&gt; selectedNodes = selectedNodes().iterator();</span>
+<span class="nc" id="L648">		Rectangle entireBounds = aDiagramBuilder.renderer().getBoundsIncludingParents(aSelected);</span>
+		
+<span class="nc bnc" id="L650" title="All 2 branches missed.">		if( selectedNodes.hasNext() )</span>
+		{
+			// Pick one node in the selection model, arbitrarily
+<span class="nc" id="L653">			Node firstSelected = selectedNodes.next();</span>
+<span class="nc" id="L654">			Rectangle bounds = aDiagramBuilder.renderer().getBounds(firstSelected);</span>
+<span class="nc" id="L655">			Rectangle snappedPosition = GridUtils.snapped(bounds);</span>
+			
+<span class="nc" id="L657">			int dx = snappedPosition.x() - bounds.x();</span>
+<span class="nc" id="L658">			int dy = snappedPosition.y() - bounds.y();</span>
+			
+			//ensure the bounds of the entire selection are not outside the walls of the canvas
+<span class="nc bnc" id="L661" title="All 2 branches missed.">			if(entireBounds.maxX() + dx &gt; width()) </span>
+			{
+<span class="nc" id="L663">				dx -= GRID_SIZE;</span>
+			}
+<span class="nc bnc" id="L665" title="All 2 branches missed.">			else if(entireBounds.x() + dx &lt;= 0) </span>
+			{
+<span class="nc" id="L667">				dx += GRID_SIZE;</span>
+			}
+<span class="nc bnc" id="L669" title="All 2 branches missed.">			if(entireBounds.maxY() + dy &gt; height()) </span>
+			{
+<span class="nc" id="L671">				dy -= GRID_SIZE;</span>
+			}
+<span class="nc bnc" id="L673" title="All 2 branches missed.">			else if(entireBounds.y() &lt;= 0) </span>
+			{
+<span class="nc" id="L675">				dy += GRID_SIZE;</span>
+			}
+			
+<span class="nc bnc" id="L678" title="All 2 branches missed.">			for(Node selected : selectedNodes())</span>
+			{
+<span class="nc" id="L680">				selected.translate(dx, dy);</span>
+<span class="nc" id="L681">			}</span>
+<span class="nc" id="L682">			paintPanel();</span>
+		}
+<span class="nc" id="L684">	}</span>
+	
+	private void releaseRubberband(Point pMousePoint)
+	{
+<span class="nc bnc" id="L688" title="All 2 branches missed.">		assert aToolBar.getCreationPrototype().isPresent();</span>
+<span class="nc" id="L689">		Edge newEdge = ((Edge) aToolBar.getCreationPrototype().get()).clone();</span>
+<span class="nc bnc" id="L690" title="All 2 branches missed.">		if(pMousePoint.distance(aMouseDownPoint) &gt; CONNECT_THRESHOLD )</span>
+		{
+<span class="nc" id="L692">			aProcessor.executeNewOperation(aDiagramBuilder.createAddEdgeOperation(newEdge, aMouseDownPoint, pMousePoint));</span>
+<span class="nc" id="L693">			Optional&lt;Violation&gt; violation = aDiagramValidator.validate();</span>
+			
+<span class="nc bnc" id="L695" title="All 2 branches missed.">			if( violation.isPresent() )</span>
+			{
+<span class="nc" id="L697">				aProcessor.undoLastExecutedOperation();</span>
+<span class="nc" id="L698">				NotificationService.instance().spawnNotification(violation.get().description(), ToastNotification.Type.ERROR);</span>
+			}
+			else
+			{
+<span class="nc" id="L702">				setSelection(newEdge);</span>
+<span class="nc" id="L703">				paintPanel();</span>
+			}
+		}
+<span class="nc" id="L706">		deactivateRubberband();</span>
+<span class="nc" id="L707">	}</span>
+	
+	private void releaseMove()
+	{
+<span class="nc" id="L711">		CompoundOperation operation = aMoveTracker.stop();</span>
+<span class="nc bnc" id="L712" title="All 2 branches missed.">		if(!operation.isEmpty())</span>
+		{
+<span class="nc" id="L714">			aProcessor.storeAlreadyExecutedOperation(operation);</span>
+		}
+<span class="nc" id="L716">		paintPanel();</span>
+<span class="nc" id="L717">	}</span>
+
+	private void mouseDragged(MouseEvent pEvent)
+	{
+<span class="nc" id="L721">		Point mousePoint = getMousePoint(pEvent);</span>
+		
+		// The second condition in the if is necessary in the case where a single 
+		// element is selected with the Ctrl button is down, which immediately deselects it.
+<span class="nc bnc" id="L725" title="All 4 branches missed.">		if(aDragMode == DragMode.DRAG_MOVE &amp;&amp; !aSelected.isEmpty() ) </span>
+		{	
+			// The local variable dragDirection cannot be inlined 
+			// because moveSelection changes aLastMousePoint
+<span class="nc" id="L729">			Direction dragDirection = Direction.fromLine(aLastMousePoint, mousePoint);</span>
+<span class="nc" id="L730">			moveSelection(mousePoint);</span>
+<span class="nc" id="L731">			aHandler.interactionTo(aDiagramBuilder.renderer().getBoundsNotIncludingParents(aSelected), dragDirection);</span>
+<span class="nc" id="L732">		}</span>
+<span class="nc bnc" id="L733" title="All 2 branches missed.">		else if(aDragMode == DragMode.DRAG_LASSO)</span>
+		{
+<span class="nc" id="L735">			aLastMousePoint = mousePoint;</span>
+<span class="nc bnc" id="L736" title="All 2 branches missed.">			if( !pEvent.isControlDown() )</span>
+			{
+<span class="nc" id="L738">				clearSelection();</span>
+			}
+<span class="nc" id="L740">			activateLasso();</span>
+		}
+<span class="nc bnc" id="L742" title="All 2 branches missed.">		else if(aDragMode == DragMode.DRAG_RUBBERBAND)</span>
+		{
+<span class="nc" id="L744">			aLastMousePoint = mousePoint;</span>
+<span class="nc" id="L745">			activateRubberband(computeRubberband());</span>
+		}
+<span class="nc" id="L747">	}</span>
+	
+	// TODO, include edges between selected nodes in the bounds check.
+	// This will be doable by collecting all edges connected to a transitively selected node.
+	private void moveSelection(Point pMousePoint)
+	{
+<span class="nc bnc" id="L753" title="All 2 branches missed.">		assert !aSelected.isEmpty();</span>
+		
+<span class="nc" id="L755">		int dx = pMousePoint.x() - aLastMousePoint.x();</span>
+<span class="nc" id="L756">		int dy = pMousePoint.y() - aLastMousePoint.y();</span>
+		
+		// Perform the move without painting it
+<span class="nc" id="L759">		selectedNodes().forEach(selected -&gt; selected.translate(dx, dy));</span>
+		
+		// If this translation results in exceeding the canvas bounds, roll back.
+<span class="nc" id="L762">		Rectangle bounds = aDiagramBuilder.renderer().getBoundsIncludingParents(aSelected);</span>
+<span class="nc" id="L763">		int dxCorrection = Math.max(-bounds.x(), 0) </span>
+<span class="nc" id="L764">				+ Math.min(width() - bounds.maxX(), 0);</span>
+<span class="nc" id="L765">		int dyCorrection = Math.max(-bounds.y(), 0) </span>
+<span class="nc" id="L766">				+ Math.min(height() - bounds.maxY(), 0);</span>
+<span class="nc" id="L767">		selectedNodes().forEach(selected -&gt; selected.translate(dxCorrection, dyCorrection));</span>
+		
+<span class="nc" id="L769">		aLastMousePoint = pMousePoint; </span>
+<span class="nc" id="L770">		paintPanel();</span>
+<span class="nc" id="L771">	}</span>
+	
+	/**
+	 * Creates an image of an entire diagram, with a white border around.
+	 * @return An image of the diagram.
+	 */
+	public Image createImage()
+	{
+<span class="nc" id="L779">		Rectangle bounds = aDiagramBuilder.renderer().getBounds();</span>
+<span class="nc" id="L780">		Canvas canvas = new Canvas(bounds.width() + DIAGRAM_PADDING * 2, </span>
+<span class="nc" id="L781">				bounds.height() + DIAGRAM_PADDING *2);</span>
+<span class="nc" id="L782">		GraphicsContext context = canvas.getGraphicsContext2D();</span>
+<span class="nc" id="L783">		context.setLineWidth(LINE_WIDTH);</span>
+<span class="nc" id="L784">		context.setFill(ColorScheme.get().background());</span>
+<span class="nc" id="L785">		context.fillRect(0, 0, width(), height());</span>
+<span class="nc" id="L786">		context.translate(-bounds.x()+DIAGRAM_PADDING, -bounds.y()+DIAGRAM_PADDING);</span>
+<span class="nc" id="L787">		aDiagramBuilder.renderer().draw(new GraphicsRenderingContext(context));</span>
+<span class="nc" id="L788">		WritableImage image = new WritableImage(bounds.width() + DIAGRAM_PADDING * 2, </span>
+<span class="nc" id="L789">				bounds.height() + DIAGRAM_PADDING *2);</span>
+<span class="nc" id="L790">		canvas.snapshot(null, image);</span>
+<span class="nc" id="L791">		createSvgImage();</span>
+<span class="nc" id="L792">		return image;</span>
+	}
+
+	/**
+	 * @return A string that contains an SVG description of the rendered diagram.
+	 */
+	public String createSvgImage()
+	{
+<span class="nc" id="L800">		SvgRenderingContext context = new SvgRenderingContext(aDiagramBuilder.renderer().getBounds());</span>
+<span class="nc" id="L801">		aDiagramBuilder.renderer().draw(context);</span>
+<span class="nc" id="L802">		return context.create();</span>
+	}
+	
+	/**
+	 * @return A list of all the selected nodes. 
+	 */
+	private List&lt;Node&gt; selectedNodes()
+	{
+<span class="nc" id="L810">		return aSelected.stream()</span>
+<span class="nc" id="L811">				.filter(e -&gt; Node.class.isAssignableFrom(e.getClass()))</span>
+<span class="nc" id="L812">				.map(Node.class::cast)</span>
+<span class="nc" id="L813">				.collect(toList());</span>
+	}
+	
+	/**
+	 * Records information about an active lasso selection tool, select all elements
+	 * in the lasso, and triggers a notification.
+	 * 
+	 * @param pLasso The bounds of the current lasso.
+	 * @pre pLasso != null;
+	 */
+	private void activateLasso()
+	{
+<span class="nc" id="L825">		aLasso = Optional.of(computeLasso());</span>
+<span class="nc" id="L826">		aDiagramBuilder.diagram().rootNodes().forEach( node -&gt; selectNode(node, aLasso.get()));</span>
+<span class="nc" id="L827">		aDiagramBuilder.diagram().edges().forEach( edge -&gt; selectEdge(edge, aLasso.get()));</span>
+<span class="nc" id="L828">		paintPanel();</span>
+<span class="nc" id="L829">	}</span>
+	
+	private void selectNode(Node pNode, Rectangle pLasso)
+	{
+<span class="nc bnc" id="L833" title="All 2 branches missed.">		if(pLasso.contains(aDiagramBuilder.renderer().getBounds(pNode)))</span>
+		{
+<span class="nc" id="L835">			internalAddToSelection(pNode);</span>
+		}
+<span class="nc" id="L837">		pNode.getChildren().forEach(child -&gt; selectNode(child, pLasso));</span>
+<span class="nc" id="L838">	}</span>
+	
+	private void selectEdge(Edge pEdge, Rectangle pLasso )
+	{
+<span class="nc bnc" id="L842" title="All 2 branches missed.">		if(pLasso.contains(aDiagramBuilder.renderer().getBounds(pEdge)))</span>
+		{
+<span class="nc" id="L844">			internalAddToSelection(pEdge);</span>
+		}		
+<span class="nc" id="L846">	}</span>
+	
+	/**
+	 * Removes the active lasso from the model and triggers a notification.
+	 */
+	private void deactivateLasso()
+	{
+<span class="nc" id="L853">		aLasso = Optional.empty();</span>
+<span class="nc" id="L854">		paintPanel();</span>
+<span class="nc" id="L855">	}</span>
+	
+	/**
+	 * Records information about an active rubberband selection tool and triggers a notification.
+	 * @param pLine The line that represents the rubberband.
+	 * @pre pLine != null;
+	 */
+	private void activateRubberband(Line pLine)
+	{
+<span class="nc bnc" id="L864" title="All 2 branches missed.">		assert pLine != null;</span>
+<span class="nc" id="L865">		aRubberband = Optional.of(pLine);</span>
+<span class="nc" id="L866">		paintPanel();</span>
+<span class="nc" id="L867">	}</span>
+	
+	/**
+	 * Removes the active rubberband from the model and triggers a notification.
+	 */
+	private void deactivateRubberband()
+	{
+<span class="nc" id="L874">		aRubberband = Optional.empty();</span>
+<span class="nc" id="L875">		paintPanel();</span>
+<span class="nc" id="L876">	}</span>
+	
+	/**
+	 * Clears any existing selection and initializes it with pNewSelection.
+	 * Triggers a notification.
+	 * 
+	 * @param pNewSelection A list of elements to select.
+	 * @pre pNewSelection != null;
+	 */
+	private void setSelectionTo(List&lt;DiagramElement&gt; pNewSelection)
+	{
+<span class="nc bnc" id="L887" title="All 2 branches missed.">		assert pNewSelection != null;</span>
+<span class="nc" id="L888">		clearSelection();</span>
+<span class="nc" id="L889">		pNewSelection.forEach(this::internalAddToSelection);</span>
+<span class="nc" id="L890">		paintPanel();</span>
+<span class="nc" id="L891">	}</span>
+	
+	/**
+	 * Adds an element to the selection set and sets it as the last 
+	 * selected element. If the element is already in the list, it
+	 * is added to the end of the list. If the node is transitively 
+	 * a child of any node in the list, it is not added.
+	 * Triggers a notification.
+	 * 
+	 * @param pElement The element to add to the list.
+	 * @pre pElement != null
+	 */
+	private void addToSelection(DiagramElement pElement)
+	{
+<span class="nc bnc" id="L905" title="All 2 branches missed.">		assert pElement != null;</span>
+<span class="nc" id="L906">		internalAddToSelection(pElement);</span>
+<span class="nc" id="L907">		paintPanel();</span>
+<span class="nc" id="L908">	}</span>
+	
+	private void internalAddToSelection(DiagramElement pElement)
+	{
+<span class="nc bnc" id="L912" title="All 2 branches missed.">		if( !containsParent( pElement ))</span>
+		{
+<span class="nc" id="L914">			aSelected.remove(pElement);</span>
+<span class="nc" id="L915">			aSelected.add(pElement);</span>
+			
+			// Remove children in case a parent was added.
+<span class="nc" id="L918">			ArrayList&lt;DiagramElement&gt; toRemove = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L919" title="All 2 branches missed.">			for( DiagramElement element : aSelected )</span>
+			{
+<span class="nc bnc" id="L921" title="All 2 branches missed.">				if( containsParent(element) )</span>
+				{
+<span class="nc" id="L923">					toRemove.add(element);</span>
+				}
+<span class="nc" id="L925">			}</span>
+<span class="nc bnc" id="L926" title="All 2 branches missed.">			for( DiagramElement element : toRemove )</span>
+			{
+				// Do no use removeFromSelection because it notifies the observer
+<span class="nc" id="L929">				aSelected.remove(element); </span>
+<span class="nc" id="L930">			}</span>
+		}
+<span class="nc" id="L932">	}</span>
+	
+	/*
+	 * Returns true if any of the parents of pElement is contained
+	 * (transitively).
+	 * @param pElement The element to test
+	 * @return true if any of the parents of pElement are included in the 
+	 * selection.
+	 */
+	private boolean containsParent(DiagramElement pElement)
+	{
+<span class="nc bnc" id="L943" title="All 2 branches missed.">		if( pElement instanceof Node node)</span>
+		{
+<span class="nc bnc" id="L945" title="All 2 branches missed.">			if( !node.hasParent() )</span>
+			{
+<span class="nc" id="L947">				return false;</span>
+			}
+<span class="nc bnc" id="L949" title="All 2 branches missed.">			else if( aSelected.contains(node.getParent()))</span>
+			{
+<span class="nc" id="L951">				return true;</span>
+			}
+			else
+			{
+<span class="nc" id="L955">				return containsParent(node.getParent());</span>
+			}
+		}
+		else
+		{
+<span class="nc" id="L960">			return false;</span>
+		}
+	}
+	
+	/**
+	 * Removes all selections and triggers a notification.
+	 */
+	private void clearSelection()
+	{
+<span class="nc" id="L969">		aSelected.clear();</span>
+<span class="nc" id="L970">		paintPanel();</span>
+<span class="nc" id="L971">	}</span>
+	
+	/**
+	 * @return The last element that was selected, if present.
+	 */
+	private Optional&lt;DiagramElement&gt; getLastSelected()
+	{
+<span class="nc bnc" id="L978" title="All 2 branches missed.">		if( aSelected.isEmpty() )</span>
+		{
+<span class="nc" id="L980">			return Optional.empty();</span>
+		}
+		else
+		{
+<span class="nc" id="L984">			return Optional.of(aSelected.get(aSelected.size()-1));</span>
+		}
+	}
+	
+	/**
+	 * @param pElement The element to test.
+	 * @return True if pElement is in the list of selected elements.
+	 */
+	private boolean contains(DiagramElement pElement)
+	{
+<span class="nc" id="L994">		return aSelected.contains(pElement);</span>
+	}
+	
+	/**
+	 * Removes pElement from the list of selected elements,
+	 * or does nothing if pElement is not selected.
+	 * Triggers a notification.
+	 * @param pElement The element to remove.
+	 * @pre pElement != null;
+	 */
+	private void removeFromSelection(DiagramElement pElement)
+	{
+<span class="nc bnc" id="L1006" title="All 2 branches missed.">		assert pElement != null;</span>
+<span class="nc" id="L1007">		aSelected.remove(pElement);</span>
+<span class="nc" id="L1008">		paintPanel();</span>
+<span class="nc" id="L1009">	}</span>
+	
+	/**
+	 * Sets pElement as the single selected element.
+	 * Triggers a notification.
+	 * @param pElement The element to set as selected.
+	 * @pre pElement != null;
+	 */
+	private void setSelection(DiagramElement pElement)
+	{
+<span class="nc bnc" id="L1019" title="All 2 branches missed.">		assert pElement != null;</span>
+<span class="nc" id="L1020">		aSelected.clear();</span>
+<span class="nc" id="L1021">		aSelected.add(pElement);</span>
+<span class="nc" id="L1022">		paintPanel();</span>
+<span class="nc" id="L1023">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

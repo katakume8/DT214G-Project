@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SimpleOperation.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.diagram.builder</a> &gt; <span class="el_source">SimpleOperation.java</span></div><h1>SimpleOperation.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.diagram.builder;
+
+/**
+ * Represents a simple (non-compound) operation. The operation
+ * does no validation of the input method, so any code that 
+ * constructs a SimpleOperation is responsible to ensure that,
+ * when executed or undone, the operation will be valid.
+ */
+<span class="fc" id="L29">public class SimpleOperation implements DiagramOperation</span>
+{
+	private final Runnable aOperation;
+	private final Runnable aReverse;
+	
+	/**
+	 * Creates an operation.
+	 * 
+	 * @param pOperation The code to run when the operation is executed.
+	 * @param pReverse The code to run when the operation is undone.
+	 * @pre pOperation != null
+	 * @pre pReverse != null
+	 */
+	public SimpleOperation(Runnable pOperation, Runnable pReverse)
+<span class="fc" id="L43">	{</span>
+<span class="pc bpc" id="L44" title="2 of 4 branches missed.">		assert pOperation != null &amp;&amp; pReverse != null;</span>
+<span class="fc" id="L45">		aOperation = pOperation;</span>
+<span class="fc" id="L46">		aReverse = pReverse;</span>
+<span class="fc" id="L47">	}</span>
+
+	@Override
+	public void execute()
+	{
+<span class="fc" id="L52">		aOperation.run();</span>
+<span class="fc" id="L53">	}</span>
+
+	@Override
+	public void undo()
+	{
+<span class="fc" id="L58">		aReverse.run();</span>
+<span class="fc" id="L59">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

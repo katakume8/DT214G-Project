@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Rectangle.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.geom</a> &gt; <span class="el_source">Rectangle.java</span></div><h1>Rectangle.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.geom;
+
+import org.jetuml.annotations.Immutable;
+
+/**
+ * A framework independent representation of a rectangle in 
+ * 2-dimensional integer space.
+ * @param x The X-coordinate of the top-left corner.
+ * @param y The Y-coordinate of the top-left corner.
+ * @param width The width of the rectangle. width &gt;=0 
+ * @param height The height of the rectangle. height &gt;= 0
+ */
+<span class="fc" id="L33">@Immutable</span>
+<span class="fc" id="L34">public record Rectangle(int x, int y, int width, int height)</span>
+{
+	/**
+	 * @return The X-coordinate farthest from the origin. 
+	 */
+	public int maxX()
+	{
+<span class="fc" id="L41">		return x + width;</span>
+	}
+	
+	/**
+	 * @return The Y-coordinate farthest from the origin. 
+	 */
+	public int maxY()
+	{
+<span class="fc" id="L49">		return y + height;</span>
+	}
+	
+	/**
+	 * @param pDeltaX The amount to translate in the X-coordinate.
+	 * @param pDeltaY The amount to translate in the Y-coordinate.
+	 * @return The translated rectangle.
+	 */
+	public Rectangle translated(int pDeltaX, int pDeltaY)
+	{
+<span class="fc" id="L59">		return new Rectangle(x + pDeltaX, y + pDeltaY, width, height);</span>
+	}
+	
+	/**
+	 * @param pPoint The point to check.
+	 * @return True iif pPoint is within the rectangle or on its boundary.
+	 * @pre pPoint != null;
+	 */
+	public boolean contains(Point pPoint)
+	{
+<span class="pc bpc" id="L69" title="1 of 2 branches missed.">		assert pPoint != null;</span>
+<span class="fc bfc" id="L70" title="All 4 branches covered.">		return pPoint.x() &gt;= x &amp;&amp; pPoint.x() &lt;= maxX() &amp;&amp;</span>
+<span class="fc bfc" id="L71" title="All 4 branches covered.">				pPoint.y() &gt;= y &amp;&amp; pPoint.y() &lt;= maxY();</span>
+	}
+	
+	/**
+	 * @param pRectangle The rectangle to check.
+	 * @return True iif pRectangle is entired contains within this rectangle.
+	 * @pre pRectangle !=null.
+	 */
+	public boolean contains(Rectangle pRectangle)
+	{
+<span class="nc bnc" id="L81" title="All 2 branches missed.">		assert pRectangle != null;</span>
+<span class="nc bnc" id="L82" title="All 4 branches missed.">		return pRectangle.x &gt;= x &amp;&amp; pRectangle.y &gt;= y &amp;&amp;</span>
+<span class="nc bnc" id="L83" title="All 2 branches missed.">				pRectangle.maxX() &lt;= maxX() &amp;&amp;</span>
+<span class="nc bnc" id="L84" title="All 2 branches missed.">				pRectangle.maxY() &lt;= maxY();</span>
+	}
+	
+	/**
+	 * @return A point in the center of this rectangle.
+	 */
+	public Point center()
+	{
+<span class="fc" id="L92">		return new Point( x + width/2, y + height/2);</span>
+	}
+	
+	/**
+	 * @param pPoint The point to include.
+	 * @return A new rectangle that is this rectangle enlarged to include pPoint.
+	 * @pre pPoint != null
+	 */ 
+	public Rectangle add(Point pPoint)
+	{
+<span class="pc bpc" id="L102" title="1 of 2 branches missed.">		assert pPoint != null;</span>
+<span class="fc" id="L103">		int currentX = x;</span>
+<span class="fc" id="L104">		int currentY = y;</span>
+<span class="fc" id="L105">		int currentWidth = width;</span>
+<span class="fc" id="L106">		int currentHeight = height;</span>
+<span class="fc bfc" id="L107" title="All 2 branches covered.">		if( pPoint.x() &lt; x)</span>
+		{
+<span class="fc" id="L109">			currentX = pPoint.x();</span>
+<span class="fc" id="L110">			currentWidth = maxX() - pPoint.x();</span>
+		}
+<span class="fc bfc" id="L112" title="All 2 branches covered.">		else if( pPoint.x() &gt; maxX())</span>
+		{
+<span class="fc" id="L114">			currentWidth = pPoint.x() - x;</span>
+		}
+<span class="fc bfc" id="L116" title="All 2 branches covered.">		if( pPoint.y() &lt; y )</span>
+		{
+<span class="fc" id="L118">			currentY = pPoint.y();</span>
+<span class="fc" id="L119">			currentHeight = maxY() - pPoint.y();</span>
+		}
+<span class="fc bfc" id="L121" title="All 2 branches covered.">		else if( pPoint.y() &gt; maxY())</span>
+		{
+<span class="fc" id="L123">			currentHeight = pPoint.y() - y;</span>
+		}
+<span class="fc" id="L125">		return new Rectangle(currentX, currentY, currentWidth, currentHeight);			</span>
+	}
+	
+	/**
+	 * @param pRectangle The rectangle to include.
+	 * @return A new rectangle that is this rectangle enlarged to include pRectangle.
+	 * @pre pRectangle != null
+	 */ 
+	public Rectangle add(Rectangle pRectangle)
+	{
+<span class="pc bpc" id="L135" title="1 of 2 branches missed.">		assert pRectangle != null;</span>
+<span class="fc" id="L136">		int currentX = Math.min(x, pRectangle.x);</span>
+<span class="fc" id="L137">		int currentY = Math.min(y, pRectangle.y);</span>
+<span class="fc" id="L138">		int maxX = Math.max(maxX(), pRectangle.maxX());</span>
+<span class="fc" id="L139">		int maxY = Math.max(maxY(), pRectangle.maxY());</span>
+<span class="fc" id="L140">		return new Rectangle(currentX, currentY, maxX - currentX, maxY-currentY);</span>
+	}
+	
+	/**
+	 * Get a rectangle of height pHeight with the same Y-coordinate as center
+	 * and same width.
+	 * 
+	 * @param pHeight The desired height.
+	 * @return A rectangle that is a vertical slice of this one.
+	 */
+	public Rectangle centerSlice(int pHeight)
+	{
+<span class="pc bpc" id="L152" title="1 of 2 branches missed.">		assert pHeight &gt;= 0;</span>
+<span class="pc bpc" id="L153" title="1 of 2 branches missed.">		assert pHeight &lt;= height();</span>
+<span class="fc" id="L154">		return new Rectangle(x(), center().y() - pHeight/2, width(), pHeight);</span>
+	}
+	
+	/**
+	 * @return The top left corner of the rectangle.
+	 */
+	public Point origin()
+	{
+<span class="fc" id="L162">		return new Point(x, y);</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

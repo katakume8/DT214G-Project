@@ -1,0 +1,1390 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ClassDiagramRenderer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.rendering</a> &gt; <span class="el_source">ClassDiagramRenderer.java</span></div><h1>ClassDiagramRenderer.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ ******************************************************************************/
+package org.jetuml.rendering;
+
+import static java.util.stream.Collectors.toList;
+import static org.jetuml.rendering.EdgePriority.priorityOf;
+
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+import org.jetuml.diagram.Diagram;
+import org.jetuml.diagram.DiagramType;
+import org.jetuml.diagram.Edge;
+import org.jetuml.diagram.Node;
+import org.jetuml.diagram.edges.AggregationEdge;
+import org.jetuml.diagram.edges.AssociationEdge;
+import org.jetuml.diagram.edges.DependencyEdge;
+import org.jetuml.diagram.edges.GeneralizationEdge;
+import org.jetuml.diagram.edges.ThreeLabelEdge;
+import org.jetuml.diagram.nodes.ClassNode;
+import org.jetuml.diagram.nodes.InterfaceNode;
+import org.jetuml.diagram.nodes.PackageDescriptionNode;
+import org.jetuml.diagram.nodes.PackageNode;
+import org.jetuml.geom.Direction;
+import org.jetuml.geom.Line;
+import org.jetuml.geom.Point;
+import org.jetuml.geom.Rectangle;
+import org.jetuml.rendering.edges.EdgeStorage;
+import org.jetuml.rendering.edges.NodeIndex;
+import org.jetuml.rendering.edges.StoredEdgeRenderer;
+import org.jetuml.rendering.nodes.InterfaceNodeRenderer;
+import org.jetuml.rendering.nodes.NodeRenderer;
+import org.jetuml.rendering.nodes.PackageDescriptionNodeRenderer;
+import org.jetuml.rendering.nodes.PackageNodeRenderer;
+import org.jetuml.rendering.nodes.TypeNodeRenderer;
+
+/**
+ * The renderer for class diagrams.
+ */
+<span class="fc" id="L62">public final class ClassDiagramRenderer extends AbstractDiagramRenderer</span>
+{
+	private static final int TWENTY_PIXELS = 20;
+	private static final int TEN_PIXELS = 10;
+	
+<span class="fc" id="L67">	private final EdgeStorage aEdgeStorage = new EdgeStorage();</span>
+	
+	/**
+	 * @param pDiagram The diagram being rendered.
+	 */
+	public ClassDiagramRenderer(Diagram pDiagram)
+	{
+<span class="fc" id="L74">		super(pDiagram);</span>
+<span class="fc" id="L75">		addElementRenderer(ClassNode.class, new TypeNodeRenderer(this));</span>
+<span class="fc" id="L76">		addElementRenderer(InterfaceNode.class, new InterfaceNodeRenderer(this));</span>
+<span class="fc" id="L77">		addElementRenderer(PackageNode.class, new PackageNodeRenderer(this));</span>
+<span class="fc" id="L78">		addElementRenderer(PackageDescriptionNode.class, new PackageDescriptionNodeRenderer(this));</span>
+		
+<span class="fc" id="L80">		StoredEdgeRenderer storedEdgeViewer = new StoredEdgeRenderer(this);</span>
+<span class="fc" id="L81">		addElementRenderer(DependencyEdge.class, storedEdgeViewer);</span>
+<span class="fc" id="L82">		addElementRenderer(AssociationEdge.class, storedEdgeViewer);</span>
+<span class="fc" id="L83">		addElementRenderer(DependencyEdge.class, storedEdgeViewer);</span>
+<span class="fc" id="L84">		addElementRenderer(GeneralizationEdge.class, storedEdgeViewer);</span>
+<span class="fc" id="L85">		addElementRenderer(AggregationEdge.class, storedEdgeViewer);</span>
+<span class="fc" id="L86">	}</span>
+
+	@Override
+	public void draw(RenderingContext pContext)
+	{
+		//draw and store nodes 
+<span class="nc" id="L92">		activateNodeStorages();</span>
+<span class="nc" id="L93">		diagram().rootNodes().forEach(node -&gt; drawNode(node, pContext));</span>
+		
+		//plan edge paths using Layouter
+<span class="nc" id="L96">		layout();</span>
+		
+		//draw edges using plan from EdgeStorage
+<span class="nc" id="L99">		diagram().edges().forEach(edge -&gt; draw(edge, pContext));</span>
+<span class="nc" id="L100">		deactivateAndClearNodeStorages();</span>
+<span class="nc" id="L101">	}</span>
+	
+	@Override
+	public Rectangle getBounds()
+	{
+		// When getBounds(pDiagram) is called to open an existing class diagram
+		// file, aEdgeStorage is initially empty and needs to be filled to
+		// compute the diagram bounds.
+<span class="pc bpc" id="L109" title="1 of 2 branches missed.">		if( aEdgeStorage.isEmpty() )</span>
+		{
+<span class="fc" id="L111">			layout();</span>
+		}
+<span class="fc" id="L113">		return super.getBounds();</span>
+	}
+
+	/**
+	 * Uses positional information of nodes and stored edges to layout and 
+	 * store the EdgePaths of edges in pDiagram.
+	 * @param pDiagram the diagram of interest
+	 * @pre pDiagram.getType() == DiagramType.CLASS
+	 */
+	public void layout()
+	{
+<span class="pc bpc" id="L124" title="1 of 2 branches missed.">		assert diagram().getType() == DiagramType.CLASS;</span>
+<span class="fc" id="L125">		aEdgeStorage.clearStorage();</span>
+<span class="fc" id="L126">		layoutSegmentedEdges(EdgePriority.INHERITANCE);	</span>
+<span class="fc" id="L127">		layoutSegmentedEdges(EdgePriority.IMPLEMENTATION);</span>
+<span class="fc" id="L128">		layoutSegmentedEdges(EdgePriority.AGGREGATION);</span>
+<span class="fc" id="L129">		layoutSegmentedEdges(EdgePriority.COMPOSITION);</span>
+<span class="fc" id="L130">		layoutSegmentedEdges(EdgePriority.ASSOCIATION);</span>
+<span class="fc" id="L131">		layoutDependencyEdges();</span>
+<span class="fc" id="L132">		layoutSelfEdges();</span>
+<span class="fc" id="L133">	}</span>
+	
+	/**
+	 * Plans the EdgePaths for all segmented edges with EdgePriority 
+	 * pEdgePriority.
+	 * @param pEdgePriority the edge priority level 
+	 * @pre pDiagram.getType() == DiagramType.CLASS
+	 * @pre EdgePriority.isSegmented(pEdgePriority)
+	 */
+	private void layoutSegmentedEdges(EdgePriority pEdgePriority)
+	{
+<span class="pc bpc" id="L144" title="1 of 2 branches missed.">		assert diagram().getType() == DiagramType.CLASS;</span>
+<span class="pc bpc" id="L145" title="1 of 2 branches missed.">		assert EdgePriority.isSegmented(pEdgePriority);</span>
+<span class="fc" id="L146">		List&lt;Edge&gt; edgesToProcess = diagram().edges().stream()</span>
+<span class="fc bfc" id="L147" title="All 2 branches covered.">				.filter(edge -&gt; priorityOf(edge) == pEdgePriority)</span>
+<span class="fc" id="L148">				.sorted(Comparator.comparing(edge -&gt; edge.start().position().x()))</span>
+<span class="fc" id="L149">				.collect(toList());</span>
+				
+<span class="fc bfc" id="L151" title="All 2 branches covered.">		while( !edgesToProcess.isEmpty() )</span>
+		{
+<span class="fc" id="L153">			Edge currentEdge = edgesToProcess.get(0);</span>
+<span class="fc" id="L154">			Side edgeDirection = attachedSide(currentEdge, currentEdge.start());</span>
+			//Get all the edges which will merge with the start or end of currentEdge
+<span class="fc" id="L156">			List&lt;Edge&gt; edgesToMergeStart = getEdgesToMergeStart(currentEdge, edgesToProcess);</span>
+<span class="fc" id="L157">			List&lt;Edge&gt; edgesToMergeEnd = getEdgesToMergeEnd(currentEdge, edgesToProcess);	</span>
+			//Determine if currendEdge should merge with other edges at its start node or end node
+<span class="fc bfc" id="L159" title="All 2 branches covered.">			if( !edgesToMergeStart.isEmpty() )</span>
+			{ 	
+<span class="fc" id="L161">				edgesToMergeStart.add(currentEdge);</span>
+<span class="fc" id="L162">				edgesToProcess.removeAll(edgesToMergeStart);</span>
+<span class="fc" id="L163">				storeMergedStartEdges(edgeDirection, edgesToMergeStart);</span>
+			}
+			else
+			{
+<span class="fc" id="L167">				edgesToMergeEnd.add(currentEdge);</span>
+<span class="fc" id="L168">				edgesToProcess.removeAll(edgesToMergeEnd);</span>
+<span class="fc" id="L169">				storeMergedEndEdges(edgeDirection, edgesToMergeEnd);</span>
+			}
+<span class="fc" id="L171">		}</span>
+<span class="fc" id="L172">	}</span>
+	
+	
+	/**
+	 * Plans the EdgePaths for Dependency Edges.
+	 */
+	private void layoutDependencyEdges()
+	{
+<span class="pc bpc" id="L180" title="1 of 2 branches missed.">		assert diagram().getType() == DiagramType.CLASS;</span>
+<span class="fc bfc" id="L181" title="All 2 branches covered.">		for(Edge edge : diagram().edges())</span>
+		{
+<span class="fc bfc" id="L183" title="All 2 branches covered.">			if(priorityOf(edge)==EdgePriority.DEPENDENCY)</span>
+			{   //Determine the start and end connection points
+<span class="fc" id="L185">				Side attachedEndSide = attachedSide(edge, edge.end());</span>
+<span class="fc" id="L186">				Point startPoint = getConnectionPoint(edge.start(), edge, attachedEndSide.mirrored());</span>
+<span class="fc" id="L187">				Point endPoint = getConnectionPoint(edge.end(), edge, attachedEndSide);</span>
+				//Store an EdgePath from startPoint to endPoint
+<span class="fc" id="L189">				aEdgeStorage.store(edge, new EdgePath(startPoint, endPoint));</span>
+			}
+<span class="fc" id="L191">		}	</span>
+<span class="fc" id="L192">	}</span>
+	
+	/**
+	 * Plans the EdgePaths for self-edges in pDiagram.
+	 */
+	private void layoutSelfEdges()
+	{
+<span class="fc" id="L199">		List&lt;Edge&gt; selfEdges = diagram().edges().stream()</span>
+<span class="fc bfc" id="L200" title="All 2 branches covered.">			.filter(edge -&gt; priorityOf(edge) == EdgePriority.SELF_EDGE)</span>
+<span class="fc" id="L201">			.collect(toList());</span>
+<span class="fc bfc" id="L202" title="All 2 branches covered.">		for(Edge edge : selfEdges)</span>
+		{
+			//Determine the corner where the self-edge should be placed
+<span class="fc" id="L205">			NodeCorner corner = getSelfEdgeCorner(edge);</span>
+			//Build a self-edge EdgePath at the corner and store it
+<span class="fc" id="L207">			EdgePath path = buildSelfEdge(edge, corner);</span>
+<span class="fc" id="L208">			aEdgeStorage.store(edge, path);</span>
+<span class="fc" id="L209">		}</span>
+<span class="fc" id="L210">	}</span>
+	
+	/**
+	 * Gets the node corner where the self-edge pEdge should be placed. If no corners are available, returns TOP_RIGHT. 
+	 * @param pEdge the self-edge of interest
+	 * @return the first available corner on the node, starting with TOP_RIGHT and moving counter-clockwise.
+	 * @pre priorityOf(pEdge) == EdgePriority.SELF_EDGE
+	 */
+	private NodeCorner getSelfEdgeCorner(Edge pEdge)
+	{
+<span class="pc bpc" id="L220" title="1 of 2 branches missed.">		assert priorityOf(pEdge) == EdgePriority.SELF_EDGE;</span>
+<span class="fc bfc" id="L221" title="All 2 branches covered.">		for(NodeCorner corner : NodeCorner.values())</span>
+		{	//Get a 2D array of [startPoint, endPoint] for a self edge at the corner
+<span class="fc" id="L223">			Point[] points = toPoints(corner, pEdge.end());</span>
+			//Return the first corner with available start and end points
+<span class="fc bfc" id="L225" title="All 2 branches covered.">			if(aEdgeStorage.connectionPointIsAvailable(points[0]) &amp;&amp; </span>
+<span class="fc bfc" id="L226" title="All 2 branches covered.">					aEdgeStorage.connectionPointIsAvailable(points[1]))</span>
+			{
+<span class="fc" id="L228">				return corner;</span>
+			}
+		}
+		//if no corners are available, the top right corner will be used.
+<span class="fc" id="L232">		return NodeCorner.TOP_RIGHT;</span>
+	}
+	
+	/**
+	 * Builds an EdgePath for a self-edge pEdge, on the pCorner of pEdge's node.
+	 * @param pEdge the edge of interest
+	 * @param pCorner the corner of a node where the self edge should be
+	 * @return the EdgePath for pEdge, beginning on the North or South side of a node, ending on the East or West side of the node. 
+	 * @pre EdgePriority.priorityOf(pEdge) == EdgePriority.SELF_EDGE
+	 * @pre pCorner != null
+	 */
+	private EdgePath buildSelfEdge(Edge pEdge, NodeCorner pCorner)
+	{
+<span class="pc bpc" id="L245" title="1 of 2 branches missed.">		assert priorityOf(pEdge) == EdgePriority.SELF_EDGE;</span>
+<span class="pc bpc" id="L246" title="1 of 2 branches missed.">		assert pCorner != null;</span>
+<span class="fc" id="L247">		Point[] connectionPoints = toPoints(pCorner, pEdge.end());</span>
+<span class="fc" id="L248">		Point startPoint = connectionPoints[0];</span>
+<span class="fc" id="L249">		Point endPoint = connectionPoints[1];</span>
+		Point firstBend;
+		Point middleBend;
+		Point lastBend;
+		//determine location of first bend: either 20px above or 20px below the start point
+<span class="fc bfc" id="L254" title="All 2 branches covered.">		if(NodeCorner.horizontalSide(pCorner) == Direction.NORTH)</span>
+		{
+<span class="fc" id="L256">			firstBend = new Point(startPoint.x(), startPoint.y() - (2 * TEN_PIXELS)); </span>
+		}
+		else
+		{
+<span class="fc" id="L260">			firstBend = new Point(startPoint.x(), startPoint.y() + (2 * TEN_PIXELS)); </span>
+		}
+		//determine location of middle and last bends
+<span class="fc bfc" id="L263" title="All 2 branches covered.">		if(NodeCorner.verticalSide(pCorner) == Direction.EAST)</span>
+		{
+<span class="fc" id="L265">			middleBend = new Point(firstBend.x() + (4 * TEN_PIXELS), firstBend.y());</span>
+<span class="fc" id="L266">			lastBend = new Point(endPoint.x() + (2 * TEN_PIXELS), endPoint.y());</span>
+		}
+		else
+		{
+<span class="fc" id="L270">			middleBend = new Point(firstBend.x() - (4 * TEN_PIXELS), firstBend.y());</span>
+<span class="fc" id="L271">			lastBend = new Point(endPoint.x() - (2 * TEN_PIXELS), endPoint.y());</span>
+		}
+<span class="fc" id="L273">		return new EdgePath(startPoint, firstBend, middleBend, lastBend, endPoint);</span>
+	}
+
+	
+	/**
+	 * Builds and stores the EdgePaths for edges in pEdgesToMergeEnd, so they merge at a common end point.
+	 * @param pDirection the trajectory of the edges in pEdgesToMergeEnd (the direction of the first segment of the edges)
+	 * @param pEdgesToMergeEnd a list of edges whose ends should be merged
+	 * @param pDiagram the diagram
+	 * @pre pEdgesToMergeEnd.size() &gt; 0
+	 * @pre pDiagram.getType() == DiagramType.CLASS
+	 */
+	private void storeMergedEndEdges(Side pDirection, List&lt;Edge&gt; pEdgesToMergeEnd)
+	{
+<span class="pc bpc" id="L287" title="1 of 2 branches missed.">		assert pEdgesToMergeEnd.size() &gt; 0;</span>
+		//Merged edges will share a common end point
+<span class="fc" id="L289">		Point sharedEndPoint = getConnectionPoint(pEdgesToMergeEnd.get(0).end(), pEdgesToMergeEnd.get(0), pDirection.mirrored());</span>
+		//get the individual start points for each edge
+<span class="fc" id="L291">		Map&lt;Edge, Point&gt; startPoints = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L292" title="All 2 branches covered.">		for(Edge e : pEdgesToMergeEnd)</span>
+		{
+<span class="fc" id="L294">			startPoints.put(e, getConnectionPoint(e.start(), e, pDirection));</span>
+<span class="fc" id="L295">		}</span>
+		//Determine the position of the shared middle segment
+<span class="fc" id="L297">		Point closestStartPoint = getClosestPoint(startPoints.values(), pDirection);</span>
+		int midLineCoordinate;
+<span class="fc bfc" id="L299" title="All 2 branches covered.">		if(pDirection.isHorizontal())</span>
+		{
+<span class="fc" id="L301">			midLineCoordinate = getHorizontalMidLine(closestStartPoint, sharedEndPoint, pDirection, pEdgesToMergeEnd.get(0));</span>
+		}
+		else
+		{
+<span class="fc" id="L305">			midLineCoordinate = getVerticalMidLine(closestStartPoint, sharedEndPoint, pDirection, pEdgesToMergeEnd.get(0));</span>
+		}
+		//Build and store each edge's EdgePath
+<span class="fc bfc" id="L308" title="All 2 branches covered.">		for(Edge edge : pEdgesToMergeEnd)</span>
+		{
+<span class="fc" id="L310">			EdgePath path = buildSegmentedEdgePath(pDirection, startPoints.get(edge), midLineCoordinate, sharedEndPoint);</span>
+<span class="fc" id="L311">			aEdgeStorage.store(edge, path);</span>
+<span class="fc" id="L312">		}</span>
+<span class="fc" id="L313">	}</span>
+	
+	
+	/**
+	 * Builds and stores the EdgePaths for edges in pEdgesToMergeStart so that they share a common start point.
+	 * @param pDirection the trajectory of the edges in pEdgesToMmergeStart (the direction of the first segment of the edges)
+	 * @param pEdgesToMergeStart a list of edges which should me merged at their start points
+	 * @pre pEdgesToMergeStart.size() &gt; 0
+	 */
+	private void storeMergedStartEdges(Side pDirection, List&lt;Edge&gt; pEdgesToMergeStart)
+	{
+<span class="pc bpc" id="L324" title="1 of 2 branches missed.">		assert pEdgesToMergeStart.size() &gt; 0;</span>
+		//Get the shared start point for all pEdgesToMerge
+<span class="fc" id="L326">		Point startPoint = getConnectionPoint(pEdgesToMergeStart.get(0).start(), pEdgesToMergeStart.get(0), pDirection);</span>
+		//Get the individual end points for each edge
+<span class="fc" id="L328">		Map&lt;Edge, Point&gt; endPoints = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L329" title="All 2 branches covered.">		for(Edge edge : pEdgesToMergeStart)</span>
+		{
+<span class="fc" id="L331">			endPoints.put(edge, getConnectionPoint(edge.end(), edge, pDirection.mirrored()));</span>
+<span class="fc" id="L332">		}</span>
+		//Determine the X or Y coordinate of the middle segment for the edges:
+		//The default position of the merged middle segment is halfway between startPoint and closestEndPoint:
+<span class="fc" id="L335">		Point closestEndPoint = getClosestPoint(endPoints.values(), pDirection.mirrored());</span>
+		int midLineCoordinate;
+<span class="fc bfc" id="L337" title="All 2 branches covered.">		if(pDirection.isHorizontal())</span>
+		{
+<span class="fc" id="L339">			midLineCoordinate = getHorizontalMidLine(closestEndPoint, startPoint, pDirection, </span>
+<span class="fc" id="L340">					pEdgesToMergeStart.get(0));</span>
+		}
+		else
+		{
+<span class="fc" id="L344">			midLineCoordinate = getVerticalMidLine(closestEndPoint, startPoint, pDirection, </span>
+<span class="fc" id="L345">					pEdgesToMergeStart.get(0));</span>
+		}
+		//Build and store each edge's EdgePath
+<span class="fc bfc" id="L348" title="All 2 branches covered.">		for(Edge edge : pEdgesToMergeStart)</span>
+		{
+<span class="fc" id="L350">			EdgePath path = buildSegmentedEdgePath(pDirection, startPoint, midLineCoordinate, endPoints.get(edge));</span>
+<span class="fc" id="L351">			aEdgeStorage.store(edge, path);</span>
+<span class="fc" id="L352">		}</span>
+<span class="fc" id="L353">	}</span>
+	
+	
+	/**
+	 * Creates a segmented EdgePath using pStart and pEnd as start and end points (respectively)
+	 * and pMidLine as an X or Y coordinate of the middle segment. 
+	 * @param pEdgeDirection the direction describing the trajectory of pEdge
+	 * @param pStart the start point of pEdge
+	 * @param pMidLine an integer representing an X or Y coordinate of the middle segment
+	 * @param pEnd the end point of pEdge
+	 * @return a EdgePath consisting of pStart, 2 middle points connecting the middle segment, and pEnd
+	 * @pre pStart != null &amp;&amp; pEnd != null
+	 * @pre pMidLine &gt;= 0
+	 */
+	private static EdgePath buildSegmentedEdgePath(Side pEdgeDirection, Point pStart, int pMidLine, Point pEnd)
+	{
+<span class="pc bpc" id="L369" title="2 of 4 branches missed.">		assert pStart != null &amp;&amp; pEnd != null;</span>
+<span class="pc bpc" id="L370" title="1 of 2 branches missed.">		assert pMidLine &gt;= 0;</span>
+		Point firstMiddlePoint;
+		Point secondMiddlePoint;
+<span class="fc bfc" id="L373" title="All 2 branches covered.">		if(pEdgeDirection.isHorizontal())</span>
+		{
+			//Then the mid-point coordinate is a Y-coordinate
+<span class="fc" id="L376">			firstMiddlePoint = new Point(pStart.x(), pMidLine);</span>
+<span class="fc" id="L377">			secondMiddlePoint = new Point(pEnd.x(), pMidLine);</span>
+		}
+		else //East or West
+		{	//Then the mid-point coordinate is a X-coordinate
+<span class="fc" id="L381">			firstMiddlePoint = new Point(pMidLine, pStart.y());</span>
+<span class="fc" id="L382">			secondMiddlePoint = new Point(pMidLine, pEnd.y());</span>
+		}
+<span class="fc" id="L384">		return new EdgePath(pStart, firstMiddlePoint, secondMiddlePoint, pEnd);</span>
+	}
+	
+	
+	/**
+	 * Gets the edges which should merge to share a common end point with pEdge.
+	 * @param pEdge the edge of interest
+	 * @param pEdges a list of edges in the diagram
+	 * @return a list containing the edges which should merge with pEdge (not including pEdge itself).
+	 * @pre pEdge != null
+	 * @pre pEdges != null
+	 */
+	private List&lt;Edge&gt; getEdgesToMergeEnd(Edge pEdge, List&lt;Edge&gt; pEdges)
+	{
+<span class="pc bpc" id="L398" title="2 of 4 branches missed.">		assert pEdge != null &amp;&amp; pEdges != null;</span>
+<span class="fc" id="L399">		return pEdges.stream()</span>
+<span class="fc bfc" id="L400" title="All 2 branches covered.">				.filter(edge -&gt; edge.end() == pEdge.end())</span>
+<span class="fc bfc" id="L401" title="All 2 branches covered.">				.filter(edge -&gt; priorityOf(edge) == priorityOf(pEdge))</span>
+<span class="fc bfc" id="L402" title="All 2 branches covered.">				.filter(edge -&gt; attachedSide(edge, edge.end()) == attachedSide(pEdge, pEdge.end())) </span>
+<span class="fc" id="L403">				.filter(edge -&gt; noConflictingEndLabels(edge, pEdge))</span>
+<span class="fc" id="L404">				.filter(edge -&gt; noOtherEdgesBetween(edge, pEdge, pEdge.end()))</span>
+<span class="fc bfc" id="L405" title="All 2 branches covered.">				.filter(edge -&gt; !edge.equals(pEdge))</span>
+<span class="fc" id="L406">				.collect(toList());		</span>
+	}
+	
+	/**
+	 * Gets the edges which should merge to share a common start point with pEdge.
+	 * @param pEdge the edge of interest
+	 * @param pEdges a list of edges in the diagram
+	 * @return a list containing the edges which should merge with pEdge (not including pEdge itself).
+	 * @pre pEdge != null
+	 * @pre pEdges != null
+	 */
+	private List&lt;Edge&gt; getEdgesToMergeStart(Edge pEdge, List&lt;Edge&gt; pEdges)
+	{
+<span class="pc bpc" id="L419" title="2 of 4 branches missed.">		assert pEdge != null &amp;&amp; pEdges != null;</span>
+<span class="fc" id="L420">		return pEdges.stream()</span>
+<span class="fc" id="L421">			.filter(edge -&gt; edge.start().equals(pEdge.start()))</span>
+<span class="pc bpc" id="L422" title="1 of 2 branches missed.">			.filter(edge -&gt; priorityOf(edge) == priorityOf(pEdge))</span>
+<span class="fc bfc" id="L423" title="All 2 branches covered.">			.filter(edge -&gt; attachedSide(edge, edge.start()) == attachedSide(pEdge, pEdge.start()))</span>
+<span class="fc" id="L424">			.filter(edge -&gt; noOtherEdgesBetween(edge, pEdge, pEdge.start()))</span>
+<span class="fc" id="L425">			.filter(edge -&gt; noConflictingStartLabels(edge, pEdge))</span>
+<span class="fc bfc" id="L426" title="All 2 branches covered.">			.filter(edge -&gt; !edge.equals(pEdge))</span>
+<span class="fc" id="L427">			.collect(toList());</span>
+	}
+	
+	/**
+	 * Gets the y-coordinate of the horizontal middle segment of pEdge.
+	 * @param pStart the start point for pEdge
+	 * @param pEnd the end point for pEdge
+	 * @param pEdgeDirection the trajectory of pEdge, either North or South
+	 * @param pEdge the segmented edge of interest
+	 * @return an integer representing a y-coordinate of the middle segment of pEdge
+	 * @pre pDirection == Direction.NORTH || pDirection == Direction.SOUTH
+	 * @pre EdgePriority.isSegmented(pEdge)
+	 * @pre pStart != null &amp;&amp; pEnd != null
+	 */
+	private int getHorizontalMidLine(Point pStart, Point pEnd, Side pEdgeDirection, Edge pEdge)
+	{
+<span class="pc bpc" id="L443" title="1 of 2 branches missed.">		assert pEdgeDirection.isHorizontal();</span>
+<span class="pc bpc" id="L444" title="1 of 2 branches missed.">		assert EdgePriority.isSegmented(pEdge);</span>
+<span class="pc bpc" id="L445" title="2 of 4 branches missed.">		assert pStart != null &amp;&amp; pEnd != null;</span>
+		//Check for any edge in storage which is attached to pEdge's start and end nodes
+		// &quot;Shared-node edges&quot; require a different layout strategy:
+<span class="fc" id="L448">		List&lt;Edge&gt; storedEdgesWithSameNodes = aEdgeStorage.getEdgesWithSameNodes(pEdge);</span>
+<span class="fc bfc" id="L449" title="All 2 branches covered.">		if(!storedEdgesWithSameNodes.isEmpty())</span>
+		{
+<span class="fc" id="L451">			return horizontalMidlineForSharedNodeEdges(storedEdgesWithSameNodes.get(0), pEdge, pEdgeDirection);</span>
+		}
+		//Otherwise, find the closest edge which conflicts with pEdge
+<span class="fc" id="L454">		Optional&lt;Edge&gt; closestStoredEdge = closestConflictingHorizontalSegment(pEdgeDirection, pEdge);</span>
+<span class="fc bfc" id="L455" title="All 2 branches covered.">		if(closestStoredEdge.isEmpty())</span>
+		{
+			//If there are no conflicting segments, return the y-coordinate equidistant between the start and end points
+<span class="fc" id="L458">			return pEnd.y() + ((pStart.y() - pEnd.y()) / 2);</span>
+		}
+		else
+		{	//Return a y-coordinate either 10px above or 10px below the horizontal middle segment of closestStoredEdge
+<span class="fc" id="L462">			return adjacentHorizontalMidLine(closestStoredEdge.get(), pEdge, pEdgeDirection);	</span>
+		}
+	}
+	
+	/**
+	 * Gets the x-coordinate of the vertical middle segment of pEdge.
+	 * @param pStart the start point of pEdge
+	 * @param pEnd the end point of pEdge
+	 * @param pEdgeDirection the direction of pEdge (the direction of the first segment of pEdge).
+	 * @param pEdge the edge of interest
+	 * @return an integer representing the x-coordinate for the vertical middle segment of pEdge.
+	 * @pre pEdgeDirection == Direction.EAST || pEdgeDirection == Direction.WEST
+	 * @pre EdgePriority.isSegmented(pEdge)
+	 * @pre pStart != null &amp;&amp; pEnd != null
+	 */
+	private int getVerticalMidLine(Point pStart, Point pEnd, Side pEdgeDirection, Edge pEdge)
+	{
+<span class="pc bpc" id="L479" title="1 of 2 branches missed.">		assert pEdgeDirection.isVertical();</span>
+<span class="pc bpc" id="L480" title="1 of 2 branches missed.">		assert EdgePriority.isSegmented(pEdge);</span>
+<span class="pc bpc" id="L481" title="2 of 4 branches missed.">		assert pStart != null &amp;&amp; pEnd != null;</span>
+		//Check for any edge in storage which shares the same 2 nodes as pEdge: 
+<span class="fc" id="L483">		List&lt;Edge&gt; storedEdgesWithSameNodes = aEdgeStorage.getEdgesWithSameNodes(pEdge);</span>
+<span class="fc bfc" id="L484" title="All 2 branches covered.">		if(!storedEdgesWithSameNodes.isEmpty())</span>
+		{
+			//&quot;Shared-node edges&quot; require a different layout strategy
+<span class="fc" id="L487">			return verticalMidlineForSharedNodeEdges(storedEdgesWithSameNodes.get(0), pEdge, pEdgeDirection);</span>
+		}
+		//Otherwise, find the closest edge which conflicts with pEdge
+<span class="fc" id="L490">		Optional&lt;Edge&gt; closestStoredEdge = closestConflictingVerticalSegment(pEdgeDirection, pEdge);</span>
+<span class="fc bfc" id="L491" title="All 2 branches covered.">		if(closestStoredEdge.isEmpty())</span>
+		{
+			//If no stored edges conflict with pEdge then return the x-coordinate in between the start and end points
+<span class="fc" id="L494">			return pEnd.x() + ((pStart.x() - pEnd.x()) / 2);</span>
+		}
+		else
+		{	//Return an x-coordinate either 10px to the left or 10px to the right of closestStoredEdge
+<span class="fc" id="L498">			return adjacentVerticalMidLine(closestStoredEdge.get(), pEdge, pEdgeDirection);</span>
+		}
+	}
+	
+	/**
+	 * Gets the y-coordinate of the horizontal middle segment of pNewEdge, so that it avoids overlapping with 
+	 * pEdgeWithSameNodes, which is already in storage.
+	 * @param pEdgeWithSameNodes an edge in storage which shares the same 2 connected nodes as pNewEdge. 
+	 * @param pNewEdge the segmented edge whose middle segment we want
+	 * @param pEdgeDirection the direction of pEdge (the direction of the first segment of pEdge). 
+	 * @return an integer describing the y-coordinate of the middle segment of pEdge, so that pEdge and pEdgeWithSameNodes do not overlap.
+	 * @pre pEdgeWithSameNodes is present in storage
+	 * @pre pEdgeWithSameNodes and pEdge both share the same 2 attached nodes.
+	 * @pre pEdgeDirection == Direction.NORTH || pEdgeDirection == Direction.SOUTH
+	 */
+	private int horizontalMidlineForSharedNodeEdges(Edge pEdgeWithSameNodes, Edge pNewEdge, Side pEdgeDirection)
+	{
+<span class="pc bpc" id="L515" title="1 of 2 branches missed.">		assert aEdgeStorage.contains(pEdgeWithSameNodes);</span>
+<span class="pc bpc" id="L516" title="1 of 4 branches missed.">		assert pEdgeWithSameNodes.start() == pNewEdge.start() || pEdgeWithSameNodes.start() == pNewEdge.end();</span>
+<span class="pc bpc" id="L517" title="1 of 4 branches missed.">		assert pEdgeWithSameNodes.end() == pNewEdge.start() || pEdgeWithSameNodes.end() == pNewEdge.end();</span>
+<span class="pc bpc" id="L518" title="1 of 2 branches missed.">		assert pEdgeDirection.isHorizontal();</span>
+<span class="fc bfc" id="L519" title="All 2 branches covered.">		if(pEdgeDirection == Side.TOP)</span>
+		{	
+<span class="fc" id="L521">			return getEdgePath(pEdgeWithSameNodes).getPointByIndex(1).y() - TEN_PIXELS;</span>
+		}
+		else //pEdgeDirection == Direction.SOUTH
+		{
+<span class="fc" id="L525">			return getEdgePath(pEdgeWithSameNodes).getPointByIndex(1).y() + TEN_PIXELS;</span>
+		}
+	}
+	
+	/**
+	 * Gets the x-coordinate of the vertical middle segment of pNewEdge, so that it avoids overlapping with 
+	 * pEdgeWithSameNodes, which is already in storage.
+	 * @param pEdgeWithSameNodes an edge in storage which shares the same 2 connected nodes as pNewEdge. 
+	 * @param pNewEdge the edge whose EdgePath we want to plan
+	 * @param pEdgeDirection the direction of pEdge (the direction of the first segment of pEdge). 
+	 * @return The x-coordinate of the middle segment of pEdge, so that pEdge and pEdgeWithSameNodes do not overlap.
+	 * @pre pEdgeWithSameNodes is present in storage
+	 * @pre pEdgeWithSameNodes and pEdge both share the same 2 attached nodes.
+	 * @pre pEdgeDirection == Direction.WEST || pEdgeDirection == Direction.EAST
+	 */
+	private int verticalMidlineForSharedNodeEdges(Edge pEdgeWithSameNodes, Edge pNewEdge, Side pEdgeDirection) 
+	{
+<span class="pc bpc" id="L542" title="1 of 2 branches missed.">		assert aEdgeStorage.contains(pEdgeWithSameNodes);</span>
+<span class="pc bpc" id="L543" title="1 of 4 branches missed.">		assert pEdgeWithSameNodes.start() == pNewEdge.start() || pEdgeWithSameNodes.start() == pNewEdge.end();</span>
+<span class="pc bpc" id="L544" title="1 of 4 branches missed.">		assert pEdgeWithSameNodes.end() == pNewEdge.start() || pEdgeWithSameNodes.end() == pNewEdge.end();</span>
+<span class="pc bpc" id="L545" title="1 of 2 branches missed.">		assert pEdgeDirection.isVertical();</span>
+<span class="fc bfc" id="L546" title="All 2 branches covered.">		if(pEdgeDirection == Side.LEFT)</span>
+		{
+<span class="fc" id="L548">			return getEdgePath(pEdgeWithSameNodes).getPointByIndex(1).x() - TEN_PIXELS;</span>
+		}
+		else
+		{
+<span class="fc" id="L552">			return getEdgePath(pEdgeWithSameNodes).getPointByIndex(1).x() + TEN_PIXELS;</span>
+		}
+	}
+	
+	
+	/**
+	 * Gets the closest Edge to pEdge.getEnd() (or pEdge.getStart() for AggregationEdges) which might interfere with the position 
+	 * of the horizontal middle segment of pEdge. Considers all stored, segmented edges which are attached to either of pEdge's nodes and 
+	 * could conflict with pEdge. 
+	 * @param pEdgeDirection the direction describing the trajectory of pEdge (the direction of the first segment of pEdge)
+	 * @param pEdge the edge of interest
+	 * @return the closest Edge conflicting with the horizontal middle segment of pEdge, or Optional.empty() if there are no conflicting edges.
+	 * @pre pEdgeDirection == Direction.NORTH || pEdgeDirection == Direction.SOUTH
+	 */
+	private Optional&lt;Edge&gt; closestConflictingHorizontalSegment(Side pEdgeDirection, Edge pEdge)
+	{
+<span class="pc bpc" id="L568" title="1 of 2 branches missed.">		assert pEdgeDirection.isHorizontal();</span>
+		//Consider all edges connected to pEdge.getEnd() which are in the way of pEdge
+<span class="fc" id="L570">		List&lt;Edge&gt; conflictingEdges = storedConflictingEdges(pEdgeDirection.mirrored(), pEdge.end(), pEdge);	</span>
+		//also consider edges which are connected to pEdge.getStart() which are in the way of pEdge
+<span class="fc" id="L572">		conflictingEdges.addAll(storedConflictingEdges(pEdgeDirection, pEdge.start(), pEdge));</span>
+<span class="fc bfc" id="L573" title="All 2 branches covered.">		if(conflictingEdges.isEmpty())</span>
+		{
+<span class="fc" id="L575">			return Optional.empty();</span>
+		}
+		else 
+		{	//For Aggregation/Composition edges: return the Edge with the middle segment which is closest to pEdge's start node
+<span class="fc bfc" id="L579" title="All 2 branches covered.">			if(pEdge instanceof AggregationEdge)</span>
+			{
+<span class="fc" id="L581">				return conflictingEdges.stream()</span>
+<span class="fc" id="L582">						.min(Comparator.comparing(edge -&gt; verticalDistanceToNode(pEdge.start(), edge, pEdgeDirection)));</span>
+			}
+			else
+			{  //For all other segmented edges: return the Edge with the middle segment which is closest to pEdge's end node
+<span class="fc" id="L586">				return conflictingEdges.stream()</span>
+<span class="fc" id="L587">						.min(Comparator.comparing(edge -&gt; verticalDistanceToNode(pEdge.end(), edge, pEdgeDirection)));</span>
+			}
+		}
+	}
+	
+	/**
+	 * Gets the closest Edge to pEdge.getEnd() (pEdge.getStart() for AggregationEdges) which might interfere with the position of 
+	 * the vertical middle segment of pEdge. Considers all segmented edges which are attached to both pEdge.getStart() and pEdge.getEnd(), 
+	 * and could conflict with pEdge. 
+	 * @param pEdgeDirection the direction describing the trajectory of pEdge (the direction of the first segment of pEdge)
+	 * @param pEdge the edge of interest
+	 * @return the closest Edge conflicting with the vertical middle segment of pEdge, or Optional.empty() if there are no conflicting edges.
+	 * @pre pEdgeDirection == Direction.EAST || pEdgeDirection == Direction.WEST
+	 * @pre EdgePriority.isSegmented(pEdge)
+	 */
+	private Optional&lt;Edge&gt; closestConflictingVerticalSegment(Side pEdgeDirection, Edge pEdge) 
+	{
+<span class="pc bpc" id="L604" title="1 of 2 branches missed.">		assert pEdgeDirection.isVertical();</span>
+<span class="pc bpc" id="L605" title="1 of 2 branches missed.">		assert EdgePriority.isSegmented(pEdge);</span>
+		//Get all edges connected to pEdge's end node which could conflict with pEdge's middle segment position
+<span class="fc" id="L607">		List&lt;Edge&gt; conflictingEdges = storedConflictingEdges(pEdgeDirection.mirrored(), pEdge.end(), pEdge);	</span>
+		//Also consider edges connected to pEdge's start node which could conflict with pEdge's middle segment
+<span class="fc" id="L609">		conflictingEdges.addAll(storedConflictingEdges(pEdgeDirection, pEdge.start(), pEdge));</span>
+<span class="fc bfc" id="L610" title="All 2 branches covered.">		if(conflictingEdges.isEmpty())</span>
+		{
+<span class="fc" id="L612">			return Optional.empty();</span>
+		}
+		else 
+		{	//for AggregationEdges: return the Edge with the middle segment which is closest to pEdge.getStart()
+<span class="fc bfc" id="L616" title="All 2 branches covered.">			if(pEdge instanceof AggregationEdge)</span>
+			{
+<span class="fc" id="L618">				return conflictingEdges.stream()</span>
+<span class="fc" id="L619">						.min(Comparator.comparing(edge -&gt; horizontalDistanceToNode(pEdge.start(), edge, pEdgeDirection)));</span>
+			}
+			else
+			{	//For all other edges: return the Edge with the middle segment which is closest to pEdge.getEnd()
+<span class="fc" id="L623">				return conflictingEdges.stream()</span>
+<span class="fc" id="L624">						.min(Comparator.comparing(edge -&gt; horizontalDistanceToNode(pEdge.end(), edge, pEdgeDirection)));</span>
+			}
+		}
+	}
+	
+	
+	/**
+	 * Gets the y-coordinate for the horizontal middle segment of pEdge based on the position of pClosestStoredEdge. 
+	 * @param pClosestStoredEdge the closest edge which conflicts with pEdge. 
+	 * @param pEdge the edge of interest
+	 * @param pEdgeDirection the direction describing the trajectory of pEdge (the direction of the first segment of pEdge)
+	 * @return the y-coordinate for the middle segment of pEdge: either 10px below pClosestStoredEdge or 10px above pClosestStoredEdge 
+	 * @pre classDiagramViewerFor(pEdge).storageContains(pClosestStoredEdge)
+	 * @pre EdgePriority.isSegmented(pEdge)
+	 * @pre pEdgeDirection == Direction.NORTH || pEdgeDirection == Direction.SOUTH
+	 */
+	private int adjacentHorizontalMidLine(Edge pClosestStoredEdge, Edge pEdge, Side pEdgeDirection)
+	{
+<span class="pc bpc" id="L642" title="1 of 2 branches missed.">		assert aEdgeStorage.contains(pClosestStoredEdge);</span>
+<span class="pc bpc" id="L643" title="1 of 2 branches missed.">		assert EdgePriority.isSegmented(pEdge);</span>
+<span class="pc bpc" id="L644" title="1 of 2 branches missed.">		assert pEdgeDirection.isHorizontal();</span>
+<span class="fc" id="L645">		Node commonNode = getSharedNode(pClosestStoredEdge, pEdge);</span>
+<span class="fc bfc" id="L646" title="All 2 branches covered.">		if(pEdgeDirection == Side.TOP)</span>
+		{
+<span class="fc bfc" id="L648" title="All 2 branches covered.">			if(isOutgoingEdge(pEdge, commonNode))</span>
+			{
+<span class="fc" id="L650">				return getEdgePath(pClosestStoredEdge).getPointByIndex(1).y() + TEN_PIXELS;</span>
+			}
+			else
+			{
+<span class="fc" id="L654">				return getEdgePath(pClosestStoredEdge).getPointByIndex(1).y() - TEN_PIXELS;</span>
+			}
+		}
+		else //Direction is BOTTOM
+		{
+<span class="fc bfc" id="L659" title="All 2 branches covered.">			if(isOutgoingEdge(pEdge, commonNode))</span>
+			{
+<span class="fc" id="L661">				return getEdgePath(pClosestStoredEdge).getPointByIndex(1).y() - TEN_PIXELS;</span>
+			}
+			else
+			{
+<span class="fc" id="L665">				return getEdgePath(pClosestStoredEdge).getPointByIndex(1).y() + TEN_PIXELS;</span>
+			}
+		}
+	}
+	
+	
+	/**
+	 * Gets the x-coordinate for the vertical middle segment of pEdge based on the position of pClosestStoredEdge. 
+	 * @param pClosestStoredEdge the closest edge to pNode which conflicts with pEdge. 
+	 * @param pEdge the edge of interest
+	 * @param pEdgeDirection the direction describing the trajectory of pEdge (the direction of the first segment of pEdge).
+	 * @return the x-coordinate for the middle segment of pEdge, 
+	 *     so that it is either 10px to the right of pClosestStoredEdge, or 10px to the left.
+	 * @pre pClosestStoredEdge is present in the diagram's EdgeStorage
+	 * @pre EdgePriority.isSegmented(pEdge)
+	 * @pre pEdgeDirection == Direction.WEST || pEdgeDirection == Direction.EAST
+	 */
+	private int adjacentVerticalMidLine(Edge pClosestStoredEdge, Edge pEdge, Side pEdgeDirection) 
+	{
+<span class="pc bpc" id="L684" title="1 of 2 branches missed.">		assert aEdgeStorage.contains(pClosestStoredEdge);</span>
+<span class="pc bpc" id="L685" title="1 of 2 branches missed.">		assert EdgePriority.isSegmented(pEdge);</span>
+<span class="pc bpc" id="L686" title="1 of 2 branches missed.">		assert pEdgeDirection.isVertical();</span>
+<span class="fc" id="L687">		Node commonNode = getSharedNode(pClosestStoredEdge, pEdge);</span>
+<span class="fc bfc" id="L688" title="All 2 branches covered.">		if(pEdgeDirection == Side.LEFT)</span>
+		{
+<span class="fc bfc" id="L690" title="All 2 branches covered.">			if(isOutgoingEdge(pEdge, commonNode))</span>
+			{
+<span class="fc" id="L692">				return getEdgePath(pClosestStoredEdge).getPointByIndex(1).x() + TEN_PIXELS;</span>
+			}
+			else
+			{
+<span class="fc" id="L696">				return getEdgePath(pClosestStoredEdge).getPointByIndex(1).x() - TEN_PIXELS;</span>
+			}
+		}
+		else //Direction is RIGHT
+		{
+<span class="fc bfc" id="L701" title="All 2 branches covered.">			if(isOutgoingEdge(pEdge, commonNode))</span>
+			{
+<span class="fc" id="L703">				return getEdgePath(pClosestStoredEdge).getPointByIndex(1).x() - TEN_PIXELS;</span>
+			}
+			else
+			{
+<span class="fc" id="L707">				return getEdgePath(pClosestStoredEdge).getPointByIndex(1).x() + TEN_PIXELS;</span>
+			}
+		}
+	}
+
+	
+	/**
+	 * Gets the node which pEdgeA and pEdgeB are both attached to.
+	 * @param pEdgeA an edge in the diagram
+	 * @param pEdgeB another edge in the diagram
+	 * @return the Node which pEdgeA and pEdgeB are both connected to.
+	 * @pre pEdgeA and pEdgeB have an attached node in common
+	 */
+	private static Node getSharedNode(Edge pEdgeA, Edge pEdgeB)
+	{
+<span class="pc bfc" id="L722" title="All 4 branches covered.">		assert pEdgeA.start() == pEdgeB.start() || pEdgeA.start() == pEdgeB.end() ||</span>
+<span class="pc bpc" id="L723" title="1 of 4 branches missed.">				pEdgeA.end() == pEdgeB.start() || pEdgeA.end() == pEdgeB.end();</span>
+<span class="fc bfc" id="L724" title="All 4 branches covered.">		if(pEdgeA.start().equals(pEdgeB.start()) || pEdgeA.start().equals(pEdgeB.end()))</span>
+		{
+<span class="fc" id="L726">			return pEdgeA.start();</span>
+		}
+		else
+		{			
+<span class="fc" id="L730">			return pEdgeA.end();</span>
+		}
+	}
+	
+	/**
+	 * Gets all edges currently in storage which are connected to the pNodeFace side of pNode
+	 * with the same index sign (-1 or +1) as pEdge. These edges may conflict with the default placement 
+	 * of pEdge, so their EdgePaths need to be considered when planning the EdgePath of pEdge. 
+	 * @param pNodeSide the side of pNode on which pEdge is attached
+	 * @param pNode the node of interest which pEdge is attached to
+	 * @param pEdge the edge of interest
+	 * @return a list of edges which could conflict with the default EdgePath of pEdge.
+	 * @pre pEdge.getStart() == pNode || pEdge.getEnd() == pNode
+	 */
+	private List&lt;Edge&gt; storedConflictingEdges(Side pNodeSide, Node pNode, Edge pEdge)
+	{
+<span class="pc bpc" id="L746" title="1 of 4 branches missed.">		assert pEdge.start() == pNode || pEdge.end() == pNode;</span>
+<span class="fc" id="L747">		return aEdgeStorage.edgesConnectedTo(pNode).stream()</span>
+<span class="fc bfc" id="L748" title="All 2 branches covered.">			.filter(edge -&gt; attachedSideFromStorage(edge, pNode) == pNodeSide)</span>
+<span class="fc" id="L749">			.filter(edge -&gt; EdgePriority.isSegmented(edge))</span>
+<span class="fc bfc" id="L750" title="All 2 branches covered.">			.filter(edge -&gt; getIndexSign(edge, pNode, pNodeSide) == getIndexSign(pEdge, pNode, pNodeSide))</span>
+<span class="fc bfc" id="L751" title="All 2 branches covered.">			.filter(edge -&gt; !edge.equals(pEdge))</span>
+<span class="fc" id="L752">			.collect(toList());</span>
+	}
+	
+	/**
+	 * Uses EdgeStorage to get the side describing the face of pNode on which a stored edge pEdge is attached.
+	 * @param pEdge the edge of interest
+	 * @param pNode the node of interest which PEdge is attached to
+	 * @return the side of pNode on which pEdge is attached
+	 * @pre storageContains(pEdge)
+	 * @pre pEdge.getStart() == pNode || pEdge.getEnd() == pNode
+	 */
+	private Side attachedSideFromStorage(Edge pEdge, Node pNode)
+	{
+<span class="pc bpc" id="L765" title="1 of 2 branches missed.">		assert aEdgeStorage.contains(pEdge);</span>
+<span class="pc bpc" id="L766" title="1 of 4 branches missed.">		assert pEdge.start() == pNode || pEdge.end() == pNode;</span>
+		//Get the connection point of pEdge onto pNode
+<span class="fc" id="L768">		Point connectionPoint = getEdgePath(pEdge).getStartPoint();</span>
+<span class="fc bfc" id="L769" title="All 2 branches covered.">		if(!isOutgoingEdge(pEdge, pNode))</span>
+		{
+<span class="fc" id="L771">			connectionPoint = getEdgePath(pEdge).getEndPoint();</span>
+		}
+		//Iterate over each side of pNode. Return the side which contains connectionPoint
+<span class="fc bfc" id="L774" title="All 2 branches covered.">		for(Side side : Side.values())</span>
+		{
+<span class="fc bfc" id="L776" title="All 2 branches covered.">			if(getFace(pNode, side).spanning().contains(connectionPoint))</span>
+			{
+<span class="fc" id="L778">				return side;</span>
+			}
+		}
+<span class="fc" id="L781">		return Side.TOP;</span>
+	}
+	
+	private Line getFace(Node pNode, Side pSide)
+	{
+<span class="fc" id="L786">		return ((NodeRenderer)rendererFor(pNode.getClass())).getFace(pNode, pSide);</span>
+	}
+	
+	/**
+	 * Gets the vertical distance in pixels between the North side of pEndNode and the horizontal middle segment of pEdge.
+	 * @param pEndNode the end node of interest
+	 * @param pEdge the segmented edge of interest
+	 * @param pEdgeDirection the trajectory of pEdge
+	 * @return the absolute value of the distance between the North side of pEndNode and the middle segment of pEdge in pixels.
+	 * @pre pEdgeDirection == Direction.NORTH || pEdgeDirection == Direction.SOUTH	
+	 * @pre pEdge.getEnd() == pEndNode
+	 * @pre EdgePriority.isSegmented(priorityOf(pEdge));
+	 */
+	private int verticalDistanceToNode(Node pEndNode, Edge pEdge, Side pEdgeDirection) 
+	{
+<span class="pc bpc" id="L801" title="1 of 2 branches missed.">		assert pEdgeDirection.isHorizontal();	</span>
+<span class="pc bpc" id="L802" title="1 of 2 branches missed.">		assert EdgePriority.isSegmented(priorityOf(pEdge));</span>
+<span class="pc bpc" id="L803" title="1 of 2 branches missed.">		assert aEdgeStorage.contains(pEdge);</span>
+<span class="fc" id="L804">		return Math.abs(getEdgePath(pEdge).getPointByIndex(1).y() - pEndNode.position().y());</span>
+	}
+	
+	/**
+	 * Gets the horizontal distance between the West side of pNode and the vertical middle segment of pEdge.
+	 * @param pEndNode the node of interest. The end node for pEdge. 
+	 * @param pEdge the segmented edge of interest.
+	 * @param pEdgeDirection the trajectory of pEdge
+	 * @return the absolute value of the distance between the West side of pNode and the middle segment of pEdge
+	 * @pre pEdgeDirection == Direction.EAST || PEdgeDirection == Direction.WEST
+	 * @pre EdgePriority.isSegmented(priorityOf(pEdge));
+	 */
+	private int horizontalDistanceToNode(Node pEndNode, Edge pEdge, Side pEdgeDirection) 
+	{
+<span class="pc bpc" id="L818" title="1 of 2 branches missed.">		assert pEdgeDirection.isVertical();</span>
+<span class="pc bpc" id="L819" title="1 of 2 branches missed.">		assert EdgePriority.isSegmented(priorityOf(pEdge));</span>
+<span class="pc bpc" id="L820" title="1 of 2 branches missed.">		assert aEdgeStorage.contains(pEdge);</span>
+<span class="fc" id="L821">		return Math.abs(getEdgePath(pEdge).getPointByIndex(1).x() - pEndNode.position().x());</span>
+	}
+	
+	/**
+	 * Gets the point from pPoints which is farthest in the direction pEdgeDirection.
+	 * For example, if pDirection is North, it will return the Northern-most point from pPoints.
+	 * @param pPoints the list of edge start points
+	 * @param pDirection the direction used to compare pPoints
+	 * @return the Point which which maximizes pDirection
+	 * @pre pPoints.size() &gt; 0
+	 */
+	private static Point getClosestPoint(Collection&lt;Point&gt; pPoints, Side pDirection) 
+	{
+<span class="pc bpc" id="L834" title="1 of 2 branches missed.">		assert pPoints.size() &gt; 0;</span>
+<span class="pc bpc" id="L835" title="1 of 2 branches missed.">		assert pDirection!=null;</span>
+<span class="fc bfc" id="L836" title="All 2 branches covered.">		if( pDirection == Side.TOP)</span>
+		{//Then return the point with the smallest Y-coordinate
+<span class="fc" id="L838">			return pPoints.stream()</span>
+<span class="fc" id="L839">							.min((p1, p2)-&gt;Integer.compare(p1.y(), p2.y())).orElseGet(null);</span>
+		}
+<span class="fc bfc" id="L841" title="All 2 branches covered.">		else if( pDirection == Side.BOTTOM) </span>
+		{//Then return the point with the the largest Y-coordinate
+<span class="fc" id="L843">			return pPoints.stream()</span>
+<span class="fc" id="L844">						.max((p1, p2) -&gt; Integer.compare(p1.y(), p2.y())).orElseGet(null);</span>
+		}
+<span class="fc bfc" id="L846" title="All 2 branches covered.">		else if(pDirection == Side.RIGHT)</span>
+		{//Then return the point with the largest X-coordinate
+<span class="fc" id="L848">			return pPoints.stream()</span>
+<span class="fc" id="L849">				.max((p1, p2)-&gt; Integer.compare(p1.x() , p2.x())).orElseGet(null);</span>
+		}
+		else
+		{ //Then return the point with the smallest X-coordinate
+<span class="fc" id="L853">			return pPoints.stream()</span>
+<span class="fc" id="L854">					.min((p1, p2)-&gt; Integer.compare(p1.x(), p2.x())).orElseGet(null);</span>
+		}
+	}
+
+	/**
+	 * Checks whether the start labels of pEdge1 and pEdge2 are equal, if they both have start labels. 
+	 * @param pEdge1 an edge of interest
+	 * @param pEdge2 another edge of interest
+	 * @return false if the edges are both ThreeLabelEdge edges with different start labels. True otherwise. 
+	 * @pre pEdge1 != null &amp;&amp; pEdge2 != null
+	 */
+	private static boolean noConflictingStartLabels(Edge pEdge1, Edge pEdge2)
+	{
+<span class="pc bpc" id="L867" title="2 of 4 branches missed.">		assert pEdge1 !=null &amp;&amp; pEdge2 !=null;</span>
+<span class="fc bfc" id="L868" title="All 4 branches covered.">		if(pEdge1 instanceof ThreeLabelEdge edge1 &amp;&amp; pEdge2 instanceof ThreeLabelEdge edge2 &amp;&amp;</span>
+<span class="fc bfc" id="L869" title="All 2 branches covered.">				priorityOf(pEdge1) == priorityOf(pEdge2))</span>
+		{
+<span class="fc" id="L871">			return edge1.getStartLabel().equals(edge2.getStartLabel());</span>
+		}
+		else
+		{
+<span class="fc" id="L875">			return true;</span>
+		}
+	}
+	
+	/**
+	 * Checks whether the end labels of pEdge1 and pEdge2 are equal, if they both have end labels. 
+	 * @param pEdge1 an edge of interest
+	 * @param pEdge2 another edge of interest
+	 * @return false if the edges are both ThreeLabelEdge edges with different end labels. True otherwise. 
+	 * @pre pEdge1 !=null &amp;&amp; pEdge2 !=null
+	 */
+	private static boolean noConflictingEndLabels(Edge pEdge1, Edge pEdge2)
+	{
+<span class="pc bpc" id="L888" title="2 of 4 branches missed.">		assert pEdge1 !=null &amp;&amp; pEdge2 !=null;</span>
+<span class="fc bfc" id="L889" title="All 4 branches covered.">		if(pEdge1 instanceof ThreeLabelEdge edge1 &amp;&amp; pEdge2 instanceof ThreeLabelEdge edge2 &amp;&amp;</span>
+<span class="fc bfc" id="L890" title="All 2 branches covered.">				priorityOf(pEdge1) == priorityOf(pEdge2))</span>
+		{
+<span class="fc" id="L892">			return edge1.getEndLabel().equals(edge2.getEndLabel());</span>
+		}
+		else
+		{
+<span class="fc" id="L896">			return true;</span>
+		}
+	}
+	
+	/**
+	 * Returns whether there are any edges connected to pNode in between pEdge1 and pEdge2.
+	 * @param pEdge1 an edge of interest
+	 * @param pEdge2 another edge of interest
+	 * @param pNode the node on which pEdge1 and pEdge2 are attached
+	 * @return true if there are no stored edges on pNode which are attached in between pEdge1 and pEdge2, false otherwise
+	 * @pre pEdge1.getStart() == pNode || pEdge1.getEnd() == pNode
+	 * @pre pEdge2.getStart() == pNode || pEdge2.getEnd() == pNode
+	 * @pre attachedSide(pEdge1, pNode) == attachedSide(pEdge2, pNode)
+	 */
+	private boolean noOtherEdgesBetween(Edge pEdge1, Edge pEdge2, Node pNode)
+	{
+<span class="pc bpc" id="L912" title="1 of 4 branches missed.">		assert pEdge1.start() == pNode || pEdge1.end() == pNode;</span>
+<span class="pc bpc" id="L913" title="1 of 4 branches missed.">		assert pEdge2.start() == pNode || pEdge2.end() == pNode;</span>
+<span class="pc bpc" id="L914" title="1 of 2 branches missed.">		assert attachedSide(pEdge1, pNode) == attachedSide(pEdge2, pNode);</span>
+<span class="fc bfc" id="L915" title="All 2 branches covered.">		if(pEdge1.equals(pEdge2))</span>
+		{
+<span class="fc" id="L917">			return true;</span>
+		}
+		//Return true if there are no other stored edges connected to the same side of pNode as pEdge1 and pEdge2
+<span class="fc" id="L920">		if(aEdgeStorage.edgesConnectedTo(pNode).stream()</span>
+<span class="fc bfc" id="L921" title="All 2 branches covered.">					.filter(edge -&gt; attachedSide(edge, pNode) == attachedSide(pEdge1, pNode))</span>
+<span class="fc bfc" id="L922" title="All 2 branches covered.">					.collect(toList()).isEmpty()) </span>
+		{
+<span class="fc" id="L924">			return true;</span>
+		}
+		else
+		{	//Compare the center point of pNode to the center points of the other nodes of pEdge1 and pEdge2:
+<span class="fc" id="L928">			return nodesOnSameSideOfCommonNode(getOtherNode(pEdge1, pNode), getOtherNode(pEdge2, pNode), </span>
+<span class="fc" id="L929">					pNode, attachedSide(pEdge1, pNode));</span>
+		}
+	}
+	
+	/**
+	 * Returns whether the center points of pNode1 and pNode2 are both on the same side relative to the center point of pCommonNode.
+	 * @param pNode1 a node in the diagram
+	 * @param pNode2 another node in the diagram
+	 * @param pCommonNode aNode which has edges which connect to both pNode1 and pNode2
+	 * @param pAttachedSide the side of pCommonNode on which the edges from pNode1 and pNode2 connect
+	 * @return true if the center points of pNode1 and pNode2 are both above, below, to the left, or to the right 
+	 *     of the center point of pCommonNode. False otherwise.
+	 * @pre pAttachedSide.isCardinal()
+	 */
+	private boolean nodesOnSameSideOfCommonNode(Node pNode1, Node pNode2, Node pCommonNode, Side pAttachedSide)
+	{
+		//Compare positions of pNode1 and pNode2 to the position of pCommonNode
+<span class="fc" id="L946">		Point node1Center = getBounds(pNode1).center();</span>
+<span class="fc" id="L947">		Point node2Center = getBounds(pNode2).center();</span>
+<span class="fc" id="L948">		Point commonNodeCenter = getBounds(pCommonNode).center();</span>
+<span class="fc bfc" id="L949" title="All 2 branches covered.">		if(pAttachedSide.isHorizontal())//then compare X-coordinates</span>
+		{
+<span class="fc bfc" id="L951" title="All 4 branches covered.">			return node1Center.x() &lt;= commonNodeCenter.x() &amp;&amp; node2Center.x() &lt;= commonNodeCenter.x() ||</span>
+<span class="fc bfc" id="L952" title="All 4 branches covered.">					node1Center.x() &gt;= commonNodeCenter.x() &amp;&amp; node2Center.x() &gt;= commonNodeCenter.x();</span>
+		}
+		else//compare y-coordinates
+		{
+<span class="fc bfc" id="L956" title="All 4 branches covered.">			return node1Center.y() &lt;= commonNodeCenter.y() &amp;&amp; node2Center.y() &lt;= commonNodeCenter.y() ||</span>
+<span class="fc bfc" id="L957" title="All 4 branches covered.">					node1Center.y() &gt;= commonNodeCenter.y() &amp;&amp; node2Center.y() &gt;= commonNodeCenter.y();</span>
+		}
+	}
+	
+	/**
+	 * Gets the connection point for pEdge on the pAttachmentSide of pNode. 
+	 * Checks with the diagram's EdgeStorage to find the closest available 
+	 * connection point to the center point (NodeIndex ZERO). 
+	 * @param pNode the node of interest
+	 * @param pEdge the edge of interest
+	 * @return the Point where pEdge connects to pNode
+	 * @pre pEdge.getStart() == pNode || pEdge.getEnd() == pNode	
+	 */
+	private Point getConnectionPoint(Node pNode, Edge pEdge, Side pAttachmentSide)
+	{
+<span class="pc bpc" id="L972" title="1 of 4 branches missed.">		assert pEdge.start() == pNode || pEdge.end() == pNode;	</span>
+<span class="fc" id="L973">		Line faceOfNode = getFace(pNode, pAttachmentSide);</span>
+		//North and South node sides have connection points: -4 ...0... +4
+		//East and West node sides have connection points: -2 ...0... +2
+<span class="fc" id="L976">		int maxIndex = 4; </span>
+<span class="fc bfc" id="L977" title="All 2 branches covered.">		if( pAttachmentSide.isVertical() )</span>
+		{
+<span class="fc" id="L979">			maxIndex = 2; </span>
+		}
+		//Get the index sign (either -1 or +1)
+<span class="fc" id="L982">		int indexSign = getIndexSign(pEdge, pNode, pAttachmentSide);</span>
+		//Get the first available connection point, starting at NodeIndex ZERO and moving outwards 
+<span class="fc bfc" id="L984" title="All 2 branches covered.">		for(int offset = 0; offset &lt;= maxIndex; offset++) </span>
+		{
+<span class="fc" id="L986">			int ordinal = 4 + (indexSign * offset);</span>
+<span class="fc" id="L987">			NodeIndex index = NodeIndex.values()[ordinal];</span>
+<span class="fc" id="L988">			Point connectionPoint = index.toPoint(faceOfNode, pAttachmentSide); </span>
+<span class="fc bfc" id="L989" title="All 2 branches covered.">			if(aEdgeStorage.connectionPointIsAvailable(connectionPoint))</span>
+			{
+<span class="fc" id="L991">				return connectionPoint;</span>
+			}
+		}
+		//If no connection point was available, return the point at NodeIndex MINUS_FOUR or PLUS_FOUR	
+<span class="fc" id="L995">		int maxOrdinal = 4 + ( maxIndex * indexSign );</span>
+<span class="fc" id="L996">		return NodeIndex.values()[maxOrdinal].toPoint(faceOfNode, pAttachmentSide); </span>
+	}
+	
+	/**
+	 * Returns the node connected to pEdge which is not pNode.
+	 * @param pEdge the edge of interest
+	 * @param pNode a node attached to pEdge
+	 * @return the other node attached to pEdge
+	 * @pre pEdge!=null
+	 * @pre pNode!=null
+	 * @pre pEdge.getStart() == pNode || pEdge.getEnd() == pNode
+	 */
+	private static Node getOtherNode(Edge pEdge, Node pNode)
+	{
+<span class="pc bpc" id="L1010" title="1 of 2 branches missed.">		assert pEdge!=null;</span>
+<span class="pc bpc" id="L1011" title="1 of 2 branches missed.">		assert pNode!=null;</span>
+<span class="pc bpc" id="L1012" title="1 of 4 branches missed.">		assert pEdge.start() == pNode || pEdge.end() == pNode;</span>
+<span class="fc bfc" id="L1013" title="All 2 branches covered.">		if(pEdge.start() == pNode)</span>
+		{
+<span class="fc" id="L1015">			return pEdge.end();</span>
+		}
+		else
+		{
+<span class="fc" id="L1019">			return pEdge.start();</span>
+		}
+	}
+	
+	
+	/**
+	 * Gets the index sign (-1 or 1) describing the attachment of pNode on pEdge.
+	 * 
+	 * Edges which share both their start and end nodes with another edge (shared-node edges) should have the same index sign, regardless
+	 * of whether they are outgoing or incoming on pNode. 
+	 * 
+	 * For all other edges, the index sign can be obtained by 
+	 * comparing the relative positions of pNode and the other Node attached to pEdge. 
+	 * 
+	 * @param pEdge the edge of interest
+	 * @param pNode the node for which we want the index sign
+	 * @param pSideOfNode the cardinal direction describing the side of pNode where pEdge attaches
+	 * @return the index sign (-1 or 1) describing the attachment of pEdge onto pNode.
+	 * @pre pEdge.getStart() == pNode || pEdge.getEnd() == pNode
+	 */
+	private int getIndexSign(Edge pEdge, Node pNode, Side pSideOfNode)
+	{
+<span class="pc bpc" id="L1041" title="1 of 4 branches missed.">		assert pEdge.start() == pNode || pEdge.end() == pNode;</span>
+		//Check whether there are any stored edges which are connected to both pEdge.getStart() and pEdge.getEnd()
+<span class="fc" id="L1043">		List&lt;Edge&gt; edgesWithSameNodes = aEdgeStorage.getEdgesWithSameNodes(pEdge);</span>
+<span class="fc bfc" id="L1044" title="All 2 branches covered.">		if(!edgesWithSameNodes.isEmpty()) </span>
+		{	//For shared-nod edge: index sign on start node should always be same as end node index sign
+<span class="fc" id="L1046">			return indexSignOnNode(pEdge, pEdge.end(), pEdge.start(), attachedSide(pEdge, pEdge.end()));</span>
+		}
+		else
+		{
+<span class="fc" id="L1050">			return indexSignOnNode(pEdge, pNode, getOtherNode(pEdge, pNode), pSideOfNode);</span>
+		}
+	}
+	
+	/**
+	 * Gets the index sign (-1 or 1) describing the attachment of pNode on pEdge.
+	 * Compares the relative positions of pNode and pOtherNode to determine if the index sign should be -1 or +1.
+	 * @param pEdge the edge of interest
+	 * @param pNode the node for which we want to compute the index sign
+	 * @param pOtherNode the node attached to pEdge which is not pNode
+	 * @param pSideOfNode the cardinal direction describing the side of pNode where pEdge could attach
+	 * @return the index sign (-1 or 1) describing the attachment of pEdge onto pNode.
+	 * @pre pEdge.getStart() == pNode || pEdge.getEnd() == pNode
+	 * @pre getOtherNode(pEdge, pNode).equals(pOtherNode)
+	 */
+	private int indexSignOnNode(Edge pEdge, Node pNode, Node pOtherNode, Side pSideOfNode)
+	{
+<span class="pc bpc" id="L1067" title="1 of 4 branches missed.">		assert pEdge.start() == pNode || pEdge.end() == pNode;</span>
+<span class="pc bpc" id="L1068" title="1 of 2 branches missed.">		assert getOtherNode(pEdge, pNode).equals(pOtherNode);</span>
+<span class="fc bfc" id="L1069" title="All 2 branches covered.">		if( pSideOfNode.isHorizontal() ) //then compare X-coordinates</span>
+		{
+<span class="fc bfc" id="L1071" title="All 2 branches covered.">			if(getBounds(pNode).center().x() &lt;=  getBounds(pOtherNode).center().x())</span>
+			{
+<span class="fc" id="L1073">				return 1;</span>
+			}
+			else 
+			{
+<span class="fc" id="L1077">				return -1;</span>
+			}	
+		}
+		else //Side of node is East/West, so we need to compare Y-coordinates
+		{
+<span class="fc bfc" id="L1082" title="All 2 branches covered.">			if(getBounds(pNode).center().y() &lt;=  getBounds(pOtherNode).center().y())</span>
+			{
+<span class="fc" id="L1084">				return 1;</span>
+			}
+			else
+			{
+<span class="fc" id="L1088">				return -1;</span>
+			}
+		}
+	}
+	
+	/**
+	 * Returns whether pEdge is an outgoing edge from pNode.
+	 * @param pEdge the edge of interest
+	 * @param pNode the node of interest
+	 * @return true if pEdge is outgoing from pNode, false otherwise
+	 * @pre pNode!=null
+	 * @pre pEdge!=null
+	 */
+	private static boolean isOutgoingEdge(Edge pEdge, Node pNode)
+	{
+<span class="pc bpc" id="L1103" title="2 of 4 branches missed.">		assert pEdge!=null &amp;&amp; pNode!=null;</span>
+<span class="fc bfc" id="L1104" title="All 2 branches covered.">		return pEdge.start() == pNode;</span>
+	}
+	
+	/**
+	 * Gets the side of pNode that pEdge should be attached to.
+	 * @param pEdge the edge of interest
+	 * @param pNode the node of interest
+	 * @return The side of pNode where pEdge should be attached.
+	 * @pre pEdge.getStart() == pNode || pEdge.getEnd() == pNode 
+	 */
+	private Side attachedSide(Edge pEdge, Node pNode)
+	{
+<span class="pc bpc" id="L1116" title="1 of 4 branches missed.">		assert pEdge.start() == pNode || pEdge.end() == pNode;</span>
+		Side startAttachedSide;
+		/* If there is an Edge in storage which is also attached to pEdge.getStart() and pEdge.getEnd()
+		  then the attachment side of pEdge onto pNode must be the same as the attachment side of the 
+		  stored node onto pNode. (These are referred to as &quot;shared-node edges&quot;).
+		*/
+<span class="fc" id="L1122">		List&lt;Edge&gt; edgesWithSameNodes = aEdgeStorage.getEdgesWithSameNodes(pEdge);</span>
+<span class="fc bfc" id="L1123" title="All 2 branches covered.">		if(!edgesWithSameNodes.isEmpty())</span>
+		{
+<span class="fc" id="L1125">			return attachedSideFromStorage(edgesWithSameNodes.get(0), pNode);</span>
+		}
+		//AggregationEdges prefer to attach on East/West sides, unless nodes are directly above/below each other
+<span class="fc bfc" id="L1128" title="All 2 branches covered.">		if(pEdge instanceof AggregationEdge)</span>
+		{
+<span class="fc" id="L1130">			startAttachedSide = attachedSidePreferringEastWest(pEdge);	</span>
+		}
+		//Other edges prefer to attach on North/South sides, unless nodes are directly beside each other
+		else
+		{
+<span class="fc" id="L1135">			startAttachedSide = attachedSidePreferringNorthSouth(pEdge);</span>
+		}
+		//The attached side of pEdge to its end node is always opposite of the attachment side to its start node
+<span class="fc bfc" id="L1138" title="All 2 branches covered.">		if(isOutgoingEdge(pEdge, pNode))</span>
+		{
+<span class="fc" id="L1140">			return startAttachedSide;</span>
+		}
+		else
+		{
+<span class="fc" id="L1144">			return startAttachedSide.mirrored();</span>
+		}
+	}
+	
+
+	/**
+	 * Gets the cardinal direction describing the side of pEdge's start node on which pEdge should attach.
+	 * pEdge should connect to the East or West sides unless its nodes are directly above or below each other. 
+	 * @param pEdge the edge of interest
+	 * @return the side of pNode that pEdge should be attached to
+	 * @pre pEdge != null
+	 */
+	private Side attachedSidePreferringEastWest(Edge pEdge)
+	{
+<span class="pc bpc" id="L1158" title="1 of 2 branches missed.">		assert pEdge != null;</span>
+<span class="fc" id="L1159">		Rectangle startNodeBounds = getBounds(pEdge.start());</span>
+<span class="fc" id="L1160">		Rectangle endNodeBounds = getBounds(pEdge.end());</span>
+		//if the start node is above or below the end node (+- 20 px) then determine whether it belongs on the N or S side
+<span class="fc bfc" id="L1162" title="All 2 branches covered.">		if(startNodeBounds.maxX() &gt; endNodeBounds.x() - (2 * TEN_PIXELS) &amp;&amp;</span>
+<span class="fc bfc" id="L1163" title="All 2 branches covered.">				startNodeBounds.x() &lt; endNodeBounds.maxX() + (2 * TEN_PIXELS))</span>
+		{
+<span class="fc" id="L1165">			return northSouthSideUnlessTooClose(pEdge);		</span>
+		}
+		else
+		{
+<span class="fc" id="L1169">			return eastWestSideUnlessTooClose(pEdge);</span>
+		}
+		
+	}
+	
+	/**
+	 * Gets the side of pEdge's start node that pEdge should attach to.  
+	 * @param pEdge the edge of interest
+	 * @return the North/South side of pEdge's start node which pEdge should attach to, unless pEdge's nodes are directly beside each other.
+	 */
+	private Side attachedSidePreferringNorthSouth(Edge pEdge)
+	{
+<span class="pc bpc" id="L1181" title="1 of 2 branches missed.">		assert pEdge!= null;</span>
+<span class="fc" id="L1182">		Rectangle startNodeBounds = getBounds(pEdge.start());</span>
+<span class="fc" id="L1183">		Rectangle endNodeBounds = getBounds(pEdge.end());</span>
+		//if the start node is beside the end node (+- 20 px) then compute whether it belongs on the E or W side
+<span class="fc bfc" id="L1185" title="All 2 branches covered.">		if(startNodeBounds.maxY() &gt; endNodeBounds.y() - (2 * TEN_PIXELS) &amp;&amp; </span>
+<span class="fc bfc" id="L1186" title="All 2 branches covered.">				startNodeBounds.y() &lt; endNodeBounds.maxY() + (2 * TEN_PIXELS))</span>
+		{
+<span class="fc" id="L1188">			return eastWestSideUnlessTooClose(pEdge);</span>
+		}
+		else //compute whether it belongs on the N or S side
+		{
+<span class="fc" id="L1192">			return northSouthSideUnlessTooClose(pEdge);</span>
+		}
+	}
+	
+	/**
+	 * Returns the side of pEdge's start node that pEdge should attach to. This side will be either North or South, unless
+	 * pEdge's nodes are closer to each other than they are to pEdge's middle segment. In that case, it returns the East/West attachment side.
+	 * @param pEdge the edge of interest
+	 * @return the attachment side of pEdge 
+	 */
+	private Side northSouthSideUnlessTooClose(Edge pEdge)
+	{
+<span class="fc" id="L1204">		Side preferredSide = northOrSouthSide(getBounds(pEdge.start()), </span>
+<span class="fc" id="L1205">				getBounds(pEdge.end()));</span>
+<span class="fc bfc" id="L1206" title="All 2 branches covered.">		if(nodeIsCloserThanSegment(pEdge, pEdge.end(), preferredSide) || </span>
+<span class="pc bpc" id="L1207" title="1 of 2 branches missed.">				nodeIsCloserThanSegment(pEdge, pEdge.start(), preferredSide.mirrored()))</span>
+		{
+<span class="fc" id="L1209">			return eastOrWestSide(getBounds(pEdge.start()), getBounds(pEdge.end()));</span>
+		}
+		else
+		{
+<span class="fc" id="L1213">			return preferredSide;</span>
+		}
+	}
+	
+	/**
+	 * Returns whether pEdge should attach on the East or West side of its start node, unless
+	 * pEdge's nodes are too close together, in which case it returns the North/South attachment side.
+	 * @param pEdge the edge of interest
+	 * @return the attachment side of pEdge 
+	 */
+	private Side eastWestSideUnlessTooClose(Edge pEdge)
+	{
+<span class="fc" id="L1225">		Side preferredSide = eastOrWestSide(getBounds(pEdge.start()), </span>
+<span class="fc" id="L1226">				getBounds(pEdge.end()));</span>
+<span class="fc bfc" id="L1227" title="All 2 branches covered.">		if(nodeIsCloserThanSegment(pEdge, pEdge.end(), preferredSide) || </span>
+<span class="pc bpc" id="L1228" title="1 of 2 branches missed.">				nodeIsCloserThanSegment(pEdge, pEdge.start(), preferredSide.mirrored()))</span>
+		{
+<span class="fc" id="L1230">			return northOrSouthSide(getBounds(pEdge.start()), getBounds(pEdge.end()));</span>
+		}
+		else
+		{
+<span class="fc" id="L1234">			return preferredSide;</span>
+		}
+	}
+	
+	/**
+	 * Compares the relative positions of pBounds and pOtherBounds to determine if an edge connecting
+	 * pBounds and pOtherBounds should connect on the North or South side of pBounds. 
+	 * @param pBounds the rectangle of interest
+	 * @param pOtherBounds another rectangle to compare with
+	 * @return the side of pBounds (either North or South) where an edge connecting pBounds and pOtherBounds should attach.
+	 * @pre pBounds != null &amp;&amp; pOtherBounds != null
+	 */
+	private static Side northOrSouthSide(Rectangle pBounds, Rectangle pOtherBounds)
+	{
+<span class="pc bpc" id="L1248" title="2 of 4 branches missed.">		assert pBounds != null &amp;&amp; pOtherBounds != null;</span>
+<span class="fc bfc" id="L1249" title="All 2 branches covered.">		if(pOtherBounds.center().y() &lt; pBounds.center().y())</span>
+		{
+<span class="fc" id="L1251">			return Side.TOP;</span>
+		}
+		else
+		{
+<span class="fc" id="L1255">			return Side.BOTTOM;</span>
+		}
+	}
+	
+	/**
+	 * Compares the relative positions of pBounds and pOtherBounds to determine if an edge connecting
+	 * pBounds and pOtherBounds should connect on the East or West side of pBounds. 
+	 * @param pBounds the rectangle of interest
+	 * @param pOtherBounds another rectangle to compare with
+	 * @return the side of pBounds (either East or West) where an edge connecting pBounds and pOtherBounds should attach.
+	 * @pre pBounds !=null &amp;&amp; pOtherBounds !=null
+	 */
+	private static Side eastOrWestSide(Rectangle pBounds, Rectangle pOtherBounds)
+	{
+<span class="pc bpc" id="L1269" title="2 of 4 branches missed.">		assert pBounds !=null &amp;&amp; pOtherBounds !=null;</span>
+<span class="fc bfc" id="L1270" title="All 2 branches covered.">		if(pOtherBounds.center().x() &lt; pBounds.center().x() )</span>
+		{
+<span class="fc" id="L1272">			return Side.LEFT;</span>
+		}
+		else
+		{
+<span class="fc" id="L1276">			return Side.RIGHT;</span>
+					
+		}
+	}
+	
+	/**
+	 * Returns whether the other node attached to pEdge is closer to pNode than pEdge's middle segment. 
+	 * @param pEdge the edge of interest
+	 * @param pNode a node attached to pEdge 
+	 * @param pAttachedSide the side of pNode where pEdge is attached
+	 * @return true if pEdge's other node is closer to pNode than pEdge's middle segment is, false otherwise.
+	 * @pre pEdge.getStart() == pNode || pEdge.getEnd() == pNode
+	 */
+	private boolean nodeIsCloserThanSegment(Edge pEdge, Node pNode, Side pAttachedSide)
+	{
+<span class="pc bpc" id="L1291" title="1 of 4 branches missed.">		assert pEdge.start() == pNode || pEdge.end() == pNode;</span>
+<span class="fc" id="L1292">		Rectangle otherNodeBounds = getBounds(getOtherNode(pEdge, pNode));</span>
+<span class="fc bfc" id="L1293" title="All 2 branches covered.">		if(pAttachedSide == Side.TOP)</span>
+		{ //Consider the middle segments of edges attached to pNode
+<span class="fc" id="L1295">			return !storedConflictingEdges(pAttachedSide.mirrored(), pNode, pEdge).stream()</span>
+<span class="fc bfc" id="L1296" title="All 2 branches covered.">					.filter(edge -&gt; otherNodeBounds.y() &lt; getEdgePath(edge).getPointByIndex(1).y() - TEN_PIXELS)</span>
+<span class="fc" id="L1297">					.collect(toList())</span>
+<span class="fc bfc" id="L1298" title="All 2 branches covered.">					.isEmpty();</span>
+		}
+<span class="fc bfc" id="L1300" title="All 2 branches covered.">		else if(pAttachedSide == Side.BOTTOM)</span>
+		{//Consider the middle segments of edges attached to pNode
+<span class="fc" id="L1302">			return !storedConflictingEdges(pAttachedSide.mirrored(), pNode, pEdge).stream()</span>
+<span class="fc bfc" id="L1303" title="All 2 branches covered.">					.filter(edge -&gt; otherNodeBounds.maxY() &gt; getEdgePath(edge).getPointByIndex(1).y() + TEN_PIXELS)</span>
+<span class="fc" id="L1304">					.collect(toList())</span>
+<span class="fc bfc" id="L1305" title="All 2 branches covered.">					.isEmpty();</span>
+		}
+<span class="fc bfc" id="L1307" title="All 2 branches covered.">		else if(pAttachedSide == Side.RIGHT)</span>
+		{//Consider the middle segments of edges attached to pNode
+<span class="fc" id="L1309">			return !storedConflictingEdges(pAttachedSide.mirrored(), pNode, pEdge).stream()</span>
+<span class="fc bfc" id="L1310" title="All 2 branches covered.">					.filter(edge -&gt; otherNodeBounds.maxX() &gt; getEdgePath(edge).getPointByIndex(1).x() - TEN_PIXELS)</span>
+<span class="fc" id="L1311">					.collect(toList())</span>
+<span class="fc bfc" id="L1312" title="All 2 branches covered.">					.isEmpty();</span>
+		}
+		else //Direction is LEFT
+		{//Consider the middle segments of edges attached to pNode
+<span class="fc" id="L1316">			return !storedConflictingEdges(pAttachedSide.mirrored(), pNode, pEdge).stream()</span>
+<span class="fc bfc" id="L1317" title="All 2 branches covered.">					.filter(edge -&gt; otherNodeBounds.x() &lt; getEdgePath(edge).getPointByIndex(1).x() + TEN_PIXELS)</span>
+<span class="fc" id="L1318">					.collect(toList())</span>
+<span class="fc bfc" id="L1319" title="All 2 branches covered.">					.isEmpty();</span>
+		}
+	}
+	
+	/**
+	 * Gets the EdgePath of pEdge from storage.
+	 * @param pEdge the edge of interest
+	 * @return the stored EdgePath of pEdge
+	 * @pre the diagram's EdgeStorage contains pEdge
+	 */
+	private EdgePath getEdgePath(Edge pEdge)
+	{
+<span class="pc bpc" id="L1331" title="1 of 2 branches missed.">		assert aEdgeStorage.contains(pEdge);</span>
+<span class="fc" id="L1332">		return aEdgeStorage.getEdgePath(pEdge);</span>
+	}
+	
+	/**
+	 * @param pEdge The edge to check for a path.
+	 * @return The path for the edge, or empty if there is none.
+	 */
+	public Optional&lt;EdgePath&gt; getStoredEdgePath(Edge pEdge)
+	{
+<span class="pc bpc" id="L1341" title="1 of 2 branches missed.">		if( aEdgeStorage.contains(pEdge) )</span>
+		{
+<span class="fc" id="L1343">			return Optional.of(aEdgeStorage.getEdgePath(pEdge));</span>
+		}
+		else
+		{
+<span class="nc" id="L1347">			return Optional.empty();</span>
+		}
+	}
+	
+	/**
+	 * Returns an array of [startPoint, endPoint] where a self-edge attached to the pCorner of pNode would connect.
+	 * @param pCorner the NodeCorner of interest
+	 * @param pNode the node of interest 
+	 * @return an array containing the start point and end point for a self edge attached to the pCorner corner of pNode.
+	 */
+	public Point[] toPoints(NodeCorner pCorner, Node pNode)
+	{ 
+		Point startPoint;
+		Point endPoint;		
+<span class="fc bfc" id="L1361" title="All 2 branches covered.">		if(pCorner == NodeCorner.TOP_RIGHT)</span>
+		{
+<span class="fc" id="L1363">			Line topFace = getFace(pNode, Side.TOP);</span>
+<span class="fc" id="L1364">			startPoint = new Point(topFace.x2() - TWENTY_PIXELS, topFace.y2());</span>
+<span class="fc" id="L1365">			Line rightFace = getFace(pNode, Side.RIGHT);</span>
+<span class="fc" id="L1366">			endPoint = new Point(rightFace.x1(), rightFace.y1() + TWENTY_PIXELS);</span>
+<span class="fc" id="L1367">		}</span>
+<span class="fc bfc" id="L1368" title="All 2 branches covered.">		else if(pCorner == NodeCorner.TOP_LEFT)</span>
+		{
+<span class="fc" id="L1370">			Rectangle nodeBounds = getBounds(pNode);</span>
+<span class="fc" id="L1371">			startPoint = new Point(nodeBounds.x() + TWENTY_PIXELS, nodeBounds.y());</span>
+<span class="fc" id="L1372">			endPoint = new Point(nodeBounds.x(), nodeBounds.y() + TWENTY_PIXELS);</span>
+<span class="fc" id="L1373">		}</span>
+<span class="fc bfc" id="L1374" title="All 2 branches covered.">		else if(pCorner == NodeCorner.BOTTOM_LEFT)</span>
+		{
+<span class="fc" id="L1376">			Rectangle nodeBounds = getBounds(pNode);</span>
+<span class="fc" id="L1377">			startPoint = new Point(nodeBounds.x() + TWENTY_PIXELS, nodeBounds.maxY());</span>
+<span class="fc" id="L1378">			endPoint = new Point(nodeBounds.x(), nodeBounds.maxY() - TWENTY_PIXELS);</span>
+<span class="fc" id="L1379">		}</span>
+		else //BOTTOM_RIGHT
+		{
+<span class="fc" id="L1382">			Rectangle nodeBounds = getBounds(pNode);</span>
+<span class="fc" id="L1383">			startPoint = new Point(nodeBounds.maxX() - TWENTY_PIXELS, nodeBounds.maxY());</span>
+<span class="fc" id="L1384">			endPoint = new Point(nodeBounds.maxX(), nodeBounds.maxY() - TWENTY_PIXELS);</span>
+		}
+<span class="fc" id="L1386">		return new Point[] {startPoint, endPoint};</span>
+	}
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JsonIntegerParser.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.persistence.json</a> &gt; <span class="el_source">JsonIntegerParser.java</span></div><h1>JsonIntegerParser.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ * 
+ * See: https://github.com/prmr/JetUML
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *******************************************************************************/
+package org.jetuml.persistence.json;
+
+/**
+ * Parses integer values in JSON document according to the ECMA-404 2nd
+ * edition December 2017.
+ */
+<span class="fc" id="L26">final class JsonIntegerParser implements JsonValueParser</span>
+{
+	private static final char CHAR_MINUS = '-';
+	private static final char CHAR_ZERO = '0';
+	private static final char CHAR_NINE = '9';
+	
+	@Override
+	public boolean isApplicable(ParsableCharacterBuffer pInput)
+	{
+<span class="fc bfc" id="L35" title="All 2 branches covered.">		if(!pInput.hasMore() )</span>
+    	{
+<span class="fc" id="L37">    		return false;</span>
+    	}
+<span class="fc" id="L39">    	char next = pInput.next();</span>
+<span class="fc" id="L40">    	pInput.backUp();</span>
+<span class="fc bfc" id="L41" title="All 4 branches covered.">		return next == CHAR_MINUS || isDigit(next);</span>
+    }
+    
+    /*
+     * This is different from Character.isDigit, which 
+     * also returns true for non-JSON digits.
+     */
+    private static boolean isDigit(char pCharacter)
+    {
+<span class="fc bfc" id="L50" title="All 4 branches covered.">    	return pCharacter &gt;= CHAR_ZERO &amp;&amp; pCharacter &lt;= CHAR_NINE;</span>
+    }
+
+	@Override
+	public Integer parse(ParsableCharacterBuffer pInput)
+	{
+<span class="fc" id="L56">		StringBuffer numberAsString = new StringBuffer();</span>
+<span class="fc bfc" id="L57" title="All 2 branches covered.">		if( pInput.isNext(CHAR_MINUS))</span>
+		{
+<span class="fc" id="L59">			numberAsString.append(pInput.next());</span>
+		}
+<span class="fc bfc" id="L61" title="All 2 branches covered.">    	while( pInput.hasMore() )</span>
+    	{
+<span class="fc" id="L63">    		char next = pInput.next();</span>
+<span class="fc bfc" id="L64" title="All 2 branches covered.">    		if( isDigit(next) )</span>
+    		{
+<span class="fc" id="L66">    			numberAsString.append(next);</span>
+    		}
+    		else
+    		{
+<span class="fc" id="L70">    			pInput.backUp();</span>
+<span class="fc" id="L71">    			break;</span>
+    		}
+<span class="fc" id="L73">    	}</span>
+<span class="fc" id="L74">    	return parseInt(numberAsString.toString(), pInput.position());</span>
+	}
+	
+    private static int parseInt(String pNumber, int pPosition)
+    {
+    	try
+    	{
+<span class="fc bfc" id="L81" title="All 2 branches covered.">    		if( illegalNumber(pNumber) )</span>
+    		{
+<span class="fc" id="L83">    			throw new JsonParsingException(pPosition);</span>
+    		}
+<span class="fc" id="L85">    		return Integer.parseInt(pNumber);</span>
+    	}
+<span class="fc" id="L87">    	catch(NumberFormatException exception)</span>
+    	{
+<span class="fc" id="L89">    		throw new JsonParsingException(pPosition);</span>
+    	}
+    }
+    
+    private static boolean illegalNumber(String pNumber)
+    {
+<span class="fc bfc" id="L95" title="All 2 branches covered.">    	if(pNumber.isBlank())</span>
+    	{
+<span class="fc" id="L97">    		return true;</span>
+    	}
+<span class="fc bfc" id="L99" title="All 2 branches covered.">    	if(pNumber.startsWith(&quot;-0&quot;))</span>
+    	{
+<span class="fc" id="L101">    		return true;</span>
+    	}
+<span class="pc bpc" id="L103" title="1 of 6 branches missed.">    	if( pNumber.length() &gt;=2 &amp;&amp; pNumber.charAt(0) == CHAR_ZERO &amp;&amp; isDigit(pNumber.charAt(1)))</span>
+    	{
+<span class="fc" id="L105">    		return true;</span>
+    	}
+<span class="fc" id="L107">    	return false;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

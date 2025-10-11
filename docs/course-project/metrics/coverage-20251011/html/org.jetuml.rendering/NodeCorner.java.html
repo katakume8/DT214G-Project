@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NodeCorner.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.rendering</a> &gt; <span class="el_source">NodeCorner.java</span></div><h1>NodeCorner.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.rendering;
+
+import org.jetuml.geom.Direction;
+import org.jetuml.rendering.edges.NodeIndex;
+
+/**
+ * Represents the 4 corners of a node. Used to plan the placement of self-edges.
+ *
+ */
+<span class="fc" id="L30">public enum NodeCorner </span>
+{
+<span class="fc" id="L32">	TOP_RIGHT, TOP_LEFT, BOTTOM_LEFT, BOTTOM_RIGHT;</span>
+	
+	
+	/**
+	 * Gets the horizontal (North or South) NodeIndex associated with pCorner.
+	 * @param pCorner the node corner
+	 * @return +3 if the corner is a right corner, -3 otherwise
+	 */
+	public static NodeIndex getHorizontalIndex(NodeCorner pCorner)
+	{
+<span class="fc bfc" id="L42" title="All 4 branches covered.">		if(pCorner == BOTTOM_RIGHT || pCorner == TOP_RIGHT)</span>
+		{
+<span class="fc" id="L44">			return NodeIndex.PLUS_THREE;</span>
+		}
+		else
+		{
+<span class="fc" id="L48">			return NodeIndex.MINUS_THREE;</span>
+		}
+	}
+	
+	/**
+	 * Gets the vertical (East or West) NodeIndex associated with pCorner.
+	 * @param pCorner the node corner
+	 * @return +1 if the corner is a top corner, -1 otherwise.
+	 */
+	public static NodeIndex getVerticalIndex(NodeCorner pCorner)
+	{
+<span class="fc bfc" id="L59" title="All 4 branches covered.">		if(pCorner == TOP_LEFT || pCorner == TOP_RIGHT)</span>
+		{
+<span class="fc" id="L61">			return NodeIndex.MINUS_ONE;</span>
+		}
+		else
+		{
+<span class="fc" id="L65">			return NodeIndex.PLUS_ONE;</span>
+		}
+	}
+	
+	/**
+	 * Gets the Direction (either North or South) describing pCorner's horizontal position on a node.
+	 * @param pCorner the node corner of interest
+	 * @return TOP if the corner is a top corner, BOTTOM if the corner is a bottom corner.
+	 * @pre pCorner != null;
+	 */
+	public static Direction horizontalSide(NodeCorner pCorner)
+	{
+<span class="pc bpc" id="L77" title="1 of 2 branches missed.">		assert pCorner != null;</span>
+<span class="fc bfc" id="L78" title="All 4 branches covered.">		if(pCorner == TOP_RIGHT || pCorner == TOP_LEFT)</span>
+		{
+<span class="fc" id="L80">			return Direction.NORTH;</span>
+		}
+		else
+		{
+<span class="fc" id="L84">			return Direction.SOUTH;</span>
+		}
+	}
+	
+	
+	/**
+	 * Gets the Direction (either RIGHT or LEFT) describing pCorner's vertical position on a node.
+	 * @param pCorner the node corner of interest
+	 * @return RIGHT if the corner is a right corner, LEFT if the corner is a left corner.
+	 */
+	public static Direction verticalSide(NodeCorner pCorner)
+	{
+<span class="pc bpc" id="L96" title="1 of 2 branches missed.">		assert pCorner != null;</span>
+<span class="fc bfc" id="L97" title="All 4 branches covered.">		if(pCorner == TOP_RIGHT || pCorner == BOTTOM_RIGHT)</span>
+		{
+<span class="fc" id="L99">			return Direction.EAST;</span>
+		}
+		else
+		{
+<span class="fc" id="L103">			return Direction.WEST;</span>
+		}
+	}
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

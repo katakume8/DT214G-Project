@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EdgePath.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.rendering</a> &gt; <span class="el_source">EdgePath.java</span></div><h1>EdgePath.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.rendering;
+
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Objects;
+
+import org.jetuml.geom.Point;
+
+/**
+ * Represents the path of an edge on a diagram as a list of points. 
+ * Non-segmented paths consist of 2 points (the start and end points).
+ */
+<span class="fc" id="L34">public final class EdgePath implements Iterable&lt;Point&gt;</span>
+{
+	private List&lt;Point&gt; aPoints;
+	
+	/**
+	 * Initializes an EdgePath composed of pPoints.
+	 * @param pPoints the points of an edge (the start point, possible segment connections, and the end point)
+	 * @pre pPoints.length &gt;= 2
+	 */
+	public EdgePath(Point...pPoints)
+<span class="fc" id="L44">	{</span>
+<span class="pc bpc" id="L45" title="1 of 2 branches missed.">		assert pPoints.length &gt;= 2;</span>
+<span class="fc" id="L46">		aPoints = Arrays.asList(pPoints);</span>
+<span class="fc" id="L47">	}</span>
+	
+	/**
+	 * Gets the starting point for the path.
+	 * @return the Point where the edge starts.
+	 */
+	public Point getStartPoint()
+	{
+<span class="fc" id="L55">		return aPoints.get(0);</span>
+	}
+	
+	/**
+	 * Gets the end point of the edge.
+	 * @return the Point where the edge ends.
+	 */
+	public Point getEndPoint()
+	{
+<span class="fc" id="L64">		return aPoints.get(aPoints.size()-1);</span>
+	}
+
+	/**
+	 * Returns the point in the edge path at position pIndex, where index 0 refers to the start point.
+	 * @param pIndex the index of aPoints
+	 * @return the Point in aPoints at pIndex &lt; aPoints.size()
+	 * @pre pIndex &gt; 0 &amp;&amp; pIndex
+	 */
+	public Point getPointByIndex(int pIndex)
+	{
+<span class="pc bpc" id="L75" title="2 of 4 branches missed.">		assert pIndex &gt;= 0 &amp;&amp; pIndex &lt; aPoints.size();</span>
+<span class="fc" id="L76">		return aPoints.get(pIndex);</span>
+	}
+
+	@Override
+	public int hashCode() 
+	{
+<span class="nc" id="L82">		return Objects.hash(aPoints);</span>
+	}
+
+	@Override
+	public boolean equals(Object pObj) 
+	{
+<span class="fc bfc" id="L88" title="All 2 branches covered.">		if(this == pObj)</span>
+		{
+<span class="fc" id="L90">			return true;</span>
+		}
+<span class="fc bfc" id="L92" title="All 2 branches covered.">		if(pObj == null)</span>
+		{
+<span class="fc" id="L94">			return false;</span>
+		}
+<span class="pc bpc" id="L96" title="1 of 2 branches missed.">		if(getClass() != pObj.getClass())</span>
+		{
+<span class="nc" id="L98">			return false;</span>
+		}
+<span class="fc" id="L100">		EdgePath other = (EdgePath) pObj;</span>
+<span class="fc bfc" id="L101" title="All 2 branches covered.">		if(other.aPoints.size() != this.aPoints.size())</span>
+		{
+<span class="fc" id="L103">			return false;</span>
+		}
+<span class="fc bfc" id="L105" title="All 2 branches covered.">		for(int i = 0; i &lt; aPoints.size(); i++)</span>
+		{
+<span class="fc bfc" id="L107" title="All 2 branches covered.">			if(!other.aPoints.get(i).equals(aPoints.get(i)))</span>
+			{
+<span class="fc" id="L109">				return false;</span>
+			}
+		}
+<span class="fc" id="L112">		return true;</span>
+	}
+	
+	/**
+	 * Returns the number of points in the path.
+	 * @return an integer representing the size of the EdgePath
+	 */
+	public int size()
+	{
+<span class="fc" id="L121">		return aPoints.size();</span>
+	}
+
+	@Override
+	public Iterator&lt;Point&gt; iterator() 
+	{
+<span class="nc" id="L127">		return aPoints.iterator();</span>
+	}	
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,453 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>StateTransitionEdgeRenderer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.rendering.edges</a> &gt; <span class="el_source">StateTransitionEdgeRenderer.java</span></div><h1>StateTransitionEdgeRenderer.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.rendering.edges;
+
+import org.jetuml.diagram.DiagramElement;
+import org.jetuml.diagram.DiagramType;
+import org.jetuml.diagram.Edge;
+import org.jetuml.diagram.edges.StateTransitionEdge;
+import org.jetuml.geom.Alignment;
+import org.jetuml.geom.Dimension;
+import org.jetuml.geom.Direction;
+import org.jetuml.geom.GeomUtils;
+import org.jetuml.geom.Line;
+import org.jetuml.geom.Point;
+import org.jetuml.geom.Rectangle;
+import org.jetuml.gui.ColorScheme;
+import org.jetuml.rendering.ArrowHead;
+import org.jetuml.rendering.DiagramRenderer;
+import org.jetuml.rendering.LineStyle;
+import org.jetuml.rendering.RenderingContext;
+import org.jetuml.rendering.GraphicsRenderingContext;
+import org.jetuml.rendering.StringRenderer;
+
+import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.shape.Arc;
+import javafx.scene.shape.ArcType;
+import javafx.scene.shape.MoveTo;
+import javafx.scene.shape.Path;
+import javafx.scene.shape.QuadCurveTo;
+import javafx.scene.shape.Shape;
+
+/**
+ * An edge view specialized for state transitions.
+ */
+public final class StateTransitionEdgeRenderer extends AbstractEdgeRenderer
+{
+	private static final int SELF_EDGE_OFFSET = 15;
+	private static final int DEGREES_5 = 5;
+	private static final int DEGREES_10 = 10;
+	private static final int DEGREES_20 = 20;
+	private static final int DEGREES_270 = 270;
+	
+	private static final int RADIANS_TO_PIXELS = 7;
+<span class="fc" id="L63">	private static final StringRenderer STRING_VIEWER = new StringRenderer(Alignment.CENTER);</span>
+	
+	// The amount of vertical difference in connection points to tolerate
+	// before centering the edge label on one side instead of in the center.
+	private static final int VERTICAL_TOLERANCE = 20; 
+	
+	/**
+	 * @param pParent The renderer for the parent diagram.
+	 */
+	public StateTransitionEdgeRenderer(DiagramRenderer pParent)
+	{
+<span class="fc" id="L74">		super(pParent);</span>
+<span class="fc" id="L75">	}</span>
+	
+	@Override
+	public void draw(DiagramElement pElement, RenderingContext pContext)
+	{
+<span class="nc" id="L80">		Edge edge = (Edge) pElement;</span>
+<span class="nc bnc" id="L81" title="All 2 branches missed.">		if (isSelfEdge(edge))</span>
+		{
+<span class="nc" id="L83">			Arc arc = getSelfEdgeShape(edge);</span>
+<span class="nc" id="L84">			pContext.strokeArc((int) arc.getCenterX(), (int) arc.getCenterY(), </span>
+<span class="nc" id="L85">					(int) arc.getRadiusX(), (int) arc.getStartAngle(), (int) arc.getLength(), </span>
+<span class="nc" id="L86">					ColorScheme.get().stroke());</span>
+<span class="nc" id="L87">		}</span>
+		else 
+		{
+<span class="nc" id="L90">			pContext.strokePath(getNormalEdgeShape(edge), ColorScheme.get().stroke(), LineStyle.SOLID);</span>
+		}
+<span class="nc" id="L92">		drawLabel((StateTransitionEdge)edge, pContext);</span>
+<span class="nc" id="L93">		drawArrowHead(edge, pContext);</span>
+<span class="nc" id="L94">	}</span>
+	
+	private void drawArrowHead(Edge pEdge, RenderingContext pContext)
+	{
+<span class="nc bnc" id="L98" title="All 2 branches missed.">		if( isSelfEdge(pEdge) )</span>
+		{
+<span class="nc" id="L100">			Point connectionPoint2 = getSelfEdgeConnectionPoints(pEdge).point2();</span>
+<span class="nc bnc" id="L101" title="All 2 branches missed.">			if( getPosition(pEdge) == 1 )</span>
+			{
+<span class="nc" id="L103">				ArrowHeadRenderer.draw(pContext, ArrowHead.V, new Point(connectionPoint2.x()+SELF_EDGE_OFFSET, </span>
+<span class="nc" id="L104">						connectionPoint2.y()-SELF_EDGE_OFFSET/4), getConnectionPoints(pEdge).point2());</span>
+			}
+			else
+			{
+<span class="nc" id="L108">				ArrowHeadRenderer.draw(pContext, ArrowHead.V, new Point(connectionPoint2.x()-SELF_EDGE_OFFSET/4, </span>
+<span class="nc" id="L109">						connectionPoint2.y()-SELF_EDGE_OFFSET), getConnectionPoints(pEdge).point2());</span>
+			}
+<span class="nc" id="L111">		}</span>
+		else
+		{
+<span class="nc" id="L114">			ArrowHeadRenderer.draw(pContext, ArrowHead.V, </span>
+<span class="nc" id="L115">					getControlPoint(pEdge), getConnectionPoints(pEdge).point2());</span>
+		}
+<span class="nc" id="L117">	}</span>
+	
+	/*
+	 *  Draws the label.
+	 *  @param pGraphics2D the graphics context
+	 */
+	private void drawLabel(StateTransitionEdge pEdge, RenderingContext pContext)
+	{
+<span class="nc" id="L125">		String label = wrapLabel(pEdge);</span>
+<span class="nc" id="L126">		Rectangle labelBounds = getLabelBounds(pEdge);</span>
+<span class="nc" id="L127">		STRING_VIEWER.draw(label, labelBounds, pContext);</span>
+<span class="nc" id="L128">	}</span>
+	
+	private Rectangle getLabelBounds(StateTransitionEdge pEdge)
+	{
+<span class="fc bfc" id="L132" title="All 2 branches covered.">		if( isSelfEdge(pEdge) )</span>
+		{
+<span class="fc" id="L134">			return getSelfEdgeLabelBounds(pEdge);</span>
+		}
+		else
+		{
+<span class="fc" id="L138">			return getNormalEdgeLabelBounds(pEdge);</span>
+		}
+	}
+	
+	/**
+     * Gets the dimensions for pString.
+     * @param pString The input string. Can be null.
+     * @return The dimensions of the string.
+	 */
+	private static Dimension getLabelBounds(String pString)
+	{
+<span class="pc bpc" id="L149" title="1 of 4 branches missed.">		if(pString == null || pString.length() == 0) </span>
+		{
+<span class="fc" id="L151">			return Dimension.NULL;</span>
+		}
+<span class="fc" id="L153">		return textDimensions(pString);</span>
+	}
+	
+	/*
+	 * Gets the bounds of the label text.
+	 * @return the bounds of the label text
+	 */
+	private Rectangle getNormalEdgeLabelBounds(StateTransitionEdge pEdge)
+	{
+<span class="fc" id="L162">		Line line = getConnectionPoints(pEdge);</span>
+<span class="fc" id="L163">		Point control = getControlPoint(pEdge);</span>
+<span class="fc" id="L164">		int x = control.x() / 2 + line.x1() / 4 + line.x2() / 4;</span>
+<span class="fc" id="L165">		int y = control.y() / 2 + line.y1() / 4 + line.y2() / 4;</span>
+
+<span class="fc" id="L167">		String label = wrapLabel(pEdge);</span>
+<span class="fc" id="L168">		Dimension textDimensions = getLabelBounds(label);</span>
+
+<span class="fc" id="L170">		int gap = 3;</span>
+<span class="fc bfc" id="L171" title="All 2 branches covered.">		if( line.y1() &gt;= line.y2() - VERTICAL_TOLERANCE &amp;&amp; </span>
+<span class="fc bfc" id="L172" title="All 2 branches covered.">				line.y1() &lt;= line.y2() + VERTICAL_TOLERANCE ) </span>
+		{
+			// The label is centered if the edge is (mostly) horizontal
+<span class="fc" id="L175">			x -= textDimensions.width() / 2;</span>
+		}
+<span class="fc bfc" id="L177" title="All 2 branches covered.">		else if( line.y1() &lt;= line.y2() )</span>
+		{
+<span class="fc" id="L179">			x += gap;</span>
+		}
+		else
+		{
+<span class="fc" id="L183">			x -= textDimensions.width() + gap;</span>
+		}
+		
+<span class="fc bfc" id="L186" title="All 2 branches covered.">		if( line.x1() &lt;= line.x2() )</span>
+		{
+<span class="fc" id="L188">			y -= textDimensions.height() + gap;</span>
+		}
+		else
+		{
+<span class="fc" id="L192">			y += gap;</span>
+		}
+		
+		// Additional gap to make sure the labels don't overlap
+<span class="pc bpc" id="L196" title="1 of 2 branches missed.">		if( getPosition(pEdge) &gt; 1 )</span>
+		{
+<span class="nc" id="L198">			final double angleLowerBound = Math.atan2(1, 1);</span>
+<span class="nc" id="L199">			final double angleUpperBound = 3 * angleLowerBound;</span>
+<span class="nc" id="L200">			double angle = Math.abs(Math.atan2(line.x2()-line.x1(), line.y2()-line.y1()));</span>
+<span class="nc" id="L201">			double delta = textDimensions.height();</span>
+<span class="nc bnc" id="L202" title="All 4 branches missed.">			if( angleLowerBound &lt;= angle &amp;&amp; angle &lt;= angleUpperBound )</span>
+			{
+<span class="nc" id="L204">				delta -= angle*RADIANS_TO_PIXELS;</span>
+			}
+<span class="nc bnc" id="L206" title="All 2 branches missed.">			if( line.x1() &lt;= line.x2() )</span>
+			{
+<span class="nc" id="L208">				y -= delta;</span>
+			}
+			else
+			{
+<span class="nc" id="L212">				y += delta;</span>
+			}
+		}
+<span class="fc" id="L215">		return new Rectangle(x, y, textDimensions.width(), textDimensions.height());</span>
+}   
+	
+	/*
+	 * Positions the label above the self edge, centered
+	 * in the middle of it.
+	 * @return the bounds of the label text
+	 */
+	private Rectangle getSelfEdgeLabelBounds(StateTransitionEdge pEdge)
+	{
+<span class="fc" id="L225">		Line line = getConnectionPoints(pEdge);</span>
+<span class="fc" id="L226">		String label = wrapLabel(pEdge);</span>
+<span class="fc" id="L227">		Dimension textDimensions = getLabelBounds(label);</span>
+<span class="pc bpc" id="L228" title="1 of 2 branches missed.">		if( getPosition(pEdge) == 1 )</span>
+		{
+<span class="fc" id="L230">            return new Rectangle(line.x1() + SELF_EDGE_OFFSET - textDimensions.width()/2,  </span>
+<span class="fc" id="L231">                    line.y1() - SELF_EDGE_OFFSET - textDimensions.height(), textDimensions.width(), textDimensions.height());</span>
+        }
+        else
+        {
+<span class="nc" id="L235">            return new Rectangle(line.x1() - textDimensions.width()/2, </span>
+<span class="nc" id="L236">                    line.y1() - 2*SELF_EDGE_OFFSET - textDimensions.height(), textDimensions.width(), </span>
+<span class="nc" id="L237">                    textDimensions.height());</span>
+        }
+	}  
+
+	/**
+	 * Wraps the edge label.
+	 */
+	private String wrapLabel(StateTransitionEdge pEdge)
+	{
+<span class="fc" id="L246">		int distanceInX = Math.abs(parent().getBounds(pEdge.start()).center().x() -</span>
+<span class="fc" id="L247">				parent().getBounds(pEdge.end()).center().x());</span>
+<span class="fc" id="L248">		int distanceInY = Math.abs(parent().getBounds(pEdge.start()).center().y() -</span>
+<span class="fc" id="L249">				parent().getBounds(pEdge.end()).center().y());</span>
+<span class="fc" id="L250">		return super.wrapLabel(pEdge.getMiddleLabel(), distanceInX, distanceInY);	</span>
+	}
+
+	@Override
+	protected Shape getShape(Edge pEdge)
+	{
+<span class="fc bfc" id="L256" title="All 2 branches covered.">		if( isSelfEdge(pEdge) )</span>
+		{
+<span class="fc" id="L258">			return getSelfEdgeShape(pEdge);</span>
+		}
+		else
+		{
+<span class="fc" id="L262">			return getNormalEdgeShape(pEdge);</span>
+		}
+	}
+	
+	private static boolean isSelfEdge(Edge pEdge)
+	{
+<span class="fc bfc" id="L268" title="All 2 branches covered.">		return pEdge.start() == pEdge.end();</span>
+	}
+	
+	private Arc getSelfEdgeShape(Edge pEdge)
+	{
+		/*
+		 * The starting position is determined from the bottom middle
+		 * (0 degrees) and going counter-clockwise. The extent runs
+		 * clockwise.
+		 */
+<span class="fc" id="L278">		Line line = getSelfEdgeConnectionPoints(pEdge);</span>
+<span class="fc" id="L279">		Arc arc = new Arc();</span>
+<span class="fc" id="L280">		arc.setRadiusX(SELF_EDGE_OFFSET);</span>
+<span class="fc" id="L281">		arc.setRadiusY(SELF_EDGE_OFFSET);</span>
+<span class="fc" id="L282">		arc.setLength(DEGREES_270);</span>
+<span class="fc" id="L283">		arc.setType(ArcType.OPEN);</span>
+<span class="pc bpc" id="L284" title="1 of 2 branches missed.">		if( getPosition(pEdge) == 1 )</span>
+		{
+<span class="fc" id="L286">			arc.setCenterX(line.x1() + SELF_EDGE_OFFSET);</span>
+<span class="fc" id="L287">			arc.setCenterY(line.y1());</span>
+<span class="fc" id="L288">			arc.setStartAngle(DEGREES_270);</span>
+		}
+		else
+		{		
+<span class="nc" id="L292">			arc.setCenterX(line.x1());</span>
+<span class="nc" id="L293">			arc.setCenterY(line.y1()-SELF_EDGE_OFFSET);</span>
+<span class="nc" id="L294">			arc.setStartAngle(0);</span>
+		}
+<span class="fc" id="L296">		return arc;</span>
+	}
+	
+	@Override
+	public boolean contains(DiagramElement pElement, Point pPoint)
+	{
+<span class="nc" id="L302">		boolean result = super.contains(pElement, pPoint);</span>
+<span class="nc bnc" id="L303" title="All 2 branches missed.">		if(getShape((Edge)pElement) instanceof Arc arc)</span>
+		{
+<span class="nc" id="L305">			arc.setRadiusX(arc.getRadiusX() + 2 * MAX_DISTANCE);</span>
+<span class="nc" id="L306">			arc.setRadiusY(arc.getRadiusY() + 2 * MAX_DISTANCE);</span>
+<span class="nc" id="L307">			result = arc.contains(pPoint.x(), pPoint.y());</span>
+		}
+<span class="nc" id="L309">		return result;</span>
+	}
+	
+	/** 
+	 * @return An index that represents the position in the list of
+	 *     edges between the same start and end nodes. 
+	 * @pre getGraph() != null
+	 */
+	private int getPosition(Edge pEdge)
+	{
+<span class="fc" id="L319">		int lReturn = 0;</span>
+<span class="pc bpc" id="L320" title="1 of 2 branches missed.">		for( Edge edge : parent().diagram().edgesConnectedTo(pEdge.start()))</span>
+		{
+<span class="fc bfc" id="L322" title="All 4 branches covered.">			if( edge.start() == pEdge.start() &amp;&amp; edge.end() == pEdge.end())</span>
+			{
+<span class="fc" id="L324">				lReturn++;</span>
+			}
+<span class="fc bfc" id="L326" title="All 2 branches covered.">			if( edge == pEdge )</span>
+			{
+<span class="fc" id="L328">				return lReturn;</span>
+			}
+<span class="fc" id="L330">		}</span>
+<span class="nc bnc" id="L331" title="All 2 branches missed.">		assert lReturn &gt; 0;</span>
+<span class="nc" id="L332">		return lReturn;</span>
+	}
+	
+	/*
+	 * The connection points for the self-edge are an offset from the top-right
+	 * corner.
+	 */
+	private Line getSelfEdgeConnectionPoints(Edge pEdge)
+	{
+<span class="pc bpc" id="L341" title="1 of 2 branches missed.">		if( getPosition(pEdge) == 1 )</span>
+		{
+<span class="fc" id="L343">			Point point1 = new Point(parent().getBounds(pEdge.start()).maxX() - SELF_EDGE_OFFSET, </span>
+<span class="fc" id="L344">					parent().getBounds(pEdge.start()).y());</span>
+<span class="fc" id="L345">			Point point2 = new Point(parent().getBounds(pEdge.start()).maxX(), </span>
+<span class="fc" id="L346">					parent().getBounds(pEdge.start()).y() + SELF_EDGE_OFFSET);</span>
+<span class="fc" id="L347">			return new Line(point1, point2);</span>
+		}
+		else
+		{
+<span class="nc" id="L351">			Point point1 = new Point(parent().getBounds(pEdge.start()).x(), </span>
+<span class="nc" id="L352">					parent().getBounds(pEdge.start()).y() + SELF_EDGE_OFFSET);</span>
+<span class="nc" id="L353">			Point point2 = new Point(parent().getBounds(pEdge.start()).x() + SELF_EDGE_OFFSET, </span>
+<span class="nc" id="L354">					parent().getBounds(pEdge.start()).y());</span>
+<span class="nc" id="L355">			return new Line(point1, point2);</span>
+		}
+	}
+	
+	private Path getNormalEdgeShape(Edge pEdge)
+	{
+<span class="fc" id="L361">		Line line = getConnectionPoints(pEdge);</span>
+<span class="fc" id="L362">		Path path = new Path();</span>
+<span class="fc" id="L363">		MoveTo moveTo = new MoveTo(line.point1().x(), line.point1().y());</span>
+<span class="fc" id="L364">		QuadCurveTo curveTo = new QuadCurveTo(getControlPoint(pEdge).x(), getControlPoint(pEdge).y(), </span>
+<span class="fc" id="L365">				line.point2().x(), line.point2().y());</span>
+<span class="fc" id="L366">		path.getElements().addAll(moveTo, curveTo);</span>
+<span class="fc" id="L367">		return path;</span>
+	}
+	
+	
+	/**
+     * Gets the control point for the quadratic spline.
+     * @return the control point
+     */
+	private Point getControlPoint(Edge pEdge)
+	{
+<span class="fc" id="L377">		Line line = getConnectionPoints(pEdge);</span>
+<span class="fc" id="L378">		double tangent = Math.tan(Math.toRadians(DEGREES_10));</span>
+<span class="pc bpc" id="L379" title="1 of 2 branches missed.">		if( getPosition(pEdge) &gt; 1 )</span>
+		{
+<span class="nc" id="L381">			tangent = Math.tan(Math.toRadians(DEGREES_20));</span>
+		}
+<span class="fc" id="L383">		double dx = (line.x2() - line.x1()) / 2;</span>
+<span class="fc" id="L384">		double dy = (line.y2() - line.y1()) / 2;</span>
+<span class="fc" id="L385">		return new Point(GeomUtils.round((line.x1() + line.x2()) / 2 + tangent * dy),</span>
+<span class="fc" id="L386">				GeomUtils.round((line.y1() + line.y2()) / 2 - tangent * dx)); </span>
+	}
+	
+	@Override
+	public Rectangle getBounds(DiagramElement pElement)
+	{
+<span class="fc" id="L392">		return super.getBounds(pElement).add(getLabelBounds((StateTransitionEdge)pElement));</span>
+	}
+	
+	@Override
+	public Line getConnectionPoints(Edge pEdge)
+	{
+<span class="fc bfc" id="L398" title="All 2 branches covered.">		if(isSelfEdge(pEdge))</span>
+		{
+<span class="fc" id="L400">			return getSelfEdgeConnectionPoints(pEdge);</span>
+		}
+		else
+		{
+<span class="fc" id="L404">			return getNormalEdgeConnectionsPoints(pEdge);</span>
+		}
+	}
+	
+	/*
+	 * The connection points are a slight offset from the center.
+	 * @return
+	 */
+	private Line getNormalEdgeConnectionsPoints(Edge pEdge)
+	{
+<span class="fc" id="L414">		Rectangle start = parent().getBounds(pEdge.start());</span>
+<span class="fc" id="L415">		Rectangle end = parent().getBounds(pEdge.end());</span>
+<span class="fc" id="L416">		Point startCenter = start.center();</span>
+<span class="fc" id="L417">		Point endCenter = end.center();</span>
+<span class="fc" id="L418">		int turn = DEGREES_5;</span>
+<span class="pc bpc" id="L419" title="1 of 2 branches missed.">		if( getPosition(pEdge) &gt; 1 )</span>
+		{
+<span class="nc" id="L421">			turn = DEGREES_20;</span>
+		}
+<span class="fc" id="L423">		Direction d1 = Direction.fromLine(startCenter, endCenter).rotatedBy(-turn);</span>
+<span class="fc" id="L424">		Direction d2 = Direction.fromLine(endCenter, startCenter).rotatedBy(turn);</span>
+<span class="fc" id="L425">		return new Line(parent().getConnectionPoints(pEdge.start(), d1), </span>
+<span class="fc" id="L426">				parent().getConnectionPoints(pEdge.end(), d2));</span>
+	}
+	
+	@Override
+	public Canvas createIcon(DiagramType pDiagramType, DiagramElement pElement)
+	{   //CSOFF: Magic numbers
+<span class="nc" id="L432">		Canvas canvas = new Canvas(BUTTON_SIZE, BUTTON_SIZE);</span>
+<span class="nc" id="L433">		GraphicsContext graphics = canvas.getGraphicsContext2D();</span>
+<span class="nc" id="L434">		graphics.scale(0.6, 0.6);</span>
+<span class="nc" id="L435">		Line line = new Line(new Point(2,2), new Point(40,40));</span>
+<span class="nc" id="L436">		final double tangent = Math.tan(Math.toRadians(DEGREES_10));</span>
+<span class="nc" id="L437">		double dx = (line.x2() - line.x1()) / 2;</span>
+<span class="nc" id="L438">		double dy = (line.y2() - line.y1()) / 2;</span>
+<span class="nc" id="L439">		Point control = new Point((int)((line.x1() + line.x2()) / 2 + tangent * dy), </span>
+<span class="nc" id="L440">				(int)((line.y1() + line.y2()) / 2 - tangent * dx));         </span>
+		
+<span class="nc" id="L442">		Path path = new Path();</span>
+<span class="nc" id="L443">		MoveTo moveTo = new MoveTo(line.point1().x(), line.point1().y());</span>
+<span class="nc" id="L444">		QuadCurveTo curveTo = new QuadCurveTo(control.x(), control.y(), line.point2().x(), line.point2().y());</span>
+<span class="nc" id="L445">		path.getElements().addAll(moveTo, curveTo);</span>
+		
+<span class="nc" id="L447">		GraphicsRenderingContext context = new GraphicsRenderingContext(graphics);</span>
+<span class="nc" id="L448">		context.strokePath(path, ColorScheme.get().stroke(), LineStyle.SOLID);</span>
+<span class="nc" id="L449">		ArrowHeadRenderer.draw(context, ArrowHead.V, control, new Point(40, 40));</span>
+<span class="nc" id="L450">		return canvas;</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

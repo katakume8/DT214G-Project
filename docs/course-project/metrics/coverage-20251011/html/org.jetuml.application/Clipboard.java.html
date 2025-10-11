@@ -1,0 +1,313 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Clipboard.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.application</a> &gt; <span class="el_source">Clipboard.java</span></div><h1>Clipboard.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.application;
+
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toSet;
+import static java.util.stream.StreamSupport.stream;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.function.Predicate;
+
+import org.jetuml.annotations.Singleton;
+import org.jetuml.diagram.Diagram;
+import org.jetuml.diagram.DiagramElement;
+import org.jetuml.diagram.DiagramType;
+import org.jetuml.diagram.Edge;
+import org.jetuml.diagram.Node;
+import org.jetuml.diagram.nodes.PointNode;
+import org.jetuml.geom.Point;
+
+/**
+ * Stores a set of diagram elements for the purpose of pasting into a diagram.
+ * 
+ * Copying a list of elements into the clipboard results in a number of transformations
+ * to the list and its elements to render the elements suitable for pasting:
+ * - All elements are cloned
+ * - Dangling edges are removed
+ * - Nodes requiring a missing parent are removed
+ * - Dangling references to parents are removed
+ * - The nodes are repositioned so that the top left coordinate of the set of elements
+ *   is at the origin (0,0).
+ *   
+ * The list of elements stored into the clipboard is assumed to respect the non-redundancy 
+ * constraint that no element whose deletion leads to the deletion of a node is selected with the node.
+ * 
+ * The clipboard is a singleton. This is necessary to allow copying elements
+ * between diagrams of the same type.
+ * 
+ * Currently pasting into a sequence diagram is not permitted as the semantics are 
+ * ambiguous.
+ */
+@Singleton
+public final class Clipboard 
+{
+<span class="fc" id="L65">	private static final Clipboard INSTANCE = new Clipboard();</span>
+	
+<span class="fc" id="L67">	private final List&lt;Node&gt; aNodes = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L68">	private final List&lt;Edge&gt; aEdges = new ArrayList&lt;&gt;();</span>
+
+	/**
+	 * Creates an empty clip-board.
+	 */
+	private Clipboard() 
+<span class="fc" id="L74">	{}</span>
+	
+	/**
+	 * @return The Singleton instance of the Clipboard.
+	 */
+	public static Clipboard instance()
+	{
+<span class="fc" id="L81">		return INSTANCE;</span>
+	}
+	
+	/**
+	 * Copies the elements in pSelection into the clip board.  
+	 * The list of elements stored into the clipboard is assumed to 
+	 * respect the non-redundancy constraint that no element whose 
+	 * deletion leads to the deletion of a node is selected with the node.
+	 * The transformation described in the class documentation are applied.
+	 * 
+	 * @param pSelection The elements to copy. Cannot be null.
+	 */
+	public void copy(Iterable&lt;DiagramElement&gt; pSelection)
+	{
+<span class="pc bpc" id="L95" title="1 of 2 branches missed.">		assert pSelection != null;</span>
+<span class="fc" id="L96">		clear();</span>
+<span class="fc" id="L97">		aEdges.addAll(copyEdges(pSelection));</span>
+<span class="fc" id="L98">		aNodes.addAll(copyNodes(aEdges, pSelection));</span>
+<span class="fc" id="L99">		removeDanglingEdges();</span>
+<span class="fc" id="L100">		removeDanglingReferencesToParents();</span>
+<span class="fc" id="L101">	}</span>
+	
+	/**
+	 * @return A list of clones of the elements in this clipboard.
+	 */
+	public Iterable&lt;DiagramElement&gt; getElements()
+	{
+<span class="fc" id="L108">		List&lt;Edge&gt; clonedEdges = copyEdges(new ArrayList&lt;&gt;(aEdges));</span>
+<span class="fc" id="L109">		List&lt;Node&gt; clonedNodes = copyNodes(clonedEdges, new ArrayList&lt;&gt;(aNodes));</span>
+<span class="fc" id="L110">		List&lt;DiagramElement&gt; result = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L111">		result.addAll(clonedEdges);</span>
+<span class="fc" id="L112">		result.addAll(clonedNodes);</span>
+<span class="fc" id="L113">		return result;</span>
+	}
+	
+	/*
+	 * Empties the clipboard
+	 */
+	private void clear()
+	{
+<span class="fc" id="L121">		aNodes.clear();</span>
+<span class="fc" id="L122">		aEdges.clear();</span>
+<span class="fc" id="L123">	}</span>
+	
+	/*
+	 * Makes a clone of every edges in pSelection and copies it into the clipboard	 
+	 */
+	private static List&lt;Edge&gt; copyEdges(Iterable&lt;DiagramElement&gt; pSelection)
+	{
+<span class="fc" id="L130">		return stream(pSelection.spliterator(), false)</span>
+<span class="fc" id="L131">			.filter(Edge.class::isInstance)</span>
+<span class="fc" id="L132">			.map(Edge.class::cast)</span>
+<span class="fc" id="L133">			.map(Edge::clone)</span>
+<span class="fc" id="L134">			.collect(toList());</span>
+	}
+	
+	/**
+	 * Determines if any node in the clipboard has a position equal to any
+	 * node in the target diagram.
+	 * 
+	 * @param pDiagram The target diagram. 
+	 * @return True iff there is a node in pDiagram with a position equal to 
+	 * that of a node in the clipboard.
+	 */
+	public boolean overlapsWithElementOf(Diagram pDiagram)
+	{
+<span class="fc" id="L147">		Set&lt;Point&gt; positions = aNodes.stream()</span>
+<span class="fc" id="L148">				.map(Node::position)</span>
+<span class="fc" id="L149">				.collect(toSet());</span>
+<span class="fc" id="L150">		return pDiagram.allNodes().stream()</span>
+<span class="fc" id="L151">				.map(Node::position)</span>
+<span class="fc" id="L152">				.anyMatch(positions::contains);</span>
+	}
+	
+	/*
+	 * Makes a clone of every node in pSelection, copies it into the clipboard,
+	 * and reassigns its edges
+	 */
+	private List&lt;Node&gt; copyNodes(List&lt;Edge&gt; pEdges, Iterable&lt;DiagramElement&gt; pSelection)
+	{
+<span class="fc" id="L161">		List&lt;Node&gt; result = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L162" title="All 2 branches covered.">		for( DiagramElement element : pSelection )</span>
+		{
+<span class="fc bfc" id="L164" title="All 2 branches covered.">			if( element instanceof Node node)</span>
+			{
+<span class="fc bfc" id="L166" title="All 2 branches covered.">				if( missingParent(node))</span>
+				{
+<span class="fc" id="L168">					continue;</span>
+				}
+<span class="fc" id="L170">				Node cloned = node.clone();</span>
+<span class="fc" id="L171">				result.add(cloned);</span>
+<span class="fc" id="L172">				reassignEdges(pEdges, node, cloned);</span>
+			}
+<span class="fc" id="L174">		}</span>
+<span class="fc" id="L175">		return result;</span>
+	}
+	
+	private void removeDanglingEdges()
+	{
+<span class="fc" id="L180">		List&lt;Edge&gt; toDelete = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L181" title="All 2 branches covered.">		for( Edge edge : aEdges )</span>
+		{
+<span class="fc bfc" id="L183" title="All 4 branches covered.">			if( !recursivelyContains(edge.start()) || !recursivelyContains(edge.end()))</span>
+			{
+<span class="fc" id="L185">				toDelete.add(edge);</span>
+			}
+<span class="fc" id="L187">		}</span>
+<span class="fc bfc" id="L188" title="All 2 branches covered.">		for( Edge edge : toDelete )</span>
+		{
+<span class="fc" id="L190">			aEdges.remove(edge);</span>
+<span class="fc" id="L191">		}</span>
+<span class="fc" id="L192">	}</span>
+	
+	private boolean recursivelyContains(Node pNode)
+	{
+<span class="fc bfc" id="L196" title="All 2 branches covered.">		for( Node node : aNodes )</span>
+		{
+<span class="fc bfc" id="L198" title="All 2 branches covered.">			if( node == pNode )</span>
+			{
+<span class="fc" id="L200">				return true;</span>
+			}
+<span class="fc bfc" id="L202" title="All 2 branches covered.">			else if( recursivelyContains(pNode, node.getChildren()) )</span>
+			{
+<span class="fc" id="L204">				return true;</span>
+			}
+<span class="fc" id="L206">		}</span>
+<span class="fc" id="L207">		return false;</span>
+	}
+	
+	private boolean recursivelyContains(Node pNode, List&lt;Node&gt; pNodes)
+	{
+<span class="fc bfc" id="L212" title="All 2 branches covered.">		for( Node node : pNodes )</span>
+		{
+<span class="fc bfc" id="L214" title="All 2 branches covered.">			if( node == pNode )</span>
+			{
+<span class="fc" id="L216">				return true;</span>
+			}
+<span class="pc bpc" id="L218" title="1 of 2 branches missed.">			else if( recursivelyContains(pNode, node.getChildren()) )</span>
+			{
+<span class="nc" id="L220">				return true;</span>
+			}
+<span class="fc" id="L222">		}</span>
+<span class="fc" id="L223">		return false;</span>
+	}
+	
+	private void reassignEdges(List&lt;Edge&gt; pEdges, Node pOld, Node pNew)
+	{
+<span class="fc bfc" id="L228" title="All 2 branches covered.">		for( Edge edge : pEdges )</span>
+		{
+<span class="fc bfc" id="L230" title="All 2 branches covered.">			if( edge.start() == pOld )</span>
+			{
+<span class="fc" id="L232">				edge.connect(pNew, edge.end());</span>
+			}
+<span class="fc bfc" id="L234" title="All 2 branches covered.">			if( edge.end() == pOld)</span>
+			{
+<span class="fc" id="L236">				edge.connect(edge.start(), pNew);</span>
+			}
+<span class="fc" id="L238">		}</span>
+<span class="fc" id="L239">		List&lt;Node&gt; oldChildren = pOld.getChildren();</span>
+<span class="fc" id="L240">		List&lt;Node&gt; newChildren = pNew.getChildren();</span>
+<span class="fc bfc" id="L241" title="All 2 branches covered.">		for( int i = 0; i &lt; oldChildren.size(); i++ )</span>
+		{
+<span class="fc" id="L243">			reassignEdges(pEdges, oldChildren.get(i), newChildren.get(i));</span>
+		}
+<span class="fc" id="L245">	}</span>
+	
+	/*
+	 * Returns true if pNode needs a parent that isn't in 
+	 * the clipboard.
+	 */
+	private boolean missingParent(Node pNode)
+	{
+<span class="pc bpc" id="L253" title="1 of 4 branches missed.">		return pNode.requiresParent() &amp;&amp; !aNodes.contains(pNode.getParent()) ;</span>
+	}
+	
+	/*
+	 * Removes the reference to the parent of any node in the list.
+	 * This operation is safe because nodes in the clip-board
+	 * can only be pasted as root nodes. Children nodes would
+	 * be copied through their parent.
+	 */
+	private void removeDanglingReferencesToParents()
+	{
+<span class="fc" id="L264">		aNodes.stream()</span>
+<span class="fc" id="L265">			.filter(Node::hasParent)</span>
+<span class="fc" id="L266">			.forEach(Node::unlink);</span>
+<span class="fc" id="L267">	}</span>
+	
+	/**
+	 * Returns true only of all the nodes and edges in the selection 
+	 * are compatible with the type of the target diagram.
+	 * 
+	 * @param pDiagram The diagram to paste into.
+	 * 
+	 * @return True if and only if it is possible to paste the content
+	 *     of the clipboard into pDiagram.
+	 */
+	public boolean validPaste(Diagram pDiagram)
+	{
+<span class="fc bfc" id="L280" title="All 2 branches covered.">		if( pDiagram.getType() == DiagramType.SEQUENCE )</span>
+		{
+<span class="fc" id="L282">			return false;</span>
+		}
+<span class="pc bpc" id="L284" title="1 of 2 branches missed.">		for( Edge edge : aEdges )</span>
+		{
+<span class="nc bnc" id="L286" title="All 2 branches missed.">			if( !validElementFor(edge, pDiagram ))</span>
+			{
+<span class="nc" id="L288">				return false;</span>
+			}
+<span class="nc" id="L290">		}</span>
+<span class="fc bfc" id="L291" title="All 2 branches covered.">		for( Node node : aNodes )</span>
+		{
+<span class="pc bpc" id="L293" title="1 of 2 branches missed.">			if( !validElementFor(node, pDiagram ))</span>
+			{
+<span class="nc" id="L295">				return false;</span>
+			}
+<span class="fc" id="L297">		}</span>
+<span class="fc" id="L298">		return true;</span>
+	}
+	
+	private static boolean validElementFor( DiagramElement pElement, Diagram pDiagram )
+	{
+		// PointNodes are allowed in all diagrams despite not being contained in prototypes.
+<span class="fc bfc" id="L304" title="All 2 branches covered.">		if( pElement.getClass() == PointNode.class ) </span>
+		{
+<span class="fc" id="L306">			return true;</span>
+		}
+<span class="fc" id="L308">		return pDiagram.getPrototypes().stream()</span>
+<span class="fc" id="L309">				.map(Object::getClass)</span>
+<span class="fc" id="L310">				.anyMatch(Predicate.isEqual(pElement.getClass()));</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

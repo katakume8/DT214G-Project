@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GuiUtils.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.gui</a> &gt; <span class="el_source">GuiUtils.java</span></div><h1>GuiUtils.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.gui;
+
+import org.jetuml.application.UserPreferences;
+import org.jetuml.application.UserPreferences.BooleanPreference;
+import org.jetuml.geom.Rectangle;
+
+import javafx.stage.Screen;
+
+/**
+ * A collection of utility methods to deal with general
+ * GUI concerns.
+ */
+public final class GuiUtils
+{
+	private static final int MARGIN_SCREEN = 8; // Fraction of the screen to leave around the sides
+	private static final int WIDTH_PADDING = 32; // Nb. of pixels of difference between stage and canvas width. Accounts for frame border.
+	private static final int HEIGHT_PADDING = 128; // Nb. of pixels of difference between stage and canvas height. Accounts for borders and menus.
+	private static final int TOOLBAR_WIDTH_COLLAPSED = 60; // Placeholder for the toolbar in collapsed mode
+	private static final int TOOLBAR_WIDTH_EXPANDED = 150; // Placeholder for the toolbar in expanded mode
+	
+	private GuiUtils()
+	{}
+	
+	/**
+	 * @return a bounding box that represents the default
+	 *     bounds of the main stage. Finds the visual bounds 
+	 *     of the primary screen and removes a marging around it.
+	 */
+	public static Rectangle defaultStageBounds()
+	{
+<span class="nc" id="L51">		int screenWidth = (int) Screen.getPrimary().getVisualBounds().getWidth();</span>
+<span class="nc" id="L52">		int screenHeight = (int) Screen.getPrimary().getVisualBounds().getHeight();</span>
+<span class="nc" id="L53">		return new Rectangle( screenWidth / (MARGIN_SCREEN * 2), </span>
+							  screenHeight / (MARGIN_SCREEN * 2),
+							  (screenWidth * (MARGIN_SCREEN -1 )) / MARGIN_SCREEN,
+							  (screenHeight * (MARGIN_SCREEN -1 ))/ MARGIN_SCREEN);
+	}
+	
+	/**
+	 * @return A preferred value for the width of new diagrams.
+	 */
+	public static int defaultDiagramWidth()
+	{
+<span class="nc bnc" id="L64" title="All 2 branches missed.">		if( UserPreferences.instance().getBoolean(BooleanPreference.showToolHints))</span>
+		{
+<span class="nc" id="L66">			return defaultStageBounds().width() - WIDTH_PADDING - TOOLBAR_WIDTH_EXPANDED;</span>
+		}
+		else
+		{
+<span class="nc" id="L70">			return defaultStageBounds().width() - WIDTH_PADDING - TOOLBAR_WIDTH_COLLAPSED;</span>
+		}
+	}
+	
+	/**
+	 * @return A preferred value for the height of new diagrams.
+	 */
+	public static int defaultDiagramHeight()
+	{
+<span class="nc" id="L79">		return defaultStageBounds().height() - HEIGHT_PADDING;</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

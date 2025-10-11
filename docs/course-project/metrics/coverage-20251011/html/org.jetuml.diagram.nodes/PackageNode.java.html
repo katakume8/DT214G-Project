@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PackageNode.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.diagram.nodes</a> &gt; <span class="el_source">PackageNode.java</span></div><h1>PackageNode.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+
+package org.jetuml.diagram.nodes;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import org.jetuml.diagram.Node;
+
+/**
+ * A package node in a UML diagram.
+ */
+<span class="fc" id="L33">public final class PackageNode extends AbstractPackageNode</span>
+{
+<span class="fc" id="L35">	private ArrayList&lt;Node&gt; aContainedNodes = new ArrayList&lt;&gt;();</span>
+	
+	@Override
+	public void translate(int pDeltaX, int pDeltaY)
+	{
+<span class="fc" id="L40">		super.translate(pDeltaX, pDeltaY);</span>
+<span class="fc" id="L41">		aContainedNodes.forEach(child -&gt; child.translate(pDeltaX, pDeltaY));</span>
+<span class="fc" id="L42">	}</span>
+
+	@Override
+	public PackageNode clone()
+	{
+<span class="fc" id="L47">		PackageNode cloned = (PackageNode) super.clone();</span>
+<span class="fc" id="L48">		cloned.aContainedNodes = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L49" title="All 2 branches covered.">		for( Node child : aContainedNodes )</span>
+		{
+			// We can't use addChild(...) here because of the interaction with the original parent.
+<span class="fc" id="L52">			Node clonedChild = child.clone();</span>
+<span class="fc" id="L53">			clonedChild.link(cloned);</span>
+<span class="fc" id="L54">			cloned.aContainedNodes.add(clonedChild);</span>
+<span class="fc" id="L55">		}</span>
+<span class="fc" id="L56">		return cloned;</span>
+	}
+	
+	@Override
+	public List&lt;Node&gt; getChildren()
+	{
+<span class="fc" id="L62">		return Collections.unmodifiableList(aContainedNodes); </span>
+	}
+
+	@Override
+	public void addChild(int pIndex, Node pNode)
+	{
+<span class="pc bpc" id="L68" title="1 of 2 branches missed.">		assert pNode != null;</span>
+<span class="pc bpc" id="L69" title="2 of 4 branches missed.">		assert pIndex &gt;=0 &amp;&amp; pIndex &lt;= aContainedNodes.size();</span>
+<span class="fc bfc" id="L70" title="All 2 branches covered.">		if(pNode.hasParent())</span>
+		{
+<span class="fc" id="L72">			pNode.getParent().removeChild(pNode);</span>
+		}
+<span class="fc" id="L74">		aContainedNodes.add(pIndex, pNode);</span>
+<span class="fc" id="L75">		pNode.link(this);</span>
+<span class="fc" id="L76">	}</span>
+
+	@Override
+	public void addChild(Node pNode)
+	{
+<span class="pc bpc" id="L81" title="1 of 2 branches missed.">		assert pNode != null;</span>
+<span class="fc" id="L82">		addChild(aContainedNodes.size(), pNode);</span>
+<span class="fc" id="L83">	}</span>
+
+	@Override
+	public void removeChild(Node pNode)
+	{
+<span class="pc bpc" id="L88" title="1 of 2 branches missed.">		assert getChildren().contains(pNode);</span>
+<span class="pc bpc" id="L89" title="1 of 2 branches missed.">		assert pNode.getParent() == this;</span>
+<span class="fc" id="L90">		aContainedNodes.remove(pNode);</span>
+<span class="fc" id="L91">		pNode.unlink();</span>
+<span class="fc" id="L92">	}</span>
+	
+	@Override
+	public boolean allowsAsChild(Node pNode)
+	{
+<span class="fc bfc" id="L97" title="All 4 branches covered.">		return pNode instanceof AbstractPackageNode ||</span>
+				pNode instanceof TypeNode;
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

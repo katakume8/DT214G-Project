@@ -1,0 +1,272 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SvgRenderingContext.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.rendering</a> &gt; <span class="el_source">SvgRenderingContext.java</span></div><h1>SvgRenderingContext.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ * 
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option) any later
+ * version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+ * details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * this program. If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.rendering;
+
+import java.util.Arrays;
+import java.util.Optional;
+import java.util.StringJoiner;
+import java.util.stream.Collectors;
+
+import org.jetuml.geom.Alignment;
+import org.jetuml.geom.Rectangle;
+
+import javafx.scene.effect.DropShadow;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.LineTo;
+import javafx.scene.shape.MoveTo;
+import javafx.scene.shape.Path;
+import javafx.scene.shape.PathElement;
+import javafx.scene.shape.QuadCurveTo;
+import javafx.scene.text.Font;
+
+/**
+ * Represents an object that can build an SVG image.
+ */
+public class SvgRenderingContext implements RenderingContext
+{
+	/* For drop shadows, we use an overlay with a Gaussian filter because
+	 * the dropShadow SVG filter is not uniformly supported. When it becomes
+	 * more widely supported to convert SVG images to PDF, for example, this
+	 * class can be revised to use the feDropShadow filter instead. 
+	 */
+	
+	/* Margin of white space around the diagram, in pixels. */
+	private static final int MARGIN = 7;
+	
+	/* Amount of pixels to subtract from the font size, to make sure it fits. */
+	private static final float FONT_ADJUSTMENT = 0.25f;
+	
+<span class="nc" id="L57">	private final StringJoiner aSvg = new StringJoiner(&quot;\n&quot;);</span>
+	
+	/**
+	 * Creates an SVG image using pViewport as the viewport area. The viewport is the area to 
+	 * render. The viewport effectively translates the coordinates of the diagram to render
+	 * in the final SVG image.
+	 * @param pViewport A rectangle describing the coordinate area to use as SVG viewport.
+	 */
+	public SvgRenderingContext(Rectangle pViewport)
+<span class="nc" id="L66">	{</span>
+<span class="nc" id="L67">		final String rootStartTemplate = &quot;&lt;svg &quot;</span>
+				+ &quot;viewBox=\&quot;%d %d %d %d\&quot; &quot;
+				+ &quot;xmlns=\&quot;http://www.w3.org/2000/svg\&quot;&gt;\n&quot;
+				+ &quot;&lt;defs&gt;&lt;filter id=\&quot;shadow\&quot; x=\&quot;-10%%\&quot; y=\&quot;-10%%\&quot;&gt;\n&quot;
+				+ &quot;  &lt;feGaussianBlur in=\&quot;SourceGraphic\&quot; stdDeviation=\&quot;1\&quot; /&gt;\n&quot;
+				+ &quot;&lt;/filter&gt;&lt;/defs&gt;&quot;
+				+ &quot;&lt;g transform=\&quot;translate(0.5,0.5)\&quot; stroke-width=\&quot;0.75\&quot;&gt;&quot;;
+		
+<span class="nc" id="L75">		aSvg.add(String.format(rootStartTemplate, </span>
+<span class="nc" id="L76">				pViewport.x() - MARGIN, </span>
+<span class="nc" id="L77">				pViewport.y() - MARGIN, </span>
+<span class="nc" id="L78">				pViewport.width() + MARGIN * 2,</span>
+<span class="nc" id="L79">				pViewport.height() + MARGIN * 2,</span>
+<span class="nc" id="L80">				(pViewport.width() + MARGIN) * 2,</span>
+<span class="nc" id="L81">				(pViewport.width() + MARGIN) * 2));</span>
+<span class="nc" id="L82">	}</span>
+	
+	@Override
+	public void strokeLine(int pX1, int pY1, int pX2, int pY2, Color pColor, LineStyle pStyle)
+	{
+<span class="nc" id="L87">		final String templateLine = &quot;&lt;line x1=\&quot;%d\&quot; y1=\&quot;%d\&quot; x2=\&quot;%d\&quot; y2=\&quot;%d\&quot; stroke=\&quot;black\&quot;%s/&gt;&quot;;</span>
+<span class="nc" id="L88">		aSvg.add(String.format(templateLine, pX1, pY1, pX2, pY2, lineStyle(pStyle)));</span>
+<span class="nc" id="L89">	}</span>
+	
+	private static String lineStyle(LineStyle pLineStyle)
+	{
+<span class="nc bnc" id="L93" title="All 2 branches missed.">		if (pLineStyle == LineStyle.DOTTED)</span>
+		{
+<span class="nc" id="L95">			String dashes = Arrays.stream(pLineStyle.getLineDashes())</span>
+<span class="nc" id="L96">					.mapToObj(d -&gt; Double.toString(d))</span>
+<span class="nc" id="L97">					.collect(Collectors.joining(&quot; &quot;));</span>
+<span class="nc" id="L98">			return String.format(&quot; stroke-dasharray=\&quot;%s\&quot;&quot;, dashes);</span>
+		}
+<span class="nc" id="L100">		return &quot;&quot;;</span>
+	}
+
+	@Override
+	public void drawRectangle(Rectangle pRectangle, Color pFillColor, Color pStrokeColor,
+			Optional&lt;DropShadow&gt; pDropShadow)
+	{
+<span class="nc" id="L107">		final String templateRectangle = &quot;&lt;rect width=\&quot;%d\&quot; height=\&quot;%d\&quot; x=\&quot;%d\&quot; y=\&quot;%d\&quot;&quot;</span>
+				+ &quot; stroke=\&quot;black\&quot; fill=\&quot;white\&quot;/&gt;&quot;;
+<span class="nc" id="L109">		final String templateRectangleShadow = &quot;&lt;rect width=\&quot;%d\&quot; height=\&quot;%d\&quot; x=\&quot;%d\&quot; y=\&quot;%d\&quot;&quot;</span>
+				+ &quot; stroke=\&quot;none\&quot; fill=\&quot;lightgray\&quot; style=\&quot;filter:url(#shadow);\&quot;/&gt;&quot;;
+<span class="nc" id="L111">		pDropShadow.ifPresent(dropShadow -&gt; </span>
+<span class="nc" id="L112">			aSvg.add(String.format(templateRectangleShadow, </span>
+<span class="nc" id="L113">					pRectangle.width(), pRectangle.height(), pRectangle.x()+2, pRectangle.y()+2)));</span>
+<span class="nc" id="L114">		aSvg.add(String.format(templateRectangle, pRectangle.width(), pRectangle.height(), pRectangle.x(), pRectangle.y()));</span>
+<span class="nc" id="L115">	}</span>
+
+	@Override
+	public void drawOval(int pX, int pY, int pWidth, int pHeight, Color pFillColor, Color pStrokeColor,
+			Optional&lt;DropShadow&gt; pShadow)
+	{
+<span class="nc" id="L121">		final String templateOval = &quot;&lt;ellipse rx=\&quot;%d\&quot; ry=\&quot;%d\&quot; cx=\&quot;%d\&quot; cy=\&quot;%d\&quot;&quot; </span>
+				+ &quot; stroke=\&quot;black\&quot; fill=\&quot;%s\&quot;/&gt;&quot;;
+<span class="nc" id="L123">		final String templateOvalShadow = &quot;&lt;ellipse rx=\&quot;%d\&quot; ry=\&quot;%d\&quot; cx=\&quot;%d\&quot; cy=\&quot;%d\&quot;&quot; </span>
+				+ &quot; stroke=\&quot;none\&quot; fill=\&quot;lightgray\&quot; style=\&quot;filter:url(#shadow);\&quot;/&gt;&quot;;
+		
+<span class="nc" id="L126">		String color = &quot;white&quot;;</span>
+<span class="nc bnc" id="L127" title="All 2 branches missed.">		if (pFillColor != Color.WHITE)</span>
+		{
+<span class="nc" id="L129">			color = &quot;black&quot;;</span>
+		}
+<span class="nc bnc" id="L131" title="All 2 branches missed.">		if (pShadow.isPresent())</span>
+		{
+<span class="nc" id="L133">			aSvg.add(String.format(templateOvalShadow, pWidth/2, pHeight/2, pX+pWidth/2+2, pY+pHeight/2+2, color));</span>
+		}
+<span class="nc" id="L135">		aSvg.add(String.format(templateOval, pWidth/2, pHeight/2, pX+pWidth/2, pY+pHeight/2, color));</span>
+<span class="nc" id="L136">	}</span>
+
+	@Override
+	public void strokeArc(int pCenterX, int pCenterY, int pRadius, int pStartAngle, int pLength, Color pStrokeColor)
+	{
+<span class="nc" id="L141">		final int fullCircle = 360; // Degrees</span>
+<span class="nc" id="L142">		double startAngle = Math.toRadians(pStartAngle);</span>
+<span class="nc" id="L143">		double endAngle = Math.toRadians((pStartAngle - pLength) % fullCircle);</span>
+<span class="nc" id="L144">		int x1 = (int) (pCenterX + Math.round(Math.sin(startAngle) * pRadius));</span>
+<span class="nc" id="L145">		int y1 = (int) (pCenterY + Math.round(Math.cos(startAngle) * pRadius));</span>
+<span class="nc" id="L146">		int x2 = (int) (pCenterX + Math.round(Math.sin(endAngle) * pRadius));</span>
+<span class="nc" id="L147">		int y2 = (int) (pCenterY + Math.round(Math.cos(endAngle) * pRadius));</span>
+<span class="nc" id="L148">		final String templateArc = &quot;&lt;path d=\&quot;M %d %d A %d %d 0 1 1 %d %d\&quot; stroke=\&quot;black\&quot; fill=\&quot;none\&quot;/&gt;&quot;;</span>
+<span class="nc" id="L149">		aSvg.add(String.format(templateArc, x1, y1, pRadius, pRadius, x2, y2));</span>
+<span class="nc" id="L150">	}</span>
+
+	@Override
+	public void strokePath(Path pPath, Color pStrokeColor, LineStyle pStyle)
+	{
+<span class="nc" id="L155">		strokePath(pPath, pStyle, &quot;none&quot;, false);</span>
+<span class="nc" id="L156">	}</span>
+	
+	private void strokePath(Path pPath, LineStyle pStyle, String pFill, boolean pShadow)
+	{
+<span class="nc" id="L160">		StringJoiner path = new StringJoiner(&quot; &quot;, &quot;&lt;path d=\&quot;&quot;, </span>
+<span class="nc" id="L161">				String.format(&quot;\&quot; stroke=\&quot;black\&quot; fill=\&quot;%s\&quot;%s/&gt;&quot;, pFill, lineStyle(pStyle)));</span>
+<span class="nc bnc" id="L162" title="All 2 branches missed.">		if (pShadow)</span>
+		{
+<span class="nc" id="L164">			path = new StringJoiner(&quot; &quot;, &quot;&lt;path d=\&quot;&quot;, </span>
+<span class="nc" id="L165">					String.format(&quot;\&quot; stroke=\&quot;none\&quot; fill=\&quot;lightGray\&quot;  &quot;</span>
+							+ &quot;transform=\&quot;translate(2 2)\&quot; style=\&quot;filter:url(#shadow);\&quot;/&gt;&quot;));
+		}
+<span class="nc bnc" id="L168" title="All 2 branches missed.">		for(PathElement element : pPath.getElements())</span>
+		{
+<span class="nc bnc" id="L170" title="All 2 branches missed.">			if (element instanceof MoveTo moveTo)</span>
+			{
+<span class="nc" id="L172">				path.add(&quot;M &quot; + Math.round(moveTo.getX()) + &quot; &quot; + Math.round(moveTo.getY()));</span>
+			}
+<span class="nc bnc" id="L174" title="All 2 branches missed.">			else if (element instanceof LineTo lineTo)</span>
+			{
+<span class="nc" id="L176">				path.add(&quot;L &quot; + Math.round(lineTo.getX()) + &quot; &quot; + Math.round(lineTo.getY()));</span>
+			}
+<span class="nc bnc" id="L178" title="All 2 branches missed.">			else if (element instanceof QuadCurveTo curve)</span>
+			{
+<span class="nc" id="L180">				path.add(&quot;Q &quot; + Math.round(curve.getControlX()) + &quot; &quot; + </span>
+<span class="nc" id="L181">						Math.round(curve.getControlY()) + &quot; &quot; + </span>
+<span class="nc" id="L182">						Math.round(curve.getX()) + &quot; &quot; + Math.round(curve.getY()));</span>
+			}
+<span class="nc" id="L184">		}</span>
+<span class="nc" id="L185">		aSvg.add(path.toString());</span>
+<span class="nc" id="L186">	}</span>
+
+	@Override
+	public void drawClosedPath(Path pPath, Color pFillColor, Color pStrokeColor, Optional&lt;DropShadow&gt; pDropShadow)
+	{
+<span class="nc" id="L191">		String color = &quot;white&quot;;</span>
+<span class="nc bnc" id="L192" title="All 2 branches missed.">		if (pFillColor == Color.WHITE)</span>
+		{
+<span class="nc" id="L194">			color = &quot;white&quot;;</span>
+		}
+<span class="nc bnc" id="L196" title="All 2 branches missed.">		else if (pFillColor == Color.BLACK)</span>
+		{
+<span class="nc" id="L198">			color = &quot;black&quot;;</span>
+		}
+		else 
+		{
+<span class="nc" id="L202">			color = &quot;rgb(90%, 90%, 60%)&quot;; // The only other color is for notes.</span>
+		}
+<span class="nc bnc" id="L204" title="All 2 branches missed.">		if (pDropShadow.isPresent())</span>
+		{
+<span class="nc" id="L206">			strokePath(pPath, LineStyle.SOLID, color, true);</span>
+		}
+<span class="nc" id="L208">		strokePath(pPath, LineStyle.SOLID, color, false);</span>
+<span class="nc" id="L209">	}</span>
+
+	@Override
+	public void drawRoundedRectangle(Rectangle pRectangle, Color pFillColor, Color pStrokeColor,
+			Optional&lt;DropShadow&gt; pDropShadow)
+	{
+<span class="nc" id="L215">		final String templateRoundedRectangle = &quot;&lt;rect width=\&quot;%d\&quot; height=\&quot;%d\&quot; x=\&quot;%d\&quot; y=\&quot;%d\&quot; rx=\&quot;10\&quot; ry=\&quot;10\&quot;&quot; </span>
+				+ &quot; stroke=\&quot;black\&quot; fill=\&quot;white\&quot;/&gt;&quot;;
+<span class="nc" id="L217">		final String templateRoundedRectangleShadow = &quot;&lt;rect width=\&quot;%d\&quot; height=\&quot;%d\&quot; x=\&quot;%d\&quot; y=\&quot;%d\&quot; rx=\&quot;10\&quot; ry=\&quot;10\&quot;&quot; </span>
+				+ &quot; stroke=\&quot;none\&quot; fill=\&quot;lightGray\&quot; style=\&quot;filter:url(#shadow);\&quot;/&gt;&quot;;		
+<span class="nc" id="L219">		pDropShadow.ifPresent(shadow -&gt; aSvg.add(String.format(templateRoundedRectangleShadow, </span>
+<span class="nc" id="L220">				pRectangle.width(), pRectangle.height(), pRectangle.x() + 2, pRectangle.y() +2)));</span>
+<span class="nc" id="L221">		aSvg.add(String.format(templateRoundedRectangle, pRectangle.width(), pRectangle.height(), pRectangle.x(), pRectangle.y()));</span>
+<span class="nc" id="L222">	}</span>
+
+	@Override
+	public void drawText(String pText, Rectangle pBounds, Alignment pTextPosition, 
+			Color pTextColor, Font pFont, FontDimension pDimension)
+	{
+		// SVG positions the text from the bottom coordinate.
+<span class="nc" id="L229">		int anchorX = pBounds.x();</span>
+<span class="nc" id="L230">		int anchorY = pBounds.maxY() - pDimension.baselineOffset();</span>
+<span class="nc" id="L231">		String anchor = &quot;start&quot;;</span>
+<span class="nc bnc" id="L232" title="All 2 branches missed.">		if( pTextPosition == Alignment.CENTER )</span>
+		{
+<span class="nc" id="L234">			anchorX = pBounds.center().x();</span>
+<span class="nc" id="L235">			anchor = &quot;middle&quot;;</span>
+		}
+<span class="nc" id="L237">		String weight = &quot;normal&quot;;</span>
+<span class="nc bnc" id="L238" title="All 2 branches missed.">		if (pFont.getStyle().toLowerCase().contains(&quot;bold&quot;))</span>
+		{
+<span class="nc" id="L240">			weight = &quot;bold&quot;;</span>
+		}
+<span class="nc" id="L242">		String style = &quot;normal&quot;;</span>
+<span class="nc bnc" id="L243" title="All 2 branches missed.">		if (pFont.getStyle().toLowerCase().contains(&quot;italic&quot;))</span>
+		{
+<span class="nc" id="L245">			style = &quot;italic&quot;;</span>
+		}
+		
+<span class="nc" id="L248">		final String templateText = &quot;&lt;text x=\&quot;%d\&quot; y=\&quot;%d\&quot; &quot;</span>
+				+ &quot;font-size=\&quot;%.2fpx\&quot; &quot;
+				+ &quot;font-family=\&quot;Arial, Helvetica, sans-serif\&quot; &quot;
+				+ &quot;font-weight=\&quot;%s\&quot; &quot;
+				+ &quot;font-style=\&quot;%s\&quot; &quot;
+				+ &quot;text-anchor=\&quot;%s\&quot;&gt;%s&lt;/text&gt;&quot;;
+
+<span class="nc" id="L255">		aSvg.add(String.format(templateText, anchorX, anchorY, pFont.getSize() - FONT_ADJUSTMENT, weight, style, anchor, escapeText(pText)));</span>
+<span class="nc" id="L256">	}</span>
+	
+	private static String escapeText(String pText)
+	{
+<span class="nc" id="L260">		return pText.replace(&quot;&lt;&quot;, &quot;&amp;lt;&quot;).replace(&quot;&gt;&quot;, &quot;&amp;gt;&quot;);</span>
+	}
+	
+	/**
+	 * @return The completed svg file. Should only be called once.
+	 */
+	public String create()
+	{
+<span class="nc" id="L268">		final String rootEnd = &quot;&lt;/g&gt;&lt;/svg&gt;&quot;;</span>
+<span class="nc" id="L269">		return aSvg.add(rootEnd).toString();</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

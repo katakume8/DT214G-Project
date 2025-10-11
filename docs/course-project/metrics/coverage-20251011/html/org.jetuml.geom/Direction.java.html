@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Direction.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.geom</a> &gt; <span class="el_source">Direction.java</span></div><h1>Direction.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ * 
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
+ * License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later
+ * version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with this program. If not, see
+ * http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.geom;
+
+import static java.lang.Math.acos;
+import static java.lang.Math.toDegrees;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import org.jetuml.annotations.Flyweight;
+import org.jetuml.annotations.Immutable;
+
+/**
+ * This class describes an immutable direction in the 2D plane. The
+ * direction is conceptually represented as an angle in degrees between
+ * 0 and 359 inclusively, where 0 represents &quot;up&quot; or &quot;north&quot;, and where
+ * an increase in the angle moves the direction clockwise. A direction
+ * can be expressed with a precision of a maximum of one degree.
+ */
+@Immutable 
+@Flyweight
+public final class Direction
+{
+<span class="fc" id="L40">	private static final Map&lt;Integer, Direction&gt; DIRECTIONS = new HashMap&lt;&gt;();</span>
+	
+	// CSOFF: These need to be below the DIRECTION fields to avoid initialization errors
+<span class="fc" id="L43">	public static final Direction NORTH = fromAngle(0);</span>
+<span class="fc" id="L44">	public static final Direction EAST = fromAngle(90);</span>
+<span class="fc" id="L45">	public static final Direction SOUTH = fromAngle(180);</span>
+<span class="fc" id="L46">	public static final Direction WEST = fromAngle(270);</span>
+	// CSON:
+
+	private static final int DEGREES_IN_CIRCLE = 360;
+	private static final int DEGREES_IN_HALF_CIRCLE = DEGREES_IN_CIRCLE / 2;
+
+	private final int aAngleInDegrees;
+
+	/*
+	 * @pre pAngle &gt;= 0 &amp;&amp; pAngle &lt; DEGREES_IN_CIRCLE;
+	 */
+	private Direction(int pAngle)
+<span class="fc" id="L58">	{</span>
+<span class="pc bpc" id="L59" title="2 of 4 branches missed.">		assert pAngle &gt;= 0 &amp;&amp; pAngle &lt; DEGREES_IN_CIRCLE;</span>
+<span class="fc" id="L60">		aAngleInDegrees = pAngle;</span>
+<span class="fc" id="L61">	}</span>
+	
+	/**
+	 * @return true if and only if this direction represents one of the four
+	 *     cardinal directions, namely TOP, BOTTOM, RIGHT, LEFT. 
+	 */
+	public boolean isCardinal()
+	{
+<span class="fc bfc" id="L69" title="All 8 branches covered.">		return this == NORTH || this == EAST || this == SOUTH || this == WEST;</span>
+	}
+	
+	/**
+	 * @param pAngle the desired angle.
+	 * @return A direction that corresponds to pAngle
+	 * @pre pAngle in [0,359]
+	 */
+	public static Direction fromAngle(int pAngle)
+	{
+<span class="pc bpc" id="L79" title="2 of 4 branches missed.">		assert pAngle &gt;= 0 &amp;&amp; pAngle &lt; DEGREES_IN_CIRCLE;</span>
+<span class="fc" id="L80">		return DIRECTIONS.computeIfAbsent(pAngle, Direction::new);</span>
+	}
+
+	/**
+	 * Returns the direction equivalent to the direction
+	 * represented by the line between pStart and pEnd.
+	 * 
+	 * @param pStart The starting point
+	 * @param pEnd The ending point
+	 * @return A Direction object
+	 * @pre pStart != null &amp;&amp; pEnd != null
+	 * @pre ! pStart.equals(pEnd);
+	 */
+	public static Direction fromLine(Point pStart, Point pEnd)
+	{
+<span class="pc bpc" id="L95" title="2 of 4 branches missed.">		assert pStart != null &amp;&amp; pEnd != null;</span>
+<span class="pc bpc" id="L96" title="1 of 2 branches missed.">		assert !pStart.equals(pEnd);</span>
+<span class="fc" id="L97">		return fromAngle(asAngle(pEnd.x() - pStart.x(), pEnd.y() - pStart.y()));</span>
+	}
+	
+	/**
+	 * Returns a new direction that represents this direction turned clockwise by pAngle.
+	 * 
+	 * @param pAngle The angle in degrees for which to turn the direction.
+	 * @return The new, rotated direction.
+	 */
+	public Direction rotatedBy(int pAngle)
+	{
+<span class="fc" id="L108">		return new Direction((aAngleInDegrees + pAngle) % DEGREES_IN_CIRCLE);</span>
+	}
+	
+	/**
+	 * Returns a new direction that represents this direction turned clockwise by 180C.
+	 * 
+	 * @return The new, rotated direction.
+	 */
+	public Direction mirrored()
+	{
+<span class="fc" id="L118">		return fromAngle((aAngleInDegrees + DEGREES_IN_CIRCLE/2) % DEGREES_IN_CIRCLE);</span>
+	}
+	
+	/**
+	 * Determines if this direction is strictly between the start and end directions.
+	 * pStart and pEnd must be different. If they are at 180 degrees of each other
+	 * this method returns false;
+	 * 
+	 * @param pStart The start direction (exclusive)
+	 * @param pEnd The end direction (exclusive)
+	 * @return True if this direction represents an angle between pStart (exclusive) and pEnd (exclusive).
+	 * @pre pStart != null &amp;&amp; pEnd != null &amp;&amp; pStart != pEnd.
+	 */
+	public boolean isBetween( Direction pStart, Direction pEnd)
+	{
+		// Adapted to Java from a solution by iforce2d 
+		// https://stackoverflow.com/a/23550032
+<span class="fc" id="L135">		int start = normalize(pStart.aAngleInDegrees - aAngleInDegrees);</span>
+<span class="fc" id="L136">		int end = normalize(pEnd.aAngleInDegrees - aAngleInDegrees);</span>
+<span class="fc bfc" id="L137" title="All 2 branches covered.">		if( start * end &gt;= 0 )</span>
+		{
+<span class="fc" id="L139">			return false;</span>
+		}
+<span class="fc bfc" id="L141" title="All 2 branches covered.">		return Math.abs(start - end) &lt; DEGREES_IN_HALF_CIRCLE;			</span>
+	}
+		
+	/**
+	 * @return true if this direction has any value in the west cardinal direction
+	 */
+	public boolean isWesterly()
+	{
+<span class="pc bpc" id="L149" title="1 of 4 branches missed.">		return aAngleInDegrees &gt; DEGREES_IN_HALF_CIRCLE &amp;&amp; aAngleInDegrees &lt; DEGREES_IN_CIRCLE;</span>
+	}
+	
+	/**
+	 * @return true if this direction has any value in the east cardinal direction
+	 */
+	public boolean isEasterly()
+	{   
+<span class="fc bfc" id="L157" title="All 4 branches covered.">		return aAngleInDegrees &gt; 0 &amp;&amp; aAngleInDegrees &lt; DEGREES_IN_HALF_CIRCLE;</span>
+	}  
+	
+	/**
+	 * @return true if this direction has any value in the north cardinal direction
+	 */
+	public boolean isNortherly()
+	{
+<span class="fc bfc" id="L165" title="All 4 branches covered.">		return aAngleInDegrees &gt; DEGREES_IN_CIRCLE * 3 / 4 || aAngleInDegrees &lt; DEGREES_IN_HALF_CIRCLE / 2;</span>
+	}
+	
+	/**
+	 * @return true if this direction has any value in the south cardinal direction
+	 */
+	public boolean isSoutherly()
+	{
+<span class="fc bfc" id="L173" title="All 4 branches covered.">		return aAngleInDegrees &gt; DEGREES_IN_HALF_CIRCLE / 2 &amp;&amp; aAngleInDegrees &lt; DEGREES_IN_CIRCLE * 3 / 4;</span>
+	}
+	
+	/*
+	 * Shifts the angle to the ]-180,180] range.
+	 */
+	private static int normalize(int pAngle)
+	{
+<span class="fc bfc" id="L181" title="All 2 branches covered.">		if( pAngle &gt; DEGREES_IN_HALF_CIRCLE )</span>
+		{
+<span class="fc" id="L183">			return pAngle - DEGREES_IN_CIRCLE;</span>
+		}
+<span class="fc bfc" id="L185" title="All 2 branches covered.">		if( pAngle &lt;= -DEGREES_IN_HALF_CIRCLE )</span>
+		{
+<span class="fc" id="L187">			return pAngle + DEGREES_IN_CIRCLE;</span>
+		}
+<span class="fc" id="L189">		return pAngle;</span>
+	}
+	
+	/**
+	 * @return The direction as an angle between 0 (north) and 359.
+	 */
+	public int asAngle()
+	{
+<span class="fc" id="L197">		return aAngleInDegrees;</span>
+	}
+
+	/*
+	 * Computes an angle given a width an a height, so 
+	 * that angle 0 corresponds to pWidth=0 and pHeight &gt; 0,
+	 * in other words a vector pointing north.
+	 */
+	private static int asAngle(int pWidth, int pHeight)
+	{
+		// Compute the normalized height 
+		// The sign is reversed to account for the fact that in graphics systems
+		// the y-coordinate increases from top to bottom.
+<span class="fc" id="L210">		double hypothenuse = Math.sqrt(pWidth * pWidth + pHeight * pHeight);</span>
+<span class="fc" id="L211">		double normalizedHeight = -pHeight/hypothenuse;</span>
+		
+		// Compute the angle. We use the arccos instead of the arcsin
+		// despite the fact that the height is the opposing side to shift
+		// the angle by 90 to align 0 with north.
+<span class="fc" id="L216">		int degrees = GeomUtils.round(toDegrees(acos(normalizedHeight)));</span>
+		
+		// We negate the angle for the left half-plane
+<span class="fc bfc" id="L219" title="All 2 branches covered.">		if( pWidth &lt;= 0 )</span>
+		{
+<span class="fc" id="L221">			degrees = -degrees;</span>
+		}
+		
+		// Position the angle in the [0, 359] range
+<span class="fc" id="L225">		return (degrees + DEGREES_IN_CIRCLE) % DEGREES_IN_CIRCLE;</span>
+	}
+
+	@Override
+	public String toString()
+	{
+<span class="fc" id="L231">		return String.format(&quot;[Direction: %d degrees]&quot;, aAngleInDegrees);</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

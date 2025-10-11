@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CallNode.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.diagram.nodes</a> &gt; <span class="el_source">CallNode.java</span></div><h1>CallNode.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+
+package org.jetuml.diagram.nodes;
+
+import java.util.Optional;
+
+import org.jetuml.diagram.Node;
+import org.jetuml.diagram.PropertyName;
+
+/**
+ * A method call node in a sequence diagram. Call nodes are
+ * not intended to be manipulated by users. 
+ */
+<span class="fc" id="L33">public class CallNode extends AbstractNode</span>
+{
+	public static final int CALL_YGAP = 20;
+
+<span class="fc" id="L37">	private Optional&lt;ImplicitParameterNode&gt; aImplicitParameter = Optional.empty();</span>
+	private boolean aOpenBottom;
+
+	/**
+	 * Gets the openBottom property.
+	 * @return true if this node is the target of a signal edge
+	 */
+	public boolean isOpenBottom() 
+	{ 
+<span class="fc" id="L46">		return aOpenBottom; </span>
+	}
+
+	/**
+	 * Sets the openBottom property.
+	 * @param pNewValue true if this node is the target of a signal edge
+	 */      
+	public void setOpenBottom(boolean pNewValue)
+	{ 
+<span class="fc" id="L55">		aOpenBottom = pNewValue; </span>
+<span class="fc" id="L56">	}</span>
+
+	@Override
+	public CallNode clone()
+	{
+<span class="fc" id="L61">		CallNode cloned = (CallNode) super.clone();</span>
+<span class="fc" id="L62">		return cloned;</span>
+	}
+	
+	@Override
+	protected void buildProperties()
+	{
+<span class="fc" id="L68">		super.buildProperties();</span>
+<span class="fc" id="L69">		properties().add(PropertyName.OPEN_BOTTOM, () -&gt; aOpenBottom, pOpen -&gt; aOpenBottom = (boolean) pOpen);</span>
+<span class="fc" id="L70">	}</span>
+	
+	/**
+     * Gets the parent of this node.
+     * @return the parent node
+     * @pre hasParent()
+	 */
+	@Override
+	public Node getParent() 
+   	{ 
+<span class="fc bfc" id="L80" title="All 2 branches covered.">		assert hasParent();</span>
+<span class="fc" id="L81">		return aImplicitParameter.get(); </span>
+	}
+
+	/**
+     * Sets the parent of this node.
+     * @param pNode the parent node
+     * @pre pNode != null;
+	 */
+	@Override
+	public void link(Node pNode) 
+	{
+<span class="pc bpc" id="L92" title="1 of 2 branches missed.">		assert pNode != null;</span>
+<span class="pc bpc" id="L93" title="1 of 2 branches missed.">		assert pNode instanceof ImplicitParameterNode;</span>
+<span class="fc" id="L94">		aImplicitParameter = Optional.of((ImplicitParameterNode) pNode);</span>
+<span class="fc" id="L95">	}</span>
+	
+	@Override
+	public void unlink()
+	{
+<span class="pc bpc" id="L100" title="1 of 2 branches missed.">		assert hasParent();</span>
+<span class="fc" id="L101">		aImplicitParameter = Optional.empty();</span>
+<span class="fc" id="L102">	}</span>
+
+	@Override
+	public boolean requiresParent()
+	{
+<span class="fc" id="L107">		return true;</span>
+	}
+
+	@Override
+	public boolean hasParent()
+	{
+<span class="fc" id="L113">		return aImplicitParameter.isPresent();</span>
+	}
+	
+	@Override
+	public String toString()
+	{
+<span class="nc" id="L119">		return String.format(&quot;[Call node #%d of %s]&quot;, getParent().getChildren().indexOf(this)+1, getParent().toString());</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

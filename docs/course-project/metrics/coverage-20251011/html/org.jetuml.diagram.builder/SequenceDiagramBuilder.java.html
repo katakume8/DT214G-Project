@@ -1,0 +1,495 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SequenceDiagramBuilder.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.diagram.builder</a> &gt; <span class="el_source">SequenceDiagramBuilder.java</span></div><h1>SequenceDiagramBuilder.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+
+package org.jetuml.diagram.builder;
+
+import static java.util.stream.Collectors.toList;
+
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import org.jetuml.diagram.Diagram;
+import org.jetuml.diagram.DiagramElement;
+import org.jetuml.diagram.DiagramType;
+import org.jetuml.diagram.Edge;
+import org.jetuml.diagram.Node;
+import org.jetuml.diagram.edges.CallEdge;
+import org.jetuml.diagram.edges.ConstructorEdge;
+import org.jetuml.diagram.edges.ReturnEdge;
+import org.jetuml.diagram.nodes.CallNode;
+import org.jetuml.diagram.nodes.ImplicitParameterNode;
+import org.jetuml.geom.Point;
+import org.jetuml.rendering.SequenceDiagramRenderer;
+import org.jetuml.rendering.nodes.ImplicitParameterNodeRenderer;
+
+/**
+ * A builder for sequence diagrams.
+ */
+<span class="fc" id="L48">public class SequenceDiagramBuilder extends DiagramBuilder</span>
+{
+	private static final int CALL_NODE_YGAP = 5;
+	/**
+	 * Creates a new builder for sequence diagrams.
+	 * 
+	 * @param pDiagram The diagram to wrap around.
+	 * @pre pDiagram != null;
+	 */
+	public SequenceDiagramBuilder( Diagram pDiagram )
+	{
+<span class="fc" id="L59">		super( pDiagram );</span>
+<span class="pc bpc" id="L60" title="1 of 2 branches missed.">		assert pDiagram.getType() == DiagramType.SEQUENCE;</span>
+<span class="fc" id="L61">	}</span>
+	
+	@Override
+	protected List&lt;DiagramElement&gt; getCoRemovals(DiagramElement pElement)
+	{
+<span class="fc" id="L66">		List&lt;DiagramElement&gt; result = super.getCoRemovals(pElement);</span>
+<span class="fc bfc" id="L67" title="All 2 branches covered.">		if(pElement instanceof Node node)</span>
+		{
+<span class="fc" id="L69">			result.addAll(getNodeUpstreams(node));</span>
+<span class="fc" id="L70">			result.addAll(getNodeDownStreams(node));</span>
+		}
+<span class="pc bpc" id="L72" title="1 of 2 branches missed.">		else if(pElement instanceof Edge edge)</span>
+		{
+<span class="fc" id="L74">			Optional&lt;DiagramElement&gt; edgeStart = ((SequenceDiagramRenderer)renderer()).getStartNodeIfExclusive(edge);</span>
+<span class="fc bfc" id="L75" title="All 2 branches covered.">			if(edgeStart.isPresent())</span>
+			{
+<span class="fc" id="L77">				result.add(edgeStart.get());</span>
+			}
+<span class="fc" id="L79">			result.addAll(getEdgeDownStreams(edge));</span>
+		}	
+<span class="fc" id="L81">		result.addAll(getCorrespondingReturnEdges(result));</span>
+		//Implicit parameter nodes downstream of constructor calls should not be removed
+<span class="fc bfc" id="L83" title="All 2 branches covered.">		if(pElement instanceof ConstructorEdge) </span>
+		{
+<span class="fc" id="L85">			result.removeIf(element -&gt; element instanceof ImplicitParameterNode);</span>
+		}
+<span class="fc" id="L87">		return result;</span>
+	}
+	
+	@Override
+	protected void completeEdgeAdditionOperation( CompoundOperation pOperation, Edge pEdge, Node pStartNode, Node pEndNode,
+			Point pStartPoint, Point pEndPoint)
+	{
+<span class="fc bfc" id="L94" title="All 2 branches covered.">		if( !(pEdge instanceof CallEdge) )</span>
+		{
+<span class="fc" id="L96">			super.completeEdgeAdditionOperation(pOperation, pEdge, pStartNode, pEndNode, pStartPoint, pEndPoint);</span>
+<span class="fc" id="L97">			return;</span>
+		}
+<span class="pc bpc" id="L99" title="1 of 2 branches missed.">		if( !validCallEdgeSemantics(pStartNode, pEndNode))</span>
+		{
+<span class="nc" id="L101">			pEdge.connect(pStartNode, pEndNode);</span>
+<span class="nc" id="L102">			pOperation.add(new SimpleOperation(()-&gt; aDiagramRenderer.diagram().addEdge(pEdge),</span>
+<span class="nc" id="L103">					()-&gt; aDiagramRenderer.diagram().removeEdge(pEdge)));</span>
+<span class="nc" id="L104">			return;</span>
+		}
+<span class="fc" id="L106">		Node start = pStartNode;</span>
+<span class="fc bfc" id="L107" title="All 2 branches covered.">		if( start.getClass() == ImplicitParameterNode.class )</span>
+		{
+<span class="fc" id="L109">			CallNode newCallNode = new CallNode();</span>
+<span class="fc" id="L110">			ImplicitParameterNode parent = (ImplicitParameterNode) pStartNode;</span>
+<span class="fc" id="L111">			pOperation.add(new SimpleOperation(() -&gt; parent.addChild(newCallNode), </span>
+<span class="nc" id="L112">					() -&gt; parent.removeChild(newCallNode)));</span>
+<span class="fc" id="L113">			start = newCallNode;</span>
+		}
+<span class="fc" id="L115">		ImplicitParameterNode endParent = null;</span>
+<span class="pc bpc" id="L116" title="1 of 2 branches missed.">		if( pEndNode.getClass() == ImplicitParameterNode.class )</span>
+		{
+<span class="fc" id="L118">			endParent = (ImplicitParameterNode) pEndNode;</span>
+		}
+		else
+		{
+<span class="nc bnc" id="L122" title="All 2 branches missed.">			assert pEndNode.getClass() == CallNode.class;</span>
+<span class="nc" id="L123">			endParent = (ImplicitParameterNode)((CallNode)pEndNode).getParent();</span>
+		}
+<span class="fc" id="L125">		CallNode end = new CallNode();</span>
+<span class="fc" id="L126">		final ImplicitParameterNode parent = endParent;</span>
+<span class="fc" id="L127">		pOperation.add(new SimpleOperation(()-&gt; parent.addChild(end),</span>
+<span class="nc" id="L128">				()-&gt; parent.removeChild(end)));</span>
+<span class="fc" id="L129">		int insertionIndex = computeInsertionIndex(start, pStartPoint.y());</span>
+
+<span class="fc" id="L131">		pEdge.connect(start, end);</span>
+<span class="fc" id="L132">		pOperation.add(new SimpleOperation(()-&gt; aDiagramRenderer.diagram().addEdge(insertionIndex, pEdge),</span>
+<span class="nc" id="L133">				()-&gt; aDiagramRenderer.diagram().removeEdge(pEdge)));</span>
+<span class="fc" id="L134">	}</span>
+	
+	/**
+	 * @return True if the start end node can support the addition of a call edge.
+	 */
+	private static boolean validCallEdgeSemantics(Node pStartNode, Node pEndNode )
+	{
+<span class="pc bpc" id="L141" title="1 of 4 branches missed.">		return (pStartNode.getClass() == ImplicitParameterNode.class || pStartNode.getClass() == CallNode.class) &amp;&amp;</span>
+<span class="pc bpc" id="L142" title="3 of 4 branches missed.">				(pEndNode.getClass() == ImplicitParameterNode.class || pEndNode.getClass() == CallNode.class);</span>
+	}
+	
+	private int computeInsertionIndex( Node pCaller, int pY)
+	{
+<span class="fc bfc" id="L147" title="All 2 branches covered.">		for( CallEdge callee : getCalls(pCaller))</span>
+		{
+<span class="pc bpc" id="L149" title="1 of 2 branches missed.">			if( renderer().getConnectionPoints(callee).y1() &gt; pY )</span>
+			{
+<span class="fc" id="L151">				return aDiagramRenderer.diagram().indexOf(callee);</span>
+			}
+<span class="nc" id="L153">		}</span>
+<span class="fc" id="L154">		return aDiagramRenderer.diagram().edges().size();</span>
+	}
+	
+	@Override
+	public DiagramOperation createAddNodeOperation(Node pNode, Point pRequestedPosition)
+	{
+<span class="fc" id="L160">		DiagramOperation result = null;</span>
+<span class="fc bfc" id="L161" title="All 2 branches covered.">		if(pNode instanceof CallNode) </span>
+		{
+<span class="fc" id="L163">			Optional&lt;ImplicitParameterNode&gt; target = insideTargetArea(pRequestedPosition);</span>
+<span class="fc bfc" id="L164" title="All 2 branches covered.">			if( target.isPresent() )</span>
+			{
+<span class="fc" id="L166">				result = new SimpleOperation(()-&gt; target.get().addChild(pNode),</span>
+<span class="nc" id="L167">						()-&gt; target.get().removeChild(pNode));</span>
+			}
+		}
+<span class="fc bfc" id="L170" title="All 2 branches covered.">		if( result == null )</span>
+		{
+<span class="fc" id="L172">			result = super.createAddNodeOperation(pNode, pRequestedPosition);</span>
+		}
+<span class="fc" id="L174">		return result;</span>
+	}
+	
+	/*
+	 * If pPoint is inside an ImplicitParameterNode but below its top
+	 * rectangle, returns the Optional value of that node. Otherwise, returns Optional.empty().
+	 */
+	private Optional&lt;ImplicitParameterNode&gt; insideTargetArea(Point pPoint)
+	{
+<span class="fc bfc" id="L183" title="All 2 branches covered.">		for( Node node : aDiagramRenderer.diagram().rootNodes() )</span>
+		{
+<span class="pc bpc" id="L185" title="2 of 4 branches missed.">			if( node instanceof ImplicitParameterNode &amp;&amp; aDiagramRenderer.contains(node, pPoint) )</span>
+			{
+<span class="pc bpc" id="L187" title="1 of 2 branches missed.">				if( !(pPoint.y() &lt; implicitParameterRenderer().getTopRectangle(node).maxY() + CALL_NODE_YGAP) )</span>
+				{
+<span class="fc" id="L189">					return Optional.of( (ImplicitParameterNode)node );</span>
+				}
+			}
+<span class="nc" id="L192">		}</span>
+<span class="fc" id="L193">		return Optional.empty();</span>
+	}
+	
+	private ImplicitParameterNodeRenderer implicitParameterRenderer()
+	{
+<span class="fc" id="L198">		return (ImplicitParameterNodeRenderer)aDiagramRenderer.rendererFor(ImplicitParameterNode.class);</span>
+	}
+	
+	/**
+	 * @param pElements The DiagramElements to obtain the corresponding ReturnEdges for.
+	 * @return The Collection of corresponding ReturnEdges for pElements.
+	 */
+	private Collection&lt;DiagramElement&gt; getCorrespondingReturnEdges(List&lt;DiagramElement&gt; pElements)
+	{
+<span class="pc bpc" id="L207" title="1 of 2 branches missed.">		assert pElements != null;</span>
+<span class="fc" id="L208">		Set&lt;DiagramElement&gt; returnEdges = new HashSet&lt;&gt;();</span>
+<span class="fc bfc" id="L209" title="All 2 branches covered.">		for( DiagramElement element: pElements )</span>
+		{
+<span class="fc bfc" id="L211" title="All 2 branches covered.">			if( element instanceof CallEdge edge)</span>
+			{
+<span class="fc" id="L213">				Optional&lt;Edge&gt; returnEdge = getReturnEdge(edge);</span>
+<span class="fc bfc" id="L214" title="All 2 branches covered.">				if( returnEdge.isPresent() )</span>
+				{
+<span class="fc" id="L216">					returnEdges.add(returnEdge.get());</span>
+				}
+			}
+<span class="fc" id="L219">		}</span>
+<span class="fc" id="L220">		return returnEdges;</span>
+	}
+	
+	private Optional&lt;Edge&gt; getReturnEdge(Edge pEdge)
+	{
+<span class="fc" id="L225">		return renderer().diagram().edges().stream()</span>
+<span class="fc" id="L226">			.filter(ReturnEdge.class::isInstance)</span>
+<span class="fc bfc" id="L227" title="All 2 branches covered.">			.filter(edge -&gt; edge.start() == pEdge.end())</span>
+<span class="pc bpc" id="L228" title="1 of 2 branches missed.">			.filter(edge -&gt; edge.end() == pEdge.start())</span>
+<span class="fc" id="L229">			.findFirst();</span>
+	}
+	
+	/**
+	 * @param pNode The node to check.
+	 * @return True if pNode is a CallNode and is at the end of a ConstructorEdge.
+	 */
+	private boolean isConstructorExecution(Node pNode)
+	{
+<span class="pc bpc" id="L238" title="1 of 2 branches missed.">		assert pNode != null;</span>
+<span class="fc bfc" id="L239" title="All 2 branches covered.">		if( pNode.getClass() != CallNode.class )</span>
+		{
+<span class="fc" id="L241">			return false;</span>
+		}
+<span class="fc bfc" id="L243" title="All 2 branches covered.">		for( Edge edge : diagram().edges() )</span>
+		{
+<span class="fc bfc" id="L245" title="All 4 branches covered.">			if( edge.end() == pNode &amp;&amp; edge.getClass() == ConstructorEdge.class )</span>
+			{
+<span class="fc" id="L247">				return true;</span>
+			}
+<span class="fc" id="L249">		}</span>
+<span class="fc" id="L250">		return false;	</span>
+	}
+	
+	/**
+	 * @param pNode The Node to obtain the caller and upstream DiagramElements for.
+	 * @return The Collection of DiagramElements in the upstream of pNode.
+	 *     Excludes pNode and elements returned by getCoRemovals method in the DiagramBuilder class.
+	 * @pre pNode != null
+	 */
+	private Collection&lt;DiagramElement&gt; getNodeUpstreams(Node pNode)
+	{
+<span class="pc bpc" id="L261" title="1 of 2 branches missed.">		assert pNode != null;</span>
+<span class="fc" id="L262">		Set&lt;DiagramElement&gt; elements = new HashSet&lt;&gt;();</span>
+<span class="fc bfc" id="L263" title="All 2 branches covered.">		if( pNode.getClass() == CallNode.class )</span>
+		{
+<span class="fc" id="L265">			Optional&lt;CallNode&gt; caller = getCaller(pNode);</span>
+<span class="pc bpc" id="L266" title="1 of 4 branches missed.">			if( caller.isPresent() &amp;&amp; getCaller(caller.get()).isEmpty() )</span>
+			{
+<span class="fc" id="L268">				CallNode callerNode = caller.get();</span>
+				// If the caller is only connected to one call
+<span class="pc bpc" id="L270" title="1 of 4 branches missed.">				if( getCalls(callerNode).size() == 1 &amp;&amp; getCalls(callerNode).get(0).end() == pNode )</span>
+				{
+<span class="fc" id="L272">					elements.add(callerNode);</span>
+				}
+<span class="pc bpc" id="L274" title="1 of 2 branches missed.">				else if( isConstructorExecution(pNode) )</span>
+				{
+<span class="pc bpc" id="L276" title="1 of 2 branches missed.">					getCalls(callerNode).stream().filter(e -&gt; e.end().getParent() == pNode.getParent())</span>
+<span class="fc" id="L277">												 .forEach(e -&gt; elements.add(e));</span>
+<span class="pc bpc" id="L278" title="1 of 2 branches missed.">					if( onlyCallsToASingleImplicitParameterNode(callerNode, pNode.getParent()) )</span>
+					{
+<span class="fc" id="L280">						elements.add(callerNode);</span>
+					}
+				}
+			}
+<span class="fc" id="L284">		}</span>
+<span class="pc bpc" id="L285" title="1 of 4 branches missed.">		else if( pNode.getClass() == ImplicitParameterNode.class &amp;&amp; pNode.getChildren().size() &gt; 0 )</span>
+		{
+<span class="fc" id="L287">			Optional&lt;CallNode&gt; caller = getCaller(firstChildOf(pNode));</span>
+<span class="pc bpc" id="L288" title="2 of 6 branches missed.">			if( caller.isPresent() &amp;&amp; getCaller(caller.get()).isEmpty() &amp;&amp; onlyCallsToASingleImplicitParameterNode(caller.get(), pNode) )</span>
+			{
+<span class="fc" id="L290">				elements.add(caller.get());</span>
+			}
+		}
+<span class="fc" id="L293">		return elements;</span>
+	}
+	
+	private Optional&lt;CallNode&gt; getCaller(Node pNode)
+	{
+<span class="fc" id="L298">		return ((SequenceDiagramRenderer)renderer()).getCaller(pNode);</span>
+	}
+	
+	private boolean onlyCallsToASingleImplicitParameterNode(Node pCaller, Node pParentNode)
+	{
+<span class="pc bpc" id="L303" title="2 of 4 branches missed.">		assert pCaller!= null &amp;&amp; pParentNode != null;</span>
+<span class="pc bpc" id="L304" title="1 of 2 branches missed.">		return getCalls(pCaller).stream().allMatch(edge -&gt; edge.end().getParent() == pParentNode);</span>
+	}
+	
+	private static Node firstChildOf(Node pNode)
+	{
+<span class="pc bpc" id="L309" title="1 of 2 branches missed.">		assert pNode.getChildren().size() &gt; 0;</span>
+<span class="fc" id="L310">		return pNode.getChildren().get(0);</span>
+	}
+	
+	/**
+	 * @param pCaller The caller node.
+	 * @return The list of call edges starting at pCaller
+	 * @pre pCaller != null
+	 */
+	private List&lt;CallEdge&gt; getCalls(Node pCaller)
+	{
+<span class="pc bpc" id="L320" title="1 of 2 branches missed.">		assert pCaller != null;</span>
+<span class="fc" id="L321">		return diagram().edges().stream()</span>
+<span class="fc" id="L322">				.filter(CallEdge.class::isInstance)</span>
+<span class="fc" id="L323">				.map(CallEdge.class::cast)</span>
+<span class="fc bfc" id="L324" title="All 2 branches covered.">				.filter(edge -&gt; edge.start() == pCaller)</span>
+<span class="fc" id="L325">				.collect(toList());</span>
+	}
+	
+	// Migrated from ControlFlow
+	
+	/*
+	 * Returns true if pNode is the ImplicitParameterNode that gets created in constructor call
+	 */
+	private boolean isConstructedObject(Node pNode)
+	{
+<span class="pc bpc" id="L335" title="1 of 2 branches missed.">		assert pNode != null;</span>
+<span class="fc bfc" id="L336" title="All 4 branches covered.">		return pNode.getClass() == ImplicitParameterNode.class &amp;&amp; pNode.getChildren().size() &gt; 0 &amp;&amp;</span>
+<span class="fc bfc" id="L337" title="All 2 branches covered.">				isConstructorExecution(firstChildOf(pNode));</span>
+	}
+	
+	private Optional&lt;Edge&gt; getConstructorEdge(Node pNode)
+	{
+<span class="pc bpc" id="L342" title="2 of 4 branches missed.">		assert pNode != null &amp;&amp; isConstructorExecution(pNode);</span>
+<span class="pc bpc" id="L343" title="1 of 2 branches missed.">		if( pNode.getClass() != CallNode.class )</span>
+		{
+<span class="nc" id="L345">			return Optional.empty();	</span>
+		}
+<span class="pc bpc" id="L347" title="1 of 2 branches missed.">		for( Edge edge : diagram().edges() )</span>
+		{
+<span class="pc bpc" id="L349" title="2 of 4 branches missed.">			if( edge.end() == pNode &amp;&amp; edge.getClass() == ConstructorEdge.class )</span>
+			{
+<span class="fc" id="L351">				return Optional.of(edge);</span>
+			}
+<span class="nc" id="L353">		}</span>
+<span class="nc" id="L354">		return Optional.empty();	</span>
+	}
+
+	/**
+	 * @param pEdge The Edge to get downstream elements from.
+	 * @return The downstream DiagramElements of pEdge.
+	 * @pre pEdge != null
+	 */
+	public Collection&lt;DiagramElement&gt; getEdgeDownStreams(Edge pEdge)
+	{
+<span class="pc bpc" id="L364" title="1 of 2 branches missed.">		assert pEdge != null;</span>
+<span class="fc" id="L365">		Set&lt;DiagramElement&gt; downstreamElements = new HashSet&lt;&gt;();</span>
+		
+		// The edge addition here is necessary for recursive calls
+<span class="fc" id="L368">		downstreamElements.add(pEdge);</span>
+<span class="fc bfc" id="L369" title="All 2 branches covered.">		if( pEdge.getClass() == ConstructorEdge.class )</span>
+		{
+<span class="fc" id="L371">			Node endParent = pEdge.end().getParent();</span>
+<span class="fc" id="L372">			downstreamElements.add(endParent);</span>
+<span class="fc" id="L373">			downstreamElements.addAll(endParent.getChildren());</span>
+			
+			// Recursively add downstream elements of the child nodes
+<span class="fc bfc" id="L376" title="All 2 branches covered.">			for( Node child: endParent.getChildren() )</span>
+			{
+<span class="fc bfc" id="L378" title="All 2 branches covered.">				for( Edge edge: getCalls(child) )</span>
+				{
+<span class="fc" id="L380">					downstreamElements.addAll(getEdgeDownStreams(edge));</span>
+<span class="fc" id="L381">				}</span>
+				
+				// Add upstream edges of the child nodes
+<span class="fc bfc" id="L384" title="All 2 branches covered.">				for( Edge edge: diagram().edges() )</span>
+				{
+<span class="fc bfc" id="L386" title="All 2 branches covered.">					if( edge.end() == child )</span>
+					{
+<span class="fc" id="L388">						downstreamElements.add(edge);</span>
+					}
+<span class="fc" id="L390">				}</span>
+<span class="fc" id="L391">			}</span>
+<span class="fc" id="L392">		}</span>
+<span class="fc bfc" id="L393" title="All 2 branches covered.">		else if( pEdge.getClass() == CallEdge.class )</span>
+		{
+<span class="fc" id="L395">			CallNode endNode = (CallNode)pEdge.end();</span>
+<span class="fc" id="L396">			downstreamElements.add(endNode);</span>
+<span class="fc bfc" id="L397" title="All 2 branches covered.">			for( Edge e: getCalls(endNode) )</span>
+			{
+<span class="fc" id="L399">				downstreamElements.addAll(getEdgeDownStreams(e));</span>
+<span class="fc" id="L400">			}</span>
+		}
+<span class="fc" id="L402">		return downstreamElements;</span>
+	}
+
+	/** 
+	 * @param pNode The Node to obtain downstream elements from.
+	 * @return The downstream DiagramElements of pNode.
+	 * @pre pNode!=null
+	 */
+	public Collection&lt;DiagramElement&gt; getNodeDownStreams(Node pNode)
+	{
+<span class="pc bpc" id="L412" title="1 of 2 branches missed.">		assert pNode!=null;</span>
+<span class="fc" id="L413">		Set&lt;DiagramElement&gt; downstreamElements = new HashSet&lt;&gt;();</span>
+<span class="fc bfc" id="L414" title="All 2 branches covered.">		if( isConstructorExecution(pNode) )</span>
+		{
+<span class="fc" id="L416">			Optional&lt;Edge&gt; constructorEdge = getConstructorEdge(pNode);</span>
+<span class="pc bpc" id="L417" title="1 of 2 branches missed.">			if( constructorEdge.isPresent() )</span>
+			{
+<span class="fc" id="L419">				downstreamElements.addAll(getEdgeDownStreams(constructorEdge.get()));</span>
+			}
+<span class="fc" id="L421">		}</span>
+<span class="fc bfc" id="L422" title="All 2 branches covered.">		else if( isConstructedObject(pNode) )</span>
+		{
+<span class="fc" id="L424">			Optional&lt;Edge&gt; constructorEdge = getConstructorEdge(firstChildOf(pNode));</span>
+<span class="pc bpc" id="L425" title="1 of 2 branches missed.">			if( constructorEdge.isPresent() )</span>
+			{
+<span class="fc" id="L427">				downstreamElements.addAll(getEdgeDownStreams(constructorEdge.get()));</span>
+			}
+<span class="fc" id="L429">		}</span>
+<span class="fc bfc" id="L430" title="All 2 branches covered.">		else if( pNode.getClass() == CallNode.class )</span>
+		{
+<span class="fc bfc" id="L432" title="All 2 branches covered.">			for( Edge edge: getCalls(pNode) )</span>
+			{
+<span class="fc" id="L434">				downstreamElements.addAll(getEdgeDownStreams(edge));</span>
+<span class="fc" id="L435">			}</span>
+		}
+<span class="fc bfc" id="L437" title="All 2 branches covered.">		else if( pNode.getClass() == ImplicitParameterNode.class )</span>
+		{
+<span class="fc" id="L439">			downstreamElements.addAll(pNode.getChildren());</span>
+<span class="fc bfc" id="L440" title="All 2 branches covered.">			for( Node child: pNode.getChildren() )</span>
+			{
+<span class="fc bfc" id="L442" title="All 2 branches covered.">				for( Edge edge: getCalls(child) )</span>
+				{
+<span class="fc" id="L444">					downstreamElements.addAll(getEdgeDownStreams(edge));</span>
+<span class="fc" id="L445">				}</span>
+<span class="fc" id="L446">			}</span>
+		}
+<span class="fc" id="L448">		return downstreamElements;</span>
+	}
+ 
+	/*
+	 * If the edge can be a constructor edge, we replace the original call edge
+	 * with a constructor edge.
+	 */
+	@Override
+	protected Edge obtainEdge(Edge pOriginalEdge, Point pStart, Point pEnd)
+	{
+<span class="fc bfc" id="L458" title="All 4 branches covered.">		if( pOriginalEdge.getClass() == CallEdge.class &amp;&amp; canCreateConstructorCall(pStart, pEnd) ) </span>
+		{
+<span class="fc" id="L460">			return new ConstructorEdge();</span>
+		}
+<span class="fc" id="L462">		return super.obtainEdge(pOriginalEdge, pStart, pEnd);</span>
+	}
+	
+	/**
+	 * Check if the start node is either a CallNode or ImplicitParameterNode, and the end node is an ImplicitParameterNode
+	 * with no child nodes. The end point of the edge should land on the top rectangle of the end Node.
+	 * @param pStart the start position of the mouse.
+	 * @param pEnd the end position of the mouse.
+	 * @return True if the start node and the end node of the edge satisfy the conditions to create the constructor call.
+	 * @pre pStart!= null &amp;&amp; pEnd != null
+	 */
+	private boolean canCreateConstructorCall(Point pStart, Point pEnd)
+	{
+<span class="pc bpc" id="L475" title="2 of 4 branches missed.">		assert pStart!= null &amp;&amp; pEnd != null;</span>
+<span class="fc" id="L476">		Optional&lt;Node&gt; end = aDiagramRenderer.nodeAt(pEnd);</span>
+<span class="fc" id="L477">		Optional&lt;Node&gt; start = aDiagramRenderer.nodeAt(pStart);</span>
+		
+<span class="fc bfc" id="L479" title="All 4 branches covered.">		if(!start.isPresent() || !end.isPresent())</span>
+		{
+<span class="fc" id="L481">			return false;</span>
+		}
+		
+<span class="fc bfc" id="L484" title="All 2 branches covered.">		if(start.get().getClass() != ImplicitParameterNode.class &amp;&amp; </span>
+<span class="fc bfc" id="L485" title="All 2 branches covered.">				start.get().getClass() != CallNode.class)</span>
+		{
+<span class="fc" id="L487">			return false;</span>
+		}
+			
+<span class="fc bfc" id="L490" title="All 2 branches covered.">		return end.get().getClass() == ImplicitParameterNode.class &amp;&amp; </span>
+<span class="fc bfc" id="L491" title="All 2 branches covered.">					((SequenceDiagramRenderer)aDiagramRenderer).topRectangleContains(end.get(), pEnd) &amp;&amp; </span>
+<span class="fc bfc" id="L492" title="All 2 branches covered.">					end.get().getChildren().isEmpty();</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

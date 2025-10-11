@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GraphicsRenderingContext.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.rendering</a> &gt; <span class="el_source">GraphicsRenderingContext.java</span></div><h1>GraphicsRenderingContext.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ ******************************************************************************/
+package org.jetuml.rendering;
+
+import java.util.Optional;
+
+import org.jetuml.geom.Alignment;
+import org.jetuml.geom.Rectangle;
+
+import javafx.geometry.VPos;
+import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.effect.DropShadow;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.ArcType;
+import javafx.scene.shape.LineTo;
+import javafx.scene.shape.MoveTo;
+import javafx.scene.shape.Path;
+import javafx.scene.shape.PathElement;
+import javafx.scene.shape.QuadCurveTo;
+import javafx.scene.text.Font;
+import javafx.scene.text.TextAlignment;
+
+/**
+ * Wrapper for a graphics context to serve as a target for all drawing operations. 
+ * 
+ * All the operations, originally in integer coordinates, are corrected by
+ * moving the coordinates by 0.5 in each direction so that they align precisely
+ * with the JavaFX coordinate system, which is 0.5 away from the pixel. See the
+ * documentation for javafx.scene.shape.Shape for details.
+ * 
+ * Only a single RenderingContext should ever be associated with any GraphicsContext.
+ */
+<span class="fc" id="L51">public class GraphicsRenderingContext implements RenderingContext</span>
+{
+	private static final int FULL_CIRCLE = 360;
+	private static final double LINE_WIDTH = 0.6;
+	private static final int ROUNDED_RECTANGLE_ARC = 20;
+	
+	private final GraphicsContext aContext;
+	
+	/**
+	 * Creates a rendering context that draws on the provided
+	 * graphics context.
+	 * 
+	 * @param pContext The graphics context on which to draw.
+	 */
+	public GraphicsRenderingContext(GraphicsContext pContext)
+<span class="fc" id="L66">	{</span>
+<span class="fc" id="L67">		aContext = pContext;</span>
+<span class="fc" id="L68">		aContext.setLineWidth(LINE_WIDTH);</span>
+		// This tranlation is necessary to align pixels in integer coodinates 
+		// To the JavaFX coordinate system.
+<span class="fc" id="L71">		aContext.translate(0.5, 0.5);</span>
+<span class="fc" id="L72">	}</span>
+	
+	@Override
+	public void strokeLine(int pX1, int pY1, int pX2, int pY2, Color pColor, LineStyle pStyle)
+	{
+<span class="nc bnc" id="L77" title="All 4 branches missed.">		assert pColor != null &amp;&amp; pStyle != null;</span>
+<span class="nc" id="L78">		aContext.save();</span>
+<span class="nc" id="L79">		aContext.setStroke(pColor);</span>
+<span class="nc" id="L80">		aContext.setLineDashes(pStyle.getLineDashes());</span>
+<span class="nc" id="L81">		aContext.strokeLine(pX1, pY1, pX2, pY2);</span>
+<span class="nc" id="L82">		aContext.restore();</span>
+<span class="nc" id="L83">	}</span>
+	
+	@Override
+	public void drawRectangle(Rectangle pRectangle, Color pFillColor, Color pStrokeColor, Optional&lt;DropShadow&gt; pDropShadow)
+	{
+<span class="pc bpc" id="L88" title="1 of 2 branches missed.">		assert pRectangle != null;</span>
+<span class="fc" id="L89">		aContext.save();</span>
+<span class="fc" id="L90">		aContext.setStroke(pStrokeColor);</span>
+<span class="fc" id="L91">		aContext.setFill(pFillColor);</span>
+<span class="fc" id="L92">		pDropShadow.ifPresent(shadow -&gt; aContext.setEffect(shadow));</span>
+<span class="fc" id="L93">		aContext.fillRect(pRectangle.x(), pRectangle.y(), pRectangle.width(), pRectangle.height());</span>
+<span class="fc" id="L94">		pDropShadow.ifPresent(shadow -&gt; aContext.setEffect(null));</span>
+<span class="fc" id="L95">		aContext.strokeRect(pRectangle.x(), pRectangle.y(), pRectangle.width(), pRectangle.height());</span>
+<span class="fc" id="L96">		aContext.restore();</span>
+<span class="fc" id="L97">	}</span>
+	
+	@Override
+	public void drawOval(int pX, int pY, int pWidth, int pHeight, Color pFillColor, Color pStrokeColor, Optional&lt;DropShadow&gt; pShadow)
+	{
+<span class="nc bnc" id="L102" title="All 6 branches missed.">		assert pWidth &gt; 0 &amp;&amp; pHeight &gt; 0 &amp;&amp; pFillColor != null;</span>
+<span class="nc" id="L103">		aContext.save();</span>
+<span class="nc" id="L104">		aContext.setStroke(pStrokeColor);</span>
+<span class="nc" id="L105">		aContext.setFill(pFillColor);</span>
+<span class="nc" id="L106">		pShadow.ifPresent(shadow -&gt; aContext.setEffect(shadow));</span>
+<span class="nc" id="L107">		aContext.fillOval(pX, pY, pWidth, pHeight);</span>
+<span class="nc" id="L108">		aContext.strokeOval(pX, pY, pWidth, pHeight);</span>
+<span class="nc" id="L109">		pShadow.ifPresent(shadow -&gt; aContext.setEffect(null));</span>
+<span class="nc" id="L110">		aContext.restore();</span>
+<span class="nc" id="L111">	}</span>
+	
+	@Override
+	public void strokeArc(int pCenterX, int pCenterY, int pRadius, int pStartAngle, int pLength, Color pStrokeColor)
+	{
+<span class="nc bnc" id="L116" title="All 6 branches missed.">		assert pCenterX &gt;=0 &amp;&amp; pCenterY &gt;= 0 &amp;&amp; pRadius &gt; 0;</span>
+<span class="nc bnc" id="L117" title="All 4 branches missed.">		assert pStartAngle &gt;= 0 &amp;&amp; pStartAngle &lt; FULL_CIRCLE;</span>
+<span class="nc bnc" id="L118" title="All 4 branches missed.">		assert pLength &gt; 0 &amp;&amp; pLength &lt;= FULL_CIRCLE;</span>
+<span class="nc" id="L119">		aContext.save();</span>
+<span class="nc" id="L120">		aContext.setStroke(pStrokeColor);</span>
+<span class="nc" id="L121">		aContext.strokeArc(pCenterX - pRadius, pCenterY - pRadius, pRadius * 2, pRadius * 2, pStartAngle, </span>
+				pLength, ArcType.OPEN);
+<span class="nc" id="L123">		aContext.restore();</span>
+<span class="nc" id="L124">	}</span>
+	
+	@Override
+	public void strokePath(Path pPath, Color pStrokeColor, LineStyle pStyle)
+	{
+<span class="pc bpc" id="L129" title="3 of 6 branches missed.">		assert pPath != null &amp;&amp; pStrokeColor != null &amp;&amp; pStyle != null;</span>
+<span class="fc" id="L130">		aContext.save();</span>
+<span class="fc" id="L131">		aContext.setStroke(pStrokeColor);</span>
+<span class="fc" id="L132">		aContext.setLineDashes(pStyle.getLineDashes());</span>
+<span class="fc" id="L133">		strokePath(pPath, false);</span>
+<span class="fc" id="L134">		aContext.restore();</span>
+<span class="fc" id="L135">	}</span>
+	
+	@Override
+	public void drawClosedPath(Path pPath, Color pFillColor, Color pStrokeColor, Optional&lt;DropShadow&gt; pDropShadow)
+	{
+<span class="pc bpc" id="L140" title="4 of 8 branches missed.">		assert pPath != null &amp;&amp; pFillColor != null &amp;&amp; pStrokeColor != null &amp;&amp; pDropShadow != null;</span>
+<span class="fc" id="L141">		aContext.save();</span>
+<span class="fc" id="L142">		aContext.setStroke(pStrokeColor);</span>
+<span class="fc" id="L143">		aContext.setFill(pFillColor);</span>
+<span class="fc" id="L144">		strokePath(pPath, true);</span>
+<span class="fc" id="L145">		pDropShadow.ifPresent(shadow -&gt; aContext.setEffect(pDropShadow.get()));</span>
+<span class="fc" id="L146">		pDropShadow.ifPresent(shadow -&gt; aContext.setEffect(null));</span>
+<span class="fc" id="L147">		aContext.restore();</span>
+<span class="fc" id="L148">	}</span>
+	
+	private void strokePath(Path pPath, boolean pFill)
+	{
+<span class="fc" id="L152">		aContext.beginPath();</span>
+<span class="fc bfc" id="L153" title="All 2 branches covered.">		for(PathElement element : pPath.getElements())</span>
+		{
+<span class="fc bfc" id="L155" title="All 2 branches covered.">			if (element instanceof MoveTo moveTo)</span>
+			{
+<span class="fc" id="L157">				aContext.moveTo(moveTo.getX(), moveTo.getY());</span>
+			}
+<span class="pc bpc" id="L159" title="1 of 2 branches missed.">			else if (element instanceof LineTo lineTo)</span>
+			{
+<span class="fc" id="L161">				aContext.lineTo(lineTo.getX(), lineTo.getY());</span>
+			}
+<span class="nc bnc" id="L163" title="All 2 branches missed.">			else if (element instanceof QuadCurveTo curve)</span>
+			{
+<span class="nc" id="L165">				aContext.quadraticCurveTo(curve.getControlX(), curve.getControlY(), </span>
+<span class="nc" id="L166">						curve.getX(), curve.getY());</span>
+			}
+<span class="fc" id="L168">		}</span>
+<span class="fc bfc" id="L169" title="All 2 branches covered.">		if (pFill)</span>
+		{
+<span class="fc" id="L171">			aContext.fill();</span>
+		}
+<span class="fc" id="L173">		aContext.stroke();</span>
+<span class="fc" id="L174">	}</span>
+	
+	@Override
+	public void drawRoundedRectangle(Rectangle pRectangle, Color pFillColor, Color pStrokeColor, Optional&lt;DropShadow&gt; pDropShadow)
+	{
+<span class="nc bnc" id="L179" title="All 8 branches missed.">		assert pRectangle != null &amp;&amp; pFillColor != null &amp;&amp; pStrokeColor != null &amp;&amp; pDropShadow != null;</span>
+<span class="nc" id="L180">		aContext.save();</span>
+<span class="nc" id="L181">		aContext.setFill(pFillColor);</span>
+<span class="nc" id="L182">		aContext.setStroke(pStrokeColor);</span>
+		
+<span class="nc" id="L184">		pDropShadow.ifPresent(shadow -&gt; aContext.setEffect(shadow));</span>
+<span class="nc" id="L185">		aContext.fillRoundRect(pRectangle.x(), pRectangle.y(), </span>
+<span class="nc" id="L186">				pRectangle.width(), pRectangle.height(), ROUNDED_RECTANGLE_ARC, ROUNDED_RECTANGLE_ARC);</span>
+<span class="nc" id="L187">		pDropShadow.ifPresent(shadow -&gt; aContext.setEffect(null));</span>
+<span class="nc" id="L188">		aContext.strokeRoundRect(pRectangle.x(), pRectangle.y(), </span>
+<span class="nc" id="L189">				pRectangle.width(), pRectangle.height(), ROUNDED_RECTANGLE_ARC, ROUNDED_RECTANGLE_ARC);</span>
+<span class="nc" id="L190">		aContext.restore();</span>
+<span class="nc" id="L191">	}</span>
+	
+	@Override
+	public void drawText(String pText, Rectangle pBounds, Alignment pTextPosition,
+			Color pTextColor, Font pFont, FontDimension pDimension)
+	{
+<span class="pc bpc" id="L197" title="2 of 4 branches missed.">		assert pText != null &amp;&amp; pTextPosition != null;</span>
+<span class="pc bpc" id="L198" title="2 of 4 branches missed.">		assert pTextColor != null &amp;&amp; pFont != null;</span>
+<span class="fc" id="L199">		aContext.save();</span>
+<span class="fc" id="L200">		aContext.setTextAlign(getTextAlignment(pTextPosition));</span>
+<span class="fc" id="L201">		aContext.setTextBaseline(VPos.TOP);</span>
+<span class="fc" id="L202">		aContext.setFont(pFont);</span>
+<span class="fc" id="L203">		aContext.setFill(pTextColor);</span>
+<span class="fc" id="L204">		int anchorX = pBounds.x();</span>
+<span class="fc" id="L205">		int anchorY = pBounds.y();</span>
+<span class="pc bpc" id="L206" title="1 of 2 branches missed.">		if (pTextPosition == Alignment.CENTER)</span>
+		{
+<span class="fc" id="L208">			anchorX = pBounds.center().x();</span>
+		}
+<span class="fc" id="L210">		aContext.fillText(pText, anchorX, anchorY);</span>
+<span class="fc" id="L211">		aContext.restore();</span>
+<span class="fc" id="L212">	}</span>
+	
+	private static TextAlignment getTextAlignment(Alignment pTextPosition)
+	{
+<span class="pc bpc" id="L216" title="1 of 2 branches missed.">		if (pTextPosition == Alignment.LEFT)</span>
+		{
+<span class="nc" id="L218">			return TextAlignment.LEFT;</span>
+		}
+		else
+		{
+<span class="fc" id="L222">			return TextAlignment.CENTER;</span>
+		}
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

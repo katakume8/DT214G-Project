@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ViewportProjection.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.gui</a> &gt; <span class="el_source">ViewportProjection.java</span></div><h1>ViewportProjection.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.gui;
+
+import org.jetuml.annotations.Immutable;
+import org.jetuml.geom.GeomUtils;
+
+/**
+ * An instance of this class can be used to make viewport projection
+ * computations to compare visible areas of a scrollpane viewport with an
+ * underlying canvas. Instances of this class are intended to be used in
+ * a narrow scope: to be initialized, used to perform calculations, 
+ * then discarded. Both dimensions of the viewport must be equal to or
+ * smaller than the canvas's.
+ */
+<span class="fc" id="L34">@Immutable</span>
+public final class ViewportProjection
+{
+	private final int aViewportWidth;
+	private final int aViewportHeight;
+	private final int aCanvasWidth;
+	private final int aCanvasHeight;
+	private final double aHValue;
+	private final double aVValue;
+	
+	/**
+	 * Creates an immutable ViewportProjection.
+	 * 
+	 * @param pViewportWidth The width of the viewport.
+	 * @param pViewportHeight The height of the viewport.
+	 * @param pCanvasWidth The width of the canvas.
+	 * @param pCanvasHeight The height of the canvas.
+	 * @param pHValue The horizontal position of the viewport over the canvas, from 0 to 1.
+	 * @param pVValue The vertical position of the viewport over the canvas from 0 to 1.
+	 */
+	public ViewportProjection(int pViewportWidth, int pViewportHeight, int pCanvasWidth, int pCanvasHeight, double pHValue, double pVValue)
+<span class="fc" id="L55">	{</span>
+<span class="pc bpc" id="L56" title="4 of 8 branches missed.">		assert pViewportWidth &gt;= 0 &amp;&amp; pViewportHeight &gt;=0 &amp;&amp; pCanvasWidth &gt;=0 &amp;&amp; pCanvasHeight &gt;= 0;</span>
+<span class="pc bpc" id="L57" title="1 of 2 branches missed.">		assert pViewportWidth &lt;= pCanvasWidth;</span>
+<span class="pc bpc" id="L58" title="1 of 2 branches missed.">		assert pViewportHeight &lt;= pCanvasHeight;</span>
+<span class="pc bpc" id="L59" title="2 of 4 branches missed.">		assert pHValue &gt;=0 &amp;&amp; pHValue &lt;= 1;</span>
+<span class="pc bpc" id="L60" title="2 of 4 branches missed.">		assert pVValue &gt;=0 &amp;&amp; pVValue &lt;= 1;</span>
+<span class="fc" id="L61">		aViewportWidth = pViewportWidth;</span>
+<span class="fc" id="L62">		aViewportHeight = pViewportHeight;</span>
+<span class="fc" id="L63">		aCanvasWidth = pCanvasWidth;</span>
+<span class="fc" id="L64">		aCanvasHeight = pCanvasHeight;</span>
+<span class="fc" id="L65">		aHValue = pHValue;</span>
+<span class="fc" id="L66">		aVValue = pVValue;</span>
+<span class="fc" id="L67">	}</span>
+	
+	/**
+	 * @return The ratio (in the unit interval) of the canvas width covered by 
+	 *     the viewport.
+	 */
+	public double getWidthRatio()
+	{
+<span class="fc" id="L75">		return aViewportWidth / (double) aCanvasWidth;</span>
+	}
+	
+	/**
+	 * @return The ratio (in the unit interval) of the canvas height covered by 
+	 *     the viewport.
+	 */
+	public double getHeightRatio()
+	{
+<span class="fc" id="L84">		return aViewportHeight / (double) aCanvasHeight;</span>
+	}
+	
+	/**
+	 * @return The number of pixels on the left of the canvas that
+	 *     are not visible in the viewport.
+	 */
+	public int getHiddenLeft()
+	{
+<span class="fc" id="L93">		return GeomUtils.round(hiddenWidth() * aHValue);</span>
+	}
+	
+	/**
+	 * @return The number of pixels on the right of the canvas that
+	 *     are not visible in the viewport.
+	 */
+	public int getHiddenRight()
+	{
+<span class="fc" id="L102">		return GeomUtils.round(hiddenWidth() * (1.0-aHValue));</span>
+	}
+	
+	/**
+	 * @return The number of pixels at the top of the canvas that
+	 *     are not visible in the viewport.
+	 */
+	public int getHiddenTop()
+	{
+<span class="fc" id="L111">		return GeomUtils.round(hiddenHeight() * aVValue);</span>
+	}
+	
+	/**
+	 * @return The number of pixels at the bottom of the canvas that
+	 *     are not visible in the viewport.
+	 */
+	public int getHiddenBottom()
+	{
+<span class="fc" id="L120">		return GeomUtils.round(hiddenHeight() * (1.0 - aVValue)); </span>
+	}
+	
+	private int hiddenHeight()
+	{
+<span class="fc" id="L125">		return aCanvasHeight - aViewportHeight;</span>
+	}
+	
+	private int hiddenWidth()
+	{
+<span class="fc" id="L130">		return aCanvasWidth - aViewportWidth;</span>
+	}
+	
+	/**
+	 * @param pX A x-coordinate on the canvas.
+	 * @return True if the coordinate is hidden on the left of the viewport.
+	 */
+	public boolean isHiddenLeft(int pX)
+	{
+<span class="pc bpc" id="L139" title="2 of 4 branches missed.">		assert pX &gt;=0 &amp;&amp; pX &lt;= aCanvasWidth : &quot;Argument expected to be between 0 and &quot; + aCanvasWidth + &quot; but was &quot; + pX;</span>
+<span class="fc bfc" id="L140" title="All 2 branches covered.">		return pX &lt; getHiddenLeft();</span>
+	}
+	
+	/**
+	 * @param pX A x-coordinate on the canvas.
+	 * @return True if the coordinate is hidden on the right of the viewport.
+	 */
+	public boolean isHiddenRight(int pX)
+	{
+<span class="pc bpc" id="L149" title="2 of 4 branches missed.">		assert pX &gt;=0 &amp;&amp; pX &lt;= aCanvasWidth;</span>
+<span class="fc bfc" id="L150" title="All 2 branches covered.">		return pX &gt; aCanvasWidth - getHiddenRight();</span>
+	}
+	
+	/**
+	 * @param pY A y-coordinate on the canvas.
+	 * @return True if the coordinate is hidden on the top of the viewport.
+	 */
+	public boolean isHiddenTop(int pY)
+	{
+<span class="pc bpc" id="L159" title="2 of 4 branches missed.">		assert pY &gt;=0 &amp;&amp; pY &lt;= aCanvasHeight;</span>
+<span class="fc bfc" id="L160" title="All 2 branches covered.">		return pY &lt; getHiddenTop();</span>
+	}
+	
+	/**
+	 * @param pY A y-coordinate on the canvas.
+	 * @return True if the coordinate is hidden on the bottom of the viewport.
+	 */
+	public boolean isHiddenBottom(int pY)
+	{
+<span class="pc bpc" id="L169" title="2 of 4 branches missed.">		assert pY &gt;=0 &amp;&amp; pY &lt;= aCanvasHeight;</span>
+<span class="fc bfc" id="L170" title="All 2 branches covered.">		return pY &gt; aCanvasHeight - getHiddenBottom();</span>
+	}
+	
+	/**
+	 * @param pX An x-coordinate to reveal.
+	 * @return A newly computed HValue that will ensure pX
+	 *     is just visible in the viewport.
+	 */
+	public double getAdjustedHValueToRevealX(int pX)
+	{
+<span class="fc bfc" id="L180" title="All 2 branches covered.">		if( isHiddenLeft(pX) )</span>
+		{
+<span class="fc" id="L182">			return pX / (double) hiddenWidth();</span>
+		}
+<span class="fc bfc" id="L184" title="All 2 branches covered.">		else if( isHiddenRight(pX) )</span>
+		{
+<span class="fc" id="L186">			return 1 - ((aCanvasWidth- pX) / (double) hiddenWidth());</span>
+		}
+		else
+		{
+<span class="fc" id="L190">			return aHValue;</span>
+		}
+	}
+	
+	/**
+	 * @param pY A y-coordinate to reveal.
+	 * @return A newly computed VValue that will ensure pY
+	 *     is just visible in the viewport.
+	 */
+	public double getAdjustedVValueToRevealY(int pY)
+	{
+<span class="fc bfc" id="L201" title="All 2 branches covered.">		if( isHiddenTop(pY) )</span>
+		{
+<span class="fc" id="L203">			return pY / (double) hiddenHeight();</span>
+		}
+<span class="fc bfc" id="L205" title="All 2 branches covered.">		else if( isHiddenBottom(pY) )</span>
+		{
+<span class="fc" id="L207">			return 1 - ((aCanvasHeight- pY) / (double) hiddenHeight());</span>
+		}
+		else
+		{
+<span class="fc" id="L211">			return aVValue;</span>
+		}
+	}
+	
+	/**
+	 * @return The height of the viewport in pixels
+	 */
+	public int height()
+	{
+<span class="nc" id="L220">		return aViewportHeight;</span>
+	}
+	
+	/**
+	 * @return The width of the viewport in pixels
+	 */
+	public int width()
+	{
+<span class="nc" id="L228">		return aViewportWidth;</span>
+	}
+	
+	@Override
+	public String toString()
+	{
+<span class="nc" id="L234">		return String.format(&quot;[ViewportProjection: vp=%dx%d; canvas=%dx%d; pos=%.2f, %.2f]&quot;, aViewportWidth, aViewportHeight,</span>
+<span class="nc" id="L235">				aCanvasWidth, aCanvasHeight, aHValue, aVValue);</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
