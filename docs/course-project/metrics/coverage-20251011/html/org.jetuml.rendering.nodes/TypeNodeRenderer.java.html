@@ -1,0 +1,307 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TypeNodeRenderer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.rendering.nodes</a> &gt; <span class="el_source">TypeNodeRenderer.java</span></div><h1>TypeNodeRenderer.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.rendering.nodes;
+
+import static org.jetuml.geom.GeomUtils.max;
+
+import java.util.Optional;
+
+import org.jetuml.diagram.DiagramElement;
+import org.jetuml.diagram.Node;
+import org.jetuml.diagram.nodes.TypeNode;
+import org.jetuml.geom.Alignment;
+import org.jetuml.geom.Dimension;
+import org.jetuml.geom.Rectangle;
+import org.jetuml.gui.ColorScheme;
+import org.jetuml.rendering.DiagramRenderer;
+import org.jetuml.rendering.LineStyle;
+import org.jetuml.rendering.RenderingContext;
+import org.jetuml.rendering.StringRenderer;
+import org.jetuml.rendering.StringRenderer.Decoration;
+
+/**
+ * An object to render a class or interface in a class diagram.
+ * 
+ * The top box, which shows the title, has a minimum height of 20 pixels,
+ * minus 20 if attributes are present, minus another 20 if methods are present.
+ */
+public class TypeNodeRenderer extends AbstractNodeRenderer
+{
+	protected static final int DEFAULT_WIDTH = 100;
+	protected static final int DEFAULT_HEIGHT = 60;
+	protected static final int TOP_INCREMENT = 20;
+	private static final int TOP_MARGIN = 5;
+	private static final int HORIZONTAL_PADDING = 7;
+	private static final int VERTICAL_PADDING = 6;
+<span class="fc" id="L54">	private static final StringRenderer TYPE_NAME_RENDERER = new StringRenderer(Alignment.CENTER, Decoration.BOLD);</span>
+<span class="fc" id="L55">	private static final StringRenderer ITALIC_NAME_RENDERER = new StringRenderer(</span>
+			Alignment.CENTER, Decoration.BOLD, Decoration.ITALIC);
+<span class="fc" id="L57">	private static final StringRenderer STRING_RENDERER = new StringRenderer(Alignment.LEFT);</span>
+<span class="fc" id="L58">	private static final StringRenderer UNDERLINING_STRING_RENDERER = new StringRenderer(</span>
+			Alignment.LEFT, Decoration.UNDERLINED);
+<span class="fc" id="L60">	private static final StringRenderer ITALIC_STRING_RENDERER = new StringRenderer(</span>
+			Alignment.LEFT, Decoration.ITALIC);
+	private static final String ITALIC_MARKUP = &quot;/&quot;;
+	private static final String UNDERLINE_MARKUP = &quot;_&quot;;
+	
+	/**
+	 * @param pParent The renderer for the parent diagram.
+	 */
+	public TypeNodeRenderer(DiagramRenderer pParent)
+	{
+<span class="fc" id="L70">		super(pParent);</span>
+<span class="fc" id="L71">	}</span>
+	
+	@Override
+	public Dimension getDefaultDimension(Node pNode)
+	{
+<span class="fc" id="L76">		return new Dimension(DEFAULT_WIDTH, DEFAULT_HEIGHT);</span>
+	}
+	
+	private static int lineHeight()
+	{
+<span class="fc" id="L81">		return STRING_RENDERER.getDimension(&quot;|&quot;).height();</span>
+	}
+	
+	@Override
+	public void draw(DiagramElement pElement, RenderingContext pContext)
+	{	
+<span class="pc bpc" id="L87" title="1 of 2 branches missed.">		assert pElement instanceof TypeNode;</span>
+<span class="fc" id="L88">		TypeNode node = (TypeNode) pElement;</span>
+<span class="fc" id="L89">		final Rectangle bounds = getBounds(pElement);</span>
+<span class="fc" id="L90">		final int attributeBoxHeight = attributeBoxHeight(node);</span>
+<span class="fc" id="L91">		final int methodBoxHeight = methodBoxHeight(node);</span>
+<span class="fc" id="L92">		final int nameBoxHeight = nameBoxHeight(node, attributeBoxHeight, methodBoxHeight);</span>
+
+<span class="fc" id="L94">		pContext.drawRectangle(bounds, ColorScheme.get().fill(), ColorScheme.get().stroke(),</span>
+<span class="fc" id="L95">				Optional.of(ColorScheme.get().dropShadow()));	</span>
+<span class="fc" id="L96">		drawName(getNameText(node), new Rectangle(bounds.x(), bounds.y(), bounds.width(), nameBoxHeight), pContext);</span>
+		
+<span class="pc bpc" id="L98" title="1 of 2 branches missed.">		if( attributeBoxHeight &gt; 0 )</span>
+		{
+<span class="nc" id="L100">			final int splitY = bounds.y() + nameBoxHeight;</span>
+<span class="nc" id="L101">			pContext.strokeLine(bounds.x(), splitY, bounds.maxX(), splitY, </span>
+<span class="nc" id="L102">					ColorScheme.get().stroke(),</span>
+					LineStyle.SOLID);
+<span class="nc" id="L104">			drawAttribute(node.getAttributes(), new Rectangle(bounds.x(), splitY, bounds.width(), attributeBoxHeight), pContext);</span>
+<span class="nc bnc" id="L105" title="All 2 branches missed.">			if( methodBoxHeight &gt; 0 )</span>
+			{
+<span class="nc" id="L107">				final int splitY2 = splitY + attributeBoxHeight;</span>
+<span class="nc" id="L108">				pContext.strokeLine(bounds.x(), splitY2, bounds.maxX(), splitY2, </span>
+<span class="nc" id="L109">						ColorScheme.get().stroke(),</span>
+						LineStyle.SOLID);
+<span class="nc" id="L111">				drawMethod(node.getMethods(), new Rectangle(bounds.x(), splitY2, bounds.width(), methodBoxHeight), pContext);</span>
+			}
+<span class="nc" id="L113">		}</span>
+<span class="pc bpc" id="L114" title="1 of 2 branches missed.">		else if( methodBoxHeight &gt; 0 )</span>
+		{
+<span class="nc" id="L116">			final int splitY = bounds.y() + nameBoxHeight;</span>
+<span class="nc" id="L117">			pContext.strokeLine(bounds.x(), splitY, bounds.maxX(), splitY, </span>
+<span class="nc" id="L118">					ColorScheme.get().stroke(),</span>
+					LineStyle.SOLID);
+<span class="nc" id="L120">			drawMethod(node.getMethods(), new Rectangle(bounds.x(), splitY, bounds.width(), methodBoxHeight), pContext);</span>
+		}
+<span class="fc" id="L122">		lineHeight();</span>
+<span class="fc" id="L123">	}</span>
+	
+	/*
+	 * @param pName The possibly multi-line text to draw in the name box.
+	 * @param pBounds The bounds of the name box.
+	 * @param pContext The rendering context
+	 */
+	private static void drawName(String pName, Rectangle pBounds, RenderingContext pContext)
+	{
+<span class="fc" id="L132">		String[] nameByLine = pName.trim().split(&quot;\n&quot;);</span>
+<span class="fc" id="L133">		int startY = pBounds.center().y() - lineHeight() * nameByLine.length / 2;</span>
+		
+<span class="fc bfc" id="L135" title="All 2 branches covered.">		for (String line : nameByLine)</span>
+		{
+<span class="fc" id="L137">			Rectangle bounds = new Rectangle(pBounds.x(), startY, pBounds.width(), lineHeight());</span>
+<span class="pc bpc" id="L138" title="1 of 2 branches missed.">			if( containsMarkup(line, ITALIC_MARKUP) )</span>
+			{
+<span class="nc" id="L140">				ITALIC_NAME_RENDERER.draw(removeMarkup(line), bounds, pContext);</span>
+			}
+			else
+			{
+<span class="fc" id="L144">				TYPE_NAME_RENDERER.draw(line, bounds, pContext);</span>
+			}
+<span class="fc" id="L146">			startY += lineHeight();</span>
+		}
+<span class="fc" id="L148">	}</span>
+	
+	/*
+	 * @param pText The possibly multi-line text to draw in the attribute box.
+	 * @param pBounds The bounds of the attribute box.
+	 * @param pContext The rendering context
+	 */
+	private static void drawAttribute(String pText, Rectangle pBounds, RenderingContext pContext)
+	{
+<span class="nc" id="L157">		String[] attributesByLine = pText.trim().split(&quot;\n&quot;);</span>
+<span class="nc" id="L158">		int lineSpacing = TOP_MARGIN;</span>
+		
+<span class="nc bnc" id="L160" title="All 2 branches missed.">		for( String attribute : attributesByLine )</span>
+		{
+<span class="nc bnc" id="L162" title="All 2 branches missed.">			if( containsMarkup(attribute, UNDERLINE_MARKUP) )</span>
+			{
+<span class="nc" id="L164">				UNDERLINING_STRING_RENDERER.draw(removeMarkup(attribute), </span>
+<span class="nc" id="L165">						new Rectangle(pBounds.x() + HORIZONTAL_PADDING, pBounds.y() + lineSpacing, </span>
+<span class="nc" id="L166">								pBounds.width(), </span>
+<span class="nc" id="L167">								lineHeight()), pContext);</span>
+			}
+			else
+			{
+<span class="nc" id="L171">				STRING_RENDERER.draw(attribute, </span>
+<span class="nc" id="L172">						new Rectangle(pBounds.x() + HORIZONTAL_PADDING, pBounds.y() + lineSpacing, </span>
+<span class="nc" id="L173">								pBounds.width(), </span>
+<span class="nc" id="L174">								lineHeight()), pContext);</span>
+			}
+<span class="nc" id="L176">			lineSpacing += lineHeight();</span>
+		}	
+<span class="nc" id="L178">	}</span>
+	
+	/*
+	 * @param pText The possibly multi-line text to draw in the method box.
+	 * @param pBounds The bounds of the method box.
+	 * @param pContext The rendering context
+	 */
+	private static void drawMethod(String pText, Rectangle pBounds, RenderingContext pContext)
+	{
+<span class="nc" id="L187">		String[] methodsByLine = pText.trim().split(&quot;\n&quot;);</span>
+<span class="nc" id="L188">		int lineSpacing = TOP_MARGIN;</span>
+		
+<span class="nc bnc" id="L190" title="All 2 branches missed.">		for( String method : methodsByLine )</span>
+		{
+<span class="nc bnc" id="L192" title="All 2 branches missed.">			if( containsMarkup(method, UNDERLINE_MARKUP) )</span>
+			{
+<span class="nc" id="L194">				UNDERLINING_STRING_RENDERER.draw(removeMarkup(method), </span>
+<span class="nc" id="L195">						new Rectangle(pBounds.x() + HORIZONTAL_PADDING, pBounds.y() + lineSpacing, </span>
+<span class="nc" id="L196">								pBounds.width(), </span>
+<span class="nc" id="L197">								lineHeight()), pContext);</span>
+			}
+<span class="nc bnc" id="L199" title="All 2 branches missed.">			else if( containsMarkup(method, ITALIC_MARKUP) )</span>
+			{
+<span class="nc" id="L201">				ITALIC_STRING_RENDERER.draw(removeMarkup(method), </span>
+<span class="nc" id="L202">						new Rectangle(pBounds.x() + HORIZONTAL_PADDING, pBounds.y() + lineSpacing, </span>
+<span class="nc" id="L203">								pBounds.width(), </span>
+<span class="nc" id="L204">								lineHeight()), pContext);</span>
+			}
+			else
+			{
+<span class="nc" id="L208">				STRING_RENDERER.draw(method, </span>
+<span class="nc" id="L209">						new Rectangle(pBounds.x() + HORIZONTAL_PADDING, pBounds.y() + lineSpacing, </span>
+<span class="nc" id="L210">								pBounds.width(), </span>
+<span class="nc" id="L211">								lineHeight()), pContext);</span>
+			}
+<span class="nc" id="L213">			lineSpacing += lineHeight();</span>
+		}	
+<span class="nc" id="L215">	}</span>
+	
+	private static boolean containsMarkup(String pText, String pMarkup)
+	{
+<span class="pc bpc" id="L219" title="3 of 6 branches missed.">		return pText.length() &gt; 2 &amp;&amp; pText.startsWith(pMarkup) &amp;&amp; pText.endsWith(pMarkup);</span>
+	}
+	
+	private static String removeMarkup(String pString)
+	{
+<span class="nc" id="L224">		StringBuilder result = new StringBuilder(pString);</span>
+<span class="nc" id="L225">		result.deleteCharAt(0);</span>
+<span class="nc" id="L226">		result.deleteCharAt(result.length() - 1);</span>
+<span class="nc" id="L227">		return result.toString();</span>
+	}
+	
+	private static int attributeBoxHeight(TypeNode pNode)
+	{
+<span class="fc" id="L232">		return textDimensions(pNode.getAttributes()).height();</span>
+	}
+	
+	private static int methodBoxHeight(TypeNode pNode)
+	{
+<span class="fc" id="L237">		return textDimensions(pNode.getMethods()).height();</span>
+	}
+	
+	private int nameBoxHeight(TypeNode pNode, int pAttributeBoxHeight, int pMethodBoxHeight)
+	{
+<span class="fc" id="L242">		final int textHeight = max(textDimensions(getNameText(pNode)).height(), TOP_INCREMENT);</span>
+<span class="fc" id="L243">		final int freeSpaceInTopBox = DEFAULT_HEIGHT - textHeight;</span>
+<span class="fc bfc" id="L244" title="All 2 branches covered.">		if( freeSpaceInTopBox &lt; 0 )</span>
+		{
+<span class="fc" id="L246">			return textHeight; // There's no free space so we return the height we need.</span>
+		}
+<span class="fc bfc" id="L248" title="All 2 branches covered.">		if( pAttributeBoxHeight + pMethodBoxHeight &gt; freeSpaceInTopBox )</span>
+		{
+<span class="fc" id="L250">			return textHeight; // We use all the free space so we return the height we need.</span>
+		}
+		// We expand the name box to use the unclaimed free space
+<span class="fc" id="L253">		return textHeight + freeSpaceInTopBox - (pAttributeBoxHeight + pMethodBoxHeight);</span>
+	}
+	
+	private static Dimension textDimensions(String pString)
+	{
+<span class="fc" id="L258">		Dimension result = Dimension.NULL;</span>
+<span class="fc bfc" id="L259" title="All 2 branches covered.">		if( pString.length() &gt; 0 )</span>
+		{
+<span class="fc" id="L261">			Dimension dimension = STRING_RENDERER.getDimension(pString);</span>
+<span class="fc" id="L262">			result = new Dimension(dimension.width() + 2 * HORIZONTAL_PADDING, dimension.height() + 2 * VERTICAL_PADDING);</span>
+		}
+<span class="fc" id="L264">		return result;</span>
+	}
+	
+	private static Dimension textDimensionsBold(String pString)
+	{
+<span class="fc" id="L269">		Dimension result = Dimension.NULL;</span>
+<span class="fc bfc" id="L270" title="All 2 branches covered.">		if( pString.length() &gt; 0 )</span>
+		{
+<span class="fc" id="L272">			Dimension dimension = TYPE_NAME_RENDERER.getDimension(pString);</span>
+<span class="fc" id="L273">			result = new Dimension(dimension.width() + 2 * HORIZONTAL_PADDING, dimension.height());</span>
+		}
+<span class="fc" id="L275">		return result;</span>
+	}
+	
+	@Override
+	protected Rectangle internalGetBounds(Node pNode)
+	{
+<span class="pc bpc" id="L281" title="1 of 2 branches missed.">		assert pNode instanceof TypeNode;</span>
+<span class="fc" id="L282">		TypeNode node = (TypeNode) pNode;</span>
+<span class="fc" id="L283">		final int attributeHeight = attributeBoxHeight(node);</span>
+<span class="fc" id="L284">		final int methodHeight = methodBoxHeight(node);</span>
+<span class="fc" id="L285">		final int nameHeight = nameBoxHeight(node, attributeHeight, methodHeight);</span>
+<span class="fc" id="L286">		Dimension nameDimension = textDimensionsBold(getNameText(node));</span>
+<span class="fc" id="L287">		Dimension attributeDimension = textDimensions(node.getAttributes());</span>
+<span class="fc" id="L288">		Dimension methodDimension = textDimensions(node.getMethods());</span>
+<span class="fc" id="L289">		int width = max(DEFAULT_WIDTH, nameDimension.width(), attributeDimension.width(), methodDimension.width());</span>
+<span class="fc" id="L290">		int height = attributeHeight + methodHeight + nameHeight;</span>
+<span class="fc" id="L291">		return new Rectangle(node.position().x(), node.position().y(), width, height);</span>
+	}
+	
+	/**
+	 * By default the name text is the name of the node.
+	 * 
+	 * @param pNode The Node.
+	 * @return The text to show as the name of the node.
+	 * @pre pNode != null
+	 */
+	protected String getNameText(TypeNode pNode)
+	{
+<span class="pc bpc" id="L303" title="1 of 2 branches missed.">		assert pNode != null;</span>
+<span class="fc" id="L304">		return pNode.getName();</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

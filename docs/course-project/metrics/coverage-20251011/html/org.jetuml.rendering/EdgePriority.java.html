@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EdgePriority.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.rendering</a> &gt; <span class="el_source">EdgePriority.java</span></div><h1>EdgePriority.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.rendering;
+
+import org.jetuml.diagram.Edge;
+import org.jetuml.diagram.edges.AggregationEdge;
+import org.jetuml.diagram.edges.AssociationEdge;
+import org.jetuml.diagram.edges.DependencyEdge;
+import org.jetuml.diagram.edges.GeneralizationEdge;
+
+/**
+ * Represents the priority level for edges so that Layouter can lay out edges in a hierarchical order. 
+ * Arranged in decreasing order of priority (INHERITANCE has the highest priority)
+ */
+<span class="fc" id="L33">public enum EdgePriority </span>
+{
+<span class="fc" id="L35">	INHERITANCE, IMPLEMENTATION, AGGREGATION, COMPOSITION,</span>
+<span class="fc" id="L36">	ASSOCIATION, DEPENDENCY, SELF_EDGE, OTHER;</span>
+	
+	/**
+	 * Gets the EdgePriority of pEdge.
+	 * @param pEdge the edge of interest
+	 * @return the EdgePriority associated with pEdge
+	 * @pre pEdge!=null
+	 * CSOFF:
+	 */
+	public static EdgePriority priorityOf(Edge pEdge)
+	{
+<span class="pc bpc" id="L47" title="1 of 2 branches missed.">		assert pEdge != null;</span>
+<span class="pc bpc" id="L48" title="1 of 6 branches missed.">		if(pEdge.start()!= null &amp;&amp; pEdge.end() != null &amp;&amp; pEdge.start().equals(pEdge.end()))</span>
+		{
+<span class="fc" id="L50">			return EdgePriority.SELF_EDGE;</span>
+		}
+<span class="fc bfc" id="L52" title="All 2 branches covered.">		else if(pEdge instanceof GeneralizationEdge edge)</span>
+		{
+<span class="fc bfc" id="L54" title="All 2 branches covered.">			if(edge.getType() == GeneralizationEdge.Type.Inheritance) </span>
+			{
+<span class="fc" id="L56">				return EdgePriority.INHERITANCE;</span>
+			}
+			else
+			{
+<span class="fc" id="L60">				return EdgePriority.IMPLEMENTATION;</span>
+			}
+		}
+<span class="fc bfc" id="L63" title="All 2 branches covered.">		else if(pEdge instanceof AggregationEdge edge)</span>
+		{
+<span class="fc bfc" id="L65" title="All 2 branches covered.">			if(edge.getType() == AggregationEdge.Type.Aggregation)</span>
+			{
+<span class="fc" id="L67">				return EdgePriority.AGGREGATION;</span>
+			}
+			else
+			{
+<span class="fc" id="L71">				return EdgePriority.COMPOSITION;</span>
+			}
+		}
+<span class="fc bfc" id="L74" title="All 2 branches covered.">		else if(pEdge instanceof AssociationEdge)</span>
+		{
+<span class="fc" id="L76">			return EdgePriority.ASSOCIATION;</span>
+		}
+<span class="fc bfc" id="L78" title="All 2 branches covered.">		else if(pEdge instanceof DependencyEdge)</span>
+		{
+<span class="fc" id="L80">			return EdgePriority.DEPENDENCY;</span>
+		}
+		else
+		{
+<span class="fc" id="L84">			return EdgePriority.OTHER;</span>
+		}
+	} // CSON:
+	
+	/**
+	 * Returns whether pPriority describes a segmented edge.
+	 * Since Layouter plans the paths of self-edges separately, self-edges are not segmented by this method. 
+	 * @param pPriority the EdgePriority level of interest
+	 * @return true if the pPriority is the priority for a segmented edge, false otherwise
+	 * @pre pPriority!=null;
+	 */
+	public static boolean isSegmented(EdgePriority pPriority)
+	{
+<span class="pc bpc" id="L97" title="1 of 2 branches missed.">		assert pPriority != null;</span>
+<span class="fc bfc" id="L98" title="All 4 branches covered.">		if(pPriority == EdgePriority.INHERITANCE || pPriority == EdgePriority.IMPLEMENTATION)</span>
+		{
+<span class="fc" id="L100">			return true;</span>
+		}
+		else 
+		{
+<span class="fc bfc" id="L104" title="All 6 branches covered.">			return pPriority == EdgePriority.AGGREGATION || pPriority == EdgePriority.COMPOSITION || </span>
+					pPriority == EdgePriority.ASSOCIATION;    	
+		}
+	}
+	
+	/**
+	 * Returns whether pEdge is segmented.
+	 * @param pEdge the edge of interest
+	 * @return true if pEdge is segmented, false otherwise.
+	 */
+	public static boolean isSegmented(Edge pEdge)
+	{
+<span class="fc" id="L116">		return isSegmented(priorityOf(pEdge));</span>
+	}
+	
+	/**
+	 * Returns whether pEdge is a  class diagram Edge which can be stored in EdgeStorage by Layouter. 
+	 * @param pEdge the edge of interest
+	 * @return true if pEdge should be stored in EdgeStorage, false otherwise. 
+	 */
+	public static boolean isStoredEdge(Edge pEdge)
+	{
+<span class="fc bfc" id="L126" title="All 2 branches covered.">		return priorityOf(pEdge)!= OTHER;</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DeserializationErrorAlert.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.gui</a> &gt; <span class="el_source">DeserializationErrorAlert.java</span></div><h1>DeserializationErrorAlert.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.gui;
+
+import static org.jetuml.application.ApplicationResources.RESOURCES;
+
+import java.io.IOException;
+
+import org.jetuml.persistence.DeserializationException;
+
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
+
+/**
+ * Alert dialog specialized for displaying the various errors 
+ * that can happen when opening a file.
+ */
+<span class="nc" id="L36">public class DeserializationErrorAlert extends Alert</span>
+{	
+	private static final String ROOT_RESOURCE_KEY_SUFFIX = &quot;error.open_file_&quot;;
+	private static final String ROOT_RESOURCE_KEY_SUFFIX_IO = &quot;io&quot;;
+	private static final String DETAILS_SUFFIX = &quot;_details&quot;;
+	
+	/**
+	 * @param pException The exception received when opening a file.
+	 */
+	public DeserializationErrorAlert(Exception pException)
+	{
+<span class="nc" id="L47">		super(AlertType.ERROR, &quot;&quot;, ButtonType.OK);</span>
+<span class="nc bnc" id="L48" title="All 4 branches missed.">		assert pException instanceof IOException || pException instanceof DeserializationException;</span>
+<span class="nc" id="L49">		String keySuffix = determineResourceKeyPrefix(pException);</span>
+<span class="nc" id="L50">		setTitle(RESOURCES.getString(&quot;alert.error.title&quot;));</span>
+<span class="nc" id="L51">		setHeaderText(RESOURCES.getString(ROOT_RESOURCE_KEY_SUFFIX + keySuffix));</span>
+		
+<span class="nc" id="L53">		StringBuilder contentText = new StringBuilder(RESOURCES.getString(ROOT_RESOURCE_KEY_SUFFIX + keySuffix + DETAILS_SUFFIX));</span>
+<span class="nc" id="L54">		contentText.append(&quot; &quot;).append(RESOURCES.getString(&quot;alert.error.details&quot;)).append(&quot; &quot;).append(pException.getMessage());</span>
+<span class="nc" id="L55">		setContentText(contentText.toString());</span>
+<span class="nc" id="L56">	}</span>
+	
+	/*
+	 * Returns the key prefix in application resources for the header text and
+	 * details of the error. The suffix for the header text is the empty string,
+	 * and the suffix for the detail is &quot;details&quot;
+	 */
+	private static String determineResourceKeyPrefix(Exception pException)
+	{
+<span class="nc bnc" id="L65" title="All 2 branches missed.">		if( pException instanceof IOException )</span>
+		{
+<span class="nc" id="L67">			return ROOT_RESOURCE_KEY_SUFFIX_IO;</span>
+		}
+		else
+		{
+<span class="nc" id="L71">			return ((DeserializationException)pException).category().toString().toLowerCase();</span>
+		}
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
