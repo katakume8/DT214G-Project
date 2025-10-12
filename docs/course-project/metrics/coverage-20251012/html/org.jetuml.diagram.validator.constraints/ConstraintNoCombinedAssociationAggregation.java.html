@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ConstraintNoCombinedAssociationAggregation.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.diagram.validator.constraints</a> &gt; <span class="el_source">ConstraintNoCombinedAssociationAggregation.java</span></div><h1>ConstraintNoCombinedAssociationAggregation.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.diagram.validator.constraints;
+
+import org.jetuml.diagram.Diagram;
+import org.jetuml.diagram.Edge;
+import org.jetuml.diagram.edges.AggregationEdge;
+import org.jetuml.diagram.edges.AssociationEdge;
+import org.jetuml.diagram.validator.EdgeConstraint;
+
+/**
+ * There can't be both an association and an aggregation edge between two
+ * nodes.
+ */
+<span class="fc" id="L33">public final class ConstraintNoCombinedAssociationAggregation implements EdgeConstraint</span>
+{
+    @Override
+    public boolean satisfied(Edge pEdge, Diagram pDiagram)
+    {
+<span class="fc" id="L38">        return pDiagram.edges().stream()</span>
+<span class="fc" id="L39">                .filter(ConstraintNoCombinedAssociationAggregation::isAssociationOrAggregation)</span>
+<span class="fc" id="L40">                .filter(edge -&gt; isBetweenSameNodes(edge, pEdge))</span>
+<span class="fc bfc" id="L41" title="All 2 branches covered.">                .count() &lt;= 1;</span>
+    }
+
+    /*
+     * Aggregation edges and association edges are in the same category
+     */
+    private static boolean isAssociationOrAggregation(Edge pEdge)
+    {
+<span class="fc bfc" id="L49" title="All 4 branches covered.">        return pEdge.getClass() == AssociationEdge.class || pEdge.getClass() == AggregationEdge.class;</span>
+    }
+
+    /*
+     * Irrespective of direction
+     */
+    private static boolean isBetweenSameNodes(Edge pEdge1, Edge pEdge2)
+    {
+<span class="fc bfc" id="L57" title="All 4 branches covered.">        return pEdge1.start() == pEdge2.start() &amp;&amp; pEdge1.end() == pEdge2.end() ||</span>
+<span class="fc bfc" id="L58" title="All 4 branches covered.">                pEdge1.start() == pEdge2.end() &amp;&amp; pEdge1.end() == pEdge2.start();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

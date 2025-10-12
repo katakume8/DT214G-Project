@@ -1,0 +1,402 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DiagramTab.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.gui</a> &gt; <span class="el_source">DiagramTab.java</span></div><h1>DiagramTab.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.gui;
+
+import static java.lang.Math.max;
+import static java.lang.Math.min;
+import static org.jetuml.application.ApplicationResources.RESOURCES;
+
+import java.io.File;
+import java.util.Optional;
+
+import org.jetuml.application.UserPreferences;
+import org.jetuml.diagram.Diagram;
+import org.jetuml.diagram.DiagramType;
+import org.jetuml.diagram.builder.DiagramBuilder;
+import org.jetuml.diagram.validator.DiagramValidator;
+import org.jetuml.geom.Direction;
+import org.jetuml.geom.Rectangle;
+
+import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.SimpleDoubleProperty;
+import javafx.geometry.Bounds;
+import javafx.scene.Group;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.control.Tab;
+import javafx.scene.image.Image;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.StackPane;
+
+/**
+ * A tab holding a single diagram.
+ */
+<span class="nc" id="L51">public class DiagramTab extends Tab implements MouseDraggedGestureHandler, KeyEventHandler</span>
+{
+	private static final double DEFAULT_SCALE = 1.0;
+	private static final double SCALE_MULTIPLIER = 1.25;
+	private static final double ZOOM_MIN = DEFAULT_SCALE / (SCALE_MULTIPLIER * SCALE_MULTIPLIER);
+	private static final double ZOOM_MAX = DEFAULT_SCALE * SCALE_MULTIPLIER * SCALE_MULTIPLIER;
+	
+	private final DoubleProperty aZoom;
+	private DiagramCanvas aDiagramCanvas;
+<span class="nc" id="L60">	private Optional&lt;File&gt; aFile = Optional.empty(); // The file associated with this diagram</span>
+	
+	/**
+     * Constructs a diagram tab initialized with pDiagram.
+     * @param pDiagram The initial diagram
+	 */
+	public DiagramTab(Diagram pDiagram)
+<span class="nc" id="L67">	{</span>
+<span class="nc" id="L68">		DiagramValidator validator = DiagramType.newValidatorInstanceFor(pDiagram);</span>
+<span class="nc" id="L69">		DiagramBuilder builder = DiagramType.newBuilderInstanceFor(pDiagram);</span>
+<span class="nc" id="L70">		DiagramTabToolBar sideBar = new DiagramTabToolBar(builder.renderer());</span>
+<span class="nc" id="L71">		aDiagramCanvas = new DiagramCanvas(builder, sideBar, validator, this);</span>
+		
+<span class="nc" id="L73">		UserPreferences.instance().addBooleanPreferenceChangeHandler(sideBar);</span>
+		
+<span class="nc" id="L75">		UserPreferences.instance().addBooleanPreferenceChangeHandler(aDiagramCanvas);</span>
+<span class="nc" id="L76">		UserPreferences.instance().addIntegerPreferenceChangeHandler(aDiagramCanvas);</span>
+<span class="nc" id="L77">		UserPreferences.instance().addStringPreferenceChangeHandler(aDiagramCanvas);</span>
+<span class="nc" id="L78">		aDiagramCanvas.paintPanel();</span>
+		
+<span class="nc" id="L80">		BorderPane layout = new BorderPane();</span>
+<span class="nc" id="L81">		layout.setRight(sideBar);</span>
+
+		// We put the diagram in a fixed-size StackPane for the sole purpose of being able to
+		// decorate it with CSS. The StackPane needs to have a fixed size so the border fits the 
+		// canvas and not the parent container.
+<span class="nc" id="L86">		StackPane pane = new StackPane(aDiagramCanvas);</span>
+<span class="nc" id="L87">		final int buffer = 12; // (border insets + border width + 1)*2</span>
+<span class="nc" id="L88">		pane.setMaxSize(aDiagramCanvas.getWidth() + buffer, aDiagramCanvas.getHeight() + buffer);</span>
+<span class="nc" id="L89">		final String cssDefault = &quot;-fx-border-color: grey; -fx-border-insets: 4;&quot;</span>
+				+ &quot;-fx-border-width: 1; -fx-border-style: solid;&quot;;
+<span class="nc" id="L91">		pane.setStyle(cssDefault);</span>
+		
+<span class="nc" id="L93">		aZoom = new SimpleDoubleProperty(DEFAULT_SCALE);</span>
+<span class="nc" id="L94">		pane.scaleXProperty().bind(aZoom);</span>
+<span class="nc" id="L95">		pane.scaleYProperty().bind(aZoom);</span>
+		
+		// First, wrap the StackPane in a Group to allow the scrolling to be based around the visual bounds
+		// of the canvas rather than its layout bounds.
+		// Then we wrap the Group within an additional, resizable StackPane that can grow to fit the parent
+		// ScrollPane and thus center the decorated canvas.
+<span class="nc" id="L101">		ScrollPane scroll = new ScrollPane(new StackPane(new Group(pane)));</span>
+		
+		// The call below is necessary to removes the focus highlight around the Canvas
+		// See issue #250
+<span class="nc" id="L105">		scroll.setStyle(&quot;-fx-focus-color: transparent; -fx-faint-focus-color: transparent;&quot;); </span>
+
+<span class="nc" id="L107">		scroll.setFitToWidth(true);</span>
+<span class="nc" id="L108">		scroll.setFitToHeight(true);</span>
+<span class="nc" id="L109">		layout.setCenter(scroll);</span>
+		
+<span class="nc" id="L111">		setTitle();</span>
+<span class="nc" id="L112">		setContent(layout);</span>
+		
+<span class="nc" id="L114">		setOnCloseRequest(event -&gt; </span>
+		{
+<span class="nc" id="L116">			event.consume();</span>
+<span class="nc" id="L117">			EditorFrame editorFrame = (EditorFrame) getTabPane().getParent();</span>
+<span class="nc" id="L118">			editorFrame.close(this);</span>
+<span class="nc" id="L119">		});</span>
+<span class="nc" id="L120">	}</span>
+	
+	/* retrieves the toolbar from the component graph */
+	private DiagramTabToolBar toolBar()
+	{
+<span class="nc" id="L125">		return (DiagramTabToolBar)((BorderPane)getContent()).getRight();</span>
+	}
+	
+	/**
+	 * This method should be called immediately before closing the tab.
+	 */
+	public void close()
+	{
+<span class="nc" id="L133">		UserPreferences.instance().removeBooleanPreferenceChangeHandler(aDiagramCanvas);</span>
+<span class="nc" id="L134">		UserPreferences.instance().removeBooleanPreferenceChangeHandler((DiagramTabToolBar)((BorderPane)getContent()).getRight());</span>
+<span class="nc" id="L135">		UserPreferences.instance().removeIntegerPreferenceChangeHandler(aDiagramCanvas);</span>
+<span class="nc" id="L136">		UserPreferences.instance().removeStringPreferenceChangeHandler(aDiagramCanvas);</span>
+<span class="nc" id="L137">	}</span>
+
+	/**
+     * @return The diagram being edited within this tab.
+	 */
+	public Diagram getDiagram()
+	{
+<span class="nc" id="L144">		return aDiagramCanvas.diagram();</span>
+	}
+	
+	/**
+	 * Copy the current selection to the clipboard.
+	 */
+	public void copy()
+	{
+<span class="nc" id="L152">		aDiagramCanvas.copy();</span>
+<span class="nc" id="L153">	}</span>
+	
+	/**
+	 * Cuts the current selection to the clip board.
+	 */
+	public void cut()
+	{
+<span class="nc" id="L160">		aDiagramCanvas.cut();</span>
+<span class="nc" id="L161">	}</span>
+	
+	/**
+	 * Pastes the current clip board content to the diagram.
+	 */
+	public void paste()
+	{
+<span class="nc" id="L168">		aDiagramCanvas.paste();</span>
+<span class="nc" id="L169">	}</span>
+	
+	/**
+	 * Open a dialog to edit the properties of the currently selected element.
+	 */
+	public void editSelected()
+	{
+<span class="nc" id="L176">		aDiagramCanvas.editSelected();</span>
+<span class="nc" id="L177">	}</span>
+	
+	/**
+	 * Undoes the last command.
+	 */
+	public void undo()
+	{
+<span class="nc" id="L184">		aDiagramCanvas.undo();</span>
+<span class="nc" id="L185">	}</span>
+	
+	/**
+	 * Redoes the last undone command.
+	 */
+	public void redo()
+	{
+<span class="nc" id="L192">		aDiagramCanvas.redo();</span>
+<span class="nc" id="L193">	}</span>
+	
+	/**
+	 * Copy the current selection to the clipboard.
+	 */
+	public void removeSelected()
+	{
+<span class="nc" id="L200">		aDiagramCanvas.removeSelected();</span>
+<span class="nc" id="L201">	}</span>
+	
+	/**
+	 * Selects all elements in the diagram.
+	 */
+	public void selectAll()
+	{
+<span class="nc" id="L208">		aDiagramCanvas.selectAll();</span>
+<span class="nc" id="L209">	}</span>
+	
+	/**
+	 * Zooms in the diagram.
+	 */
+	public void zoomIn()
+	{
+<span class="nc" id="L216">		aZoom.set(min(aZoom.get() * SCALE_MULTIPLIER, ZOOM_MAX));</span>
+<span class="nc" id="L217">	}</span>
+	
+	/**
+	 * Zooms out the diagram.
+	 */
+	public void zoomOut()
+	{
+<span class="nc" id="L224">		aZoom.set(max(aZoom.get() / SCALE_MULTIPLIER, ZOOM_MIN));</span>
+<span class="nc" id="L225">	}</span>
+	
+	/**
+	 * Resets the diagram's zoom to its default value.
+	 */
+	public void resetZoom()
+	{
+<span class="nc" id="L232">		aZoom.set(DEFAULT_SCALE);</span>
+<span class="nc" id="L233">	}</span>
+	
+	/**
+	 * Sets the title of the frame as the file name if there
+	 * is a file name. 
+	 * 
+	 */
+	public void setTitle()
+	{
+<span class="nc bnc" id="L242" title="All 2 branches missed.">		if(aFile.isPresent())</span>
+		{
+<span class="nc" id="L244">			String title = aFile.get().getName();</span>
+<span class="nc" id="L245">			setText(title); </span>
+<span class="nc" id="L246">		}</span>
+		else
+		{
+<span class="nc" id="L249">			setText(RESOURCES.getString(getDiagram().getType().getName().toLowerCase() + &quot;.text&quot;));</span>
+		}
+<span class="nc" id="L251">	}</span>
+	
+	/**
+	 * Notify the tab that its diagram has been saved.
+	 */
+	public void diagramSaved()
+	{
+<span class="nc" id="L258">		aDiagramCanvas.diagramSaved();</span>
+<span class="nc" id="L259">	}</span>
+	
+	/**
+	 * @return True if the diagram in this tab
+	 *     has unsaved changes.
+	 */
+	public boolean hasUnsavedChanges()
+	{
+<span class="nc" id="L267">		return aDiagramCanvas.hasUnsavedChanges();</span>
+	}
+
+	/**
+     * Gets the file property.
+     * @return the file associated with this diagram, if available.
+	 */
+	public Optional&lt;File&gt; getFile()
+	{
+<span class="nc" id="L276">		return aFile;</span>
+	}
+
+	/**
+     * Sets the file property.
+     * @param pFile The file associated with this graph
+	 */
+	public void setFile(File pFile)
+	{
+<span class="nc bnc" id="L285" title="All 2 branches missed.">		assert pFile != null;</span>
+<span class="nc" id="L286">		aFile = Optional.of(pFile);</span>
+<span class="nc" id="L287">		setTitle();</span>
+<span class="nc" id="L288">	}</span>
+
+	@Override
+	public void interactionTo(Rectangle pBounds, Direction pDirection)
+	{
+		// Compute point to reveal
+<span class="nc" id="L294">		int x = pBounds.maxX();</span>
+<span class="nc" id="L295">		int y = pBounds.maxY();</span>
+		
+<span class="nc bnc" id="L297" title="All 2 branches missed.">		if( pDirection.isWesterly() ) // Going left, reverse coordinate</span>
+		{
+<span class="nc" id="L299">			x = pBounds.x(); </span>
+		}
+<span class="nc bnc" id="L301" title="All 2 branches missed.">		if( pDirection.isNortherly() )	// Going up, reverse coordinate</span>
+		{
+<span class="nc" id="L303">			y = pBounds.y(); </span>
+		}
+		
+		// Special case: if the viewport is not large enough for the entire
+		// selection, the use will experience unsettling jitter. 
+		// We prevent this by not auto-scrolling
+<span class="nc" id="L309">		ViewportProjection projection = getViewportProjection();</span>
+<span class="nc bnc" id="L310" title="All 2 branches missed.">		if( pBounds.width() &lt;= projection.width() )</span>
+		{
+<span class="nc" id="L312">			scrollPane().setHvalue(projection.getAdjustedHValueToRevealX(x));</span>
+		}
+<span class="nc bnc" id="L314" title="All 2 branches missed.">		if( pBounds.height() &lt;= projection.height() )</span>
+		{
+<span class="nc" id="L316">			scrollPane().setVvalue(projection.getAdjustedVValueToRevealY(y));</span>
+		}
+<span class="nc" id="L318">	}</span>
+	
+	/*
+	 * Fetches the ScrollPane component that wraps the canvas from the scene graph
+	 */
+	private ScrollPane scrollPane()
+	{
+<span class="nc" id="L325">		return (ScrollPane)((BorderPane)getContent()).getCenter();</span>
+	}
+	
+	private ViewportProjection getViewportProjection()
+	{
+<span class="nc" id="L330">		ScrollPane scrollPane = (ScrollPane)((BorderPane)getContent()).getCenter();</span>
+<span class="nc" id="L331">		Bounds bounds = scrollPane.getViewportBounds();</span>
+		// Because, when the scrollbars are not displayed, the Scrollpane will increase
+		// the viewport size beyond the canvas size, it's necessary to max out the dimensions
+		// at the size of the canvas.
+<span class="nc" id="L335">		int viewportWidth = Math.min((int) bounds.getWidth(), (int) aDiagramCanvas.getWidth());</span>
+<span class="nc" id="L336">		int viewportHeight = Math.min((int) bounds.getHeight(), (int) aDiagramCanvas.getHeight());</span>
+<span class="nc" id="L337">		return new ViewportProjection(viewportWidth, viewportHeight, </span>
+<span class="nc" id="L338">				(int) aDiagramCanvas.getWidth(), (int) aDiagramCanvas.getHeight(), </span>
+<span class="nc" id="L339">				scrollPane.getHvalue(), scrollPane.getVvalue());</span>
+	}
+
+	@Override
+	public void shiftKeyPressed() 
+	{
+<span class="nc" id="L345">		aDiagramCanvas.shiftKeyPressed();</span>
+<span class="nc" id="L346">	}</span>
+	
+	/* Converts the key typed to an 1-based index that represents
+	 * the tool to select in the toolbar. The Keys 1-0 map to 1-10, then
+	 * a maps to 11, b to 12, etc. Capitalization does not matter.
+	 * Returns -1 is the key is not in a range between 0 and Z.
+	 * CSOFF:
+	 */
+	private static int toolIndex(String pChar)
+	{
+<span class="nc bnc" id="L356" title="All 2 branches missed.">		assert pChar != null;</span>
+<span class="nc bnc" id="L357" title="All 2 branches missed.">		if( pChar.length() != 1 )</span>
+		{
+<span class="nc" id="L359">			return -1;</span>
+		}
+<span class="nc" id="L361">		int symbol = pChar.toUpperCase().charAt(0);</span>
+<span class="nc bnc" id="L362" title="All 2 branches missed.">		if( symbol == 48 ) // char &quot;0&quot;</span>
+		{
+<span class="nc" id="L364">			return 10;</span>
+		}
+<span class="nc bnc" id="L366" title="All 4 branches missed.">		else if( symbol &gt;= 49 &amp;&amp; symbol &lt;= 57) // char 1-9</span>
+		{
+<span class="nc" id="L368">			return symbol - 48;</span>
+		}
+<span class="nc bnc" id="L370" title="All 4 branches missed.">		else if( symbol &gt;= 65 &amp;&amp; symbol &lt;= 90 ) // char A-Z</span>
+		{
+<span class="nc" id="L372">			return symbol - 54; </span>
+		}
+		else
+		{
+<span class="nc" id="L376">			return -1;</span>
+		}
+	} // CSON:
+	
+	@Override
+	public void keyTyped(String pChar)
+	{   // -1 because the input is 1-index and setSelectedTool is 0-indexed
+<span class="nc" id="L383">		toolBar().setSelectedTool(toolIndex(pChar)-1); </span>
+<span class="nc" id="L384">	}</span>
+	
+	/**
+	 * @return An image of this canvas.
+	 */
+	public Image createImage()
+	{
+<span class="nc" id="L391">		return aDiagramCanvas.createImage();</span>
+	}
+	
+	/**
+	 * @return An SVG representation of this canvas.
+	 */
+	public String createSvgImage()
+	{
+<span class="nc" id="L399">		return aDiagramCanvas.createSvgImage();</span>
+	}
+}	        
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

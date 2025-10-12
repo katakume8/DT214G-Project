@@ -1,0 +1,344 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TipDialog.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.gui.tips</a> &gt; <span class="el_source">TipDialog.java</span></div><h1>TipDialog.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.gui.tips;
+
+import static org.jetuml.application.ApplicationResources.RESOURCES;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.List;
+
+import org.jetuml.application.UserPreferences;
+import org.jetuml.application.UserPreferences.IntegerPreference;
+import org.jetuml.gui.tips.TipLoader.Tip;
+
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.Node;
+import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
+import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Pane;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.VBox;
+import javafx.scene.text.Font;
+import javafx.stage.Stage;
+
+/**
+ * A window that presents the tip of the day (by calling show()).
+ */
+public class TipDialog 
+{
+	private static final int WINDOW_PREF_WIDTH = 650;
+	private static final int WINDOW_PREF_HEIGHT = 450;
+	private static final int WINDOW_MIN_WIDTH = 650;
+	private static final int WINDOW_MIN_HEIGHT = 450;
+	private static final int PADDING = 15;
+	private static final int MENU_NAVIGATION_BUTTONS_SPACING = 10;
+	private static final int MENU_CLOSE_BUTTON_SPACING = 30;
+	private static final int TIP_ELEMENTS_SPACING = 10;
+	private static final double TITLE_FONT_SIZE = 23;
+	private static final double TEXT_FONT_SIZE = 13.5;
+	private static final double TEXT_LINE_SPACING = 2;
+	private static final double TEXT_WIDTH = 570;
+<span class="fc" id="L67">	private static final Insets IMAGE_PADDING = new Insets(25, 0, 25, 0);</span>
+	private static final double DEFAULT_NODE_SPACING = 10;
+	
+	private Stage aStage;
+	private Tip aCurrentTip;
+	private ViewedTips aViewedTips;
+	private final ScrollPane aTipDisplay;
+	private final CheckBox aShowTipsOnStartupCheckBox;
+
+	/**
+	 * Constructor for a TipDialog.
+	 * 
+	 * @param pDialogStage The stage of the window that generates the tip dialog.
+	 *        pOwner can be null to get a TipDialog with no owner.
+	 */
+	public TipDialog(Stage pDialogStage)
+<span class="fc" id="L83">	{</span>
+<span class="fc" id="L84">		aStage = pDialogStage;</span>
+<span class="fc" id="L85">		aTipDisplay = new ScrollPane();</span>
+<span class="fc" id="L86">		aViewedTips = new ViewedTips(getUserPrefNextTipId());</span>
+<span class="fc" id="L87">		aShowTipsOnStartupCheckBox = new CheckBox(RESOURCES.getString(&quot;dialog.tips.checkbox.text&quot;));</span>
+<span class="fc" id="L88">		aShowTipsOnStartupCheckBox.setSelected(UserPreferences.instance().getBoolean(UserPreferences.BooleanPreference.showTips));</span>
+<span class="fc" id="L89">		aShowTipsOnStartupCheckBox.setOnAction(e -&gt; UserPreferences.instance().setBoolean(UserPreferences.BooleanPreference.showTips, </span>
+<span class="fc" id="L90">				aShowTipsOnStartupCheckBox.isSelected()));</span>
+<span class="fc" id="L91">	}</span>
+	
+	/**
+	 * Shows the tip dialog and blocks the remainder of the UI
+	 * until the tip dialog is closed.
+	 */
+	public void show() 
+	{
+<span class="nc" id="L99">		prepareStage();</span>
+<span class="nc" id="L100">		aStage.showAndWait();</span>
+<span class="nc" id="L101">	}</span>
+	
+	private void prepareStage() 
+	{
+<span class="nc" id="L105">		aStage.setTitle(RESOURCES.getString(&quot;dialog.tips.title&quot;));</span>
+<span class="nc" id="L106">		aStage.getIcons().add(new Image(RESOURCES.getString(&quot;application.icon&quot;)));</span>
+<span class="nc" id="L107">		aStage.getScene().setRoot(createRoot());</span>
+<span class="nc" id="L108">		aTipDisplay.requestFocus();</span>
+<span class="nc" id="L109">	}</span>
+	
+	private Pane createRoot() 
+	{
+<span class="nc" id="L113">		BorderPane layout = new BorderPane();</span>
+
+		//Removing the focus highlight on the ScrollPane
+<span class="nc" id="L116">		aTipDisplay.setStyle(&quot;-fx-background-color: -fx-outer-border, -fx-inner-border, -fx-body-color;&quot; + </span>
+							 &quot;-fx-background-insets: 0, 1, 2;&quot;);
+		
+<span class="nc" id="L119">		aTipDisplay.setFitToWidth(true);</span>
+<span class="nc" id="L120">		layout.setCenter(aTipDisplay);</span>
+		
+<span class="nc" id="L122">		HBox tipMenu = createTipMenu();</span>
+<span class="nc" id="L123">		layout.setBottom(tipMenu);</span>
+		
+<span class="nc" id="L125">		Tip tip = TipLoader.loadTip(getUserPrefNextTipId());</span>
+<span class="nc" id="L126">		setUserPrefNextTip(aViewedTips.getNewNextTipOfTheDayId());</span>
+<span class="nc" id="L127">		setupNewTip(tip);</span>
+		
+<span class="nc" id="L129">		layout.setMinWidth(WINDOW_MIN_WIDTH);</span>
+<span class="nc" id="L130">		layout.setMaxWidth(WINDOW_PREF_WIDTH);</span>
+<span class="nc" id="L131">		layout.setMinHeight(WINDOW_MIN_HEIGHT);</span>
+<span class="nc" id="L132">		layout.setMaxHeight(WINDOW_PREF_HEIGHT);</span>
+		
+<span class="nc" id="L134">		return layout;</span>
+	}
+
+	private HBox createTipMenu()
+	{
+<span class="fc" id="L139">		HBox tipMenu = createEmptyTipMenu();</span>
+<span class="fc" id="L140">		HBox tipMenuButtons = createTipMenuButtons();</span>
+<span class="fc" id="L141">		HBox emptyBox = new HBox();</span>
+<span class="fc" id="L142">		HBox.setHgrow(emptyBox, Priority.ALWAYS);</span>
+		
+<span class="fc" id="L144">		tipMenu.getChildren().addAll(aShowTipsOnStartupCheckBox, emptyBox, tipMenuButtons);</span>
+		
+<span class="fc" id="L146">		return tipMenu;</span>
+	}
+	
+	private static HBox createEmptyTipMenu() 
+	{
+<span class="fc" id="L151">		HBox tipMenu = new HBox();</span>
+<span class="fc" id="L152">		tipMenu.setPadding(new Insets(PADDING));</span>
+<span class="fc" id="L153">		tipMenu.getStyleClass().add(&quot;tip-menu&quot;);</span>
+<span class="fc" id="L154">		return tipMenu;</span>
+	}
+	
+	private HBox createTipMenuButtons()
+	{
+<span class="fc" id="L159">		Button nextTipButton = new Button(RESOURCES.getString(&quot;dialog.tips.button.next.text&quot;));</span>
+
+<span class="fc" id="L161">		Button previousTipButton = new Button(RESOURCES.getString(&quot;dialog.tips.button.previous.text&quot;));</span>
+		
+<span class="fc" id="L163">		Button closeButton = new Button(RESOURCES.getString(&quot;dialog.tips.button.close.text&quot;));</span>
+		
+<span class="fc" id="L165">		nextTipButton.setOnAction(e -&gt; </span>
+		{ 
+<span class="nc" id="L167">			int nextTipId = aViewedTips.getNextTipId();</span>
+<span class="nc" id="L168">			Tip nextTip = TipLoader.loadTip(nextTipId);</span>
+<span class="nc" id="L169">			setUserPrefNextTip(aViewedTips.getNewNextTipOfTheDayId());</span>
+<span class="nc" id="L170">			setupNewTip(nextTip);</span>
+<span class="nc" id="L171">		});</span>
+		
+<span class="fc" id="L173">		previousTipButton.setOnAction(e -&gt; </span>
+		{ 
+<span class="nc" id="L175">			int previousTipId = aViewedTips.getPreviousTipId();</span>
+<span class="nc" id="L176">			Tip previousTip = TipLoader.loadTip(previousTipId);</span>
+<span class="nc" id="L177">			setupNewTip(previousTip);</span>
+<span class="nc" id="L178">		});</span>
+	
+<span class="fc" id="L180">		closeButton.setOnAction(e -&gt; </span>
+		{
+<span class="nc" id="L182">			aStage.close();</span>
+<span class="nc" id="L183">		});</span>
+		
+<span class="fc" id="L185">		HBox navigationButtons = new HBox(MENU_NAVIGATION_BUTTONS_SPACING);</span>
+<span class="fc" id="L186">		navigationButtons.getChildren().addAll(previousTipButton, nextTipButton);</span>
+		
+<span class="fc" id="L188">		HBox tipMenuButtons = new HBox(MENU_CLOSE_BUTTON_SPACING);</span>
+<span class="fc" id="L189">		tipMenuButtons.getChildren().addAll(navigationButtons, closeButton);</span>
+		
+<span class="fc" id="L191">		return tipMenuButtons;</span>
+	}
+	
+	/**
+	 * @pre pTip != null
+	 */
+	private void setupNewTip(Tip pTip)
+	{
+<span class="pc bpc" id="L199" title="1 of 2 branches missed.">		assert pTip != null;</span>
+		
+<span class="fc" id="L201">		this.aCurrentTip = pTip;</span>
+<span class="fc" id="L202">		VBox tipVBox = getTipAsVBox(aCurrentTip);</span>
+<span class="fc" id="L203">		tipVBox.setFillWidth(true);</span>
+<span class="fc" id="L204">		aTipDisplay.setContent(tipVBox);</span>
+<span class="fc" id="L205">	}</span>
+	
+	/**
+	 * @pre pTip != null
+	 */
+	private static VBox getTipAsVBox(Tip pTip) 
+	{
+<span class="pc bpc" id="L212" title="1 of 2 branches missed.">		assert pTip != null;</span>
+		
+<span class="fc" id="L214">		VBox tipVBox = new VBox();</span>
+<span class="fc" id="L215">		tipVBox.setSpacing(TIP_ELEMENTS_SPACING);</span>
+<span class="fc" id="L216">		tipVBox.setPadding(new Insets(PADDING));</span>
+		
+<span class="fc" id="L218">		List&lt;TipElement&gt; tipElements = pTip.getElements();</span>
+		
+<span class="fc" id="L220">		Node titleNode = getTipTitleAsLabel(pTip);</span>
+<span class="fc" id="L221">		tipVBox.getChildren().add(titleNode);</span>
+		
+<span class="fc bfc" id="L223" title="All 2 branches covered.">		for(TipElement tipElement : tipElements)</span>
+		{
+<span class="fc" id="L225">			Node node = getTipElementAsNode(tipElement, tipVBox);</span>
+<span class="fc" id="L226">			tipVBox.getChildren().add(node);</span>
+<span class="fc" id="L227">		}</span>
+		
+<span class="fc" id="L229">		return tipVBox;</span>
+	}
+	
+	/**
+	 * @param pTip a Tip
+	 * @return Formatted Node containing the tip's title
+	 * @pre pTip!= null
+	 */
+	private static Label getTipTitleAsLabel(Tip pTip)
+	{
+<span class="pc bpc" id="L239" title="1 of 2 branches missed.">		assert pTip != null;</span>
+		
+<span class="fc" id="L241">		String title = pTip.getTitle();</span>
+<span class="fc" id="L242">		Label titleNode = new Label(title);</span>
+<span class="fc" id="L243">		Font titleFont = new Font(TITLE_FONT_SIZE);</span>
+<span class="fc" id="L244">		titleNode.setFont(titleFont);</span>
+<span class="fc" id="L245">		return titleNode;</span>
+	}
+	
+	/**
+	 * Returns a Node that presents the content of a TipElement. Remark that the preconditions
+	 * will change if new media are used in TipElements
+	 * 
+	 * @param pTipElement the TipElement to get as a Node
+	 * @param pParent the VBox that will eventually contain the tipElement. This parameter is
+	 * 		  necessary to ensure that dimensions and properties of the TipElement Nodes such 
+	 * 		  as text wrapping width are appropriate.
+	 * @return node containing the tip element content
+	 * @pre pTipElement != null;
+	 * @pre pTipElement.getMedia().equals(Media.TEXT) || pTipElement.getMedia().equals(Media.IMAGE)
+	 */
+	private static Node getTipElementAsNode(TipElement pTipElement, VBox pParent)
+	{
+<span class="pc bpc" id="L262" title="1 of 2 branches missed.">		assert pTipElement != null;</span>
+<span class="pc bpc" id="L263" title="1 of 4 branches missed.">		assert pTipElement.getMedia().equals(Media.TEXT) || pTipElement.getMedia().equals(Media.IMAGE);</span>
+		
+<span class="fc" id="L265">		Media media = pTipElement.getMedia();</span>
+<span class="fc bfc" id="L266" title="All 2 branches covered.">		if(media.equals(Media.TEXT))</span>
+		{
+<span class="fc" id="L268">			return getTextTipElementAsLabel(pTipElement);</span>
+		}
+		else // media.equals(Media.IMAGE) by @pre
+		{
+<span class="fc" id="L272">			HBox imageContainer = new HBox(getImageTipElementAsImageView(pTipElement));</span>
+<span class="fc" id="L273">			imageContainer.setAlignment(Pos.CENTER);</span>
+<span class="fc" id="L274">			VBox.setMargin(imageContainer, IMAGE_PADDING);</span>
+<span class="fc" id="L275">			return imageContainer;</span>
+		}
+	}
+	
+	/**
+	 * @return Text Node presenting the content of the text TipElement
+	 * @pre pTipElement != null
+	 * @pre pTipElement.getMedia().equals(Media.TEXT);
+	 */
+	private static Label getTextTipElementAsLabel(TipElement pTipElement) 
+	{
+<span class="pc bpc" id="L286" title="1 of 2 branches missed.">		assert pTipElement != null;</span>
+<span class="pc bpc" id="L287" title="1 of 2 branches missed.">		assert pTipElement.getMedia().equals(Media.TEXT);</span>
+		
+<span class="fc" id="L289">		String text = pTipElement.getContent();</span>
+<span class="fc" id="L290">		Label textNode = new Label(text);</span>
+<span class="fc" id="L291">		textNode.setWrapText(true);</span>
+<span class="fc" id="L292">		textNode.setPrefWidth(TEXT_WIDTH);</span>
+		
+<span class="fc" id="L294">		Font textFont = new Font(TEXT_FONT_SIZE);</span>
+<span class="fc" id="L295">		textNode.setFont(textFont);</span>
+<span class="fc" id="L296">		textNode.setLineSpacing(TEXT_LINE_SPACING);</span>
+		
+<span class="fc" id="L298">		return textNode;</span>
+	}
+	
+	/**
+	 * @return ImageView of the Image whose name is stored in the image TipElement
+	 * @pre pTipElement != null
+	 * @pre pTipElement.getMedia().equals(Media.IMAGE)
+	 */
+	private static ImageView getImageTipElementAsImageView(TipElement pTipElement) 
+	{
+<span class="pc bpc" id="L308" title="1 of 2 branches missed.">		assert pTipElement != null;</span>
+<span class="pc bpc" id="L309" title="1 of 2 branches missed.">		assert pTipElement.getMedia().equals(Media.IMAGE);</span>
+		
+<span class="fc" id="L311">		String imageName = pTipElement.getContent();</span>
+<span class="fc" id="L312">		String tipImagesDir = RESOURCES.getString(&quot;tips.images.directory&quot;);</span>
+<span class="fc" id="L313">		try(InputStream inputStream = TipDialog.class.getResourceAsStream(tipImagesDir + &quot;/&quot; + imageName))</span>
+		{
+<span class="fc" id="L315">			Image image = new Image(inputStream);</span>
+<span class="fc" id="L316">			ImageView imageNode = new ImageView(image);</span>
+<span class="fc bfc" id="L317" title="All 2 branches covered.">			if(imageNode.getImage().getWidth() &gt; WINDOW_PREF_WIDTH - 2 * PADDING - 4 * DEFAULT_NODE_SPACING)</span>
+			{
+<span class="fc" id="L319">				imageNode.setPreserveRatio(true);</span>
+<span class="fc" id="L320">				imageNode.setFitWidth(WINDOW_PREF_WIDTH - 2 * PADDING - 4 * DEFAULT_NODE_SPACING);</span>
+				// two times the padding because of the VBox padding, and a bit extra to make up for
+				// other default spacing added between nodes
+			}
+<span class="fc" id="L324">			return imageNode;</span>
+		}
+<span class="nc" id="L326">		catch( IOException e )</span>
+		{
+			// The unit tests check that all tip images can be loaded properly.
+<span class="nc" id="L329">			assert false;</span>
+<span class="nc" id="L330">			return null;</span>
+		}
+	}
+	
+	private static int getUserPrefNextTipId()
+	{
+<span class="fc" id="L336">		return UserPreferences.instance().getInteger(IntegerPreference.nextTipId);</span>
+	}
+	
+	private static void setUserPrefNextTip(int pId)
+	{
+<span class="nc" id="L341">		UserPreferences.instance().setInteger(IntegerPreference.nextTipId, pId);</span>
+<span class="nc" id="L342">	}</span>
+}	
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AbstractPackageNodeRenderer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.rendering.nodes</a> &gt; <span class="el_source">AbstractPackageNodeRenderer.java</span></div><h1>AbstractPackageNodeRenderer.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.rendering.nodes;
+
+import static org.jetuml.geom.GeomUtils.max;
+
+import java.util.Optional;
+
+import org.jetuml.diagram.DiagramElement;
+import org.jetuml.diagram.Node;
+import org.jetuml.diagram.nodes.AbstractPackageNode;
+import org.jetuml.geom.Dimension;
+import org.jetuml.geom.Direction;
+import org.jetuml.geom.Line;
+import org.jetuml.geom.Point;
+import org.jetuml.geom.Rectangle;
+import org.jetuml.geom.Alignment;
+import org.jetuml.gui.ColorScheme;
+import org.jetuml.rendering.DiagramRenderer;
+import org.jetuml.rendering.RenderingContext;
+import org.jetuml.rendering.Side;
+import org.jetuml.rendering.StringRenderer;
+
+/**
+ * Common functionality to view the different types of package nodes.
+ */
+public abstract class AbstractPackageNodeRenderer extends AbstractNodeRenderer
+{
+	protected static final int PADDING = 10;
+	protected static final int TOP_HEIGHT = 20;
+	protected static final int DEFAULT_WIDTH = 100;
+	protected static final int DEFAULT_BOTTOM_HEIGHT = 60;
+	protected static final int DEFAULT_TOP_WIDTH = 60;
+	protected static final int HORIZONTAL_PADDING = 3;
+<span class="fc" id="L53">	private static final StringRenderer LABEL_RENDERER = new StringRenderer(Alignment.LEFT);</span>
+	
+	/**
+	 * @param pParent The rendere for the diagram that contains this package node.
+	 */
+	public AbstractPackageNodeRenderer(DiagramRenderer pParent)
+	{
+<span class="fc" id="L60">		super(pParent);</span>
+<span class="fc" id="L61">	}</span>
+	
+	@Override
+	public Dimension getDefaultDimension(Node pNode)
+	{
+<span class="fc" id="L66">		return new Dimension(DEFAULT_WIDTH, TOP_HEIGHT + DEFAULT_BOTTOM_HEIGHT);</span>
+	}
+	
+	@Override
+	public void draw(DiagramElement pElement, RenderingContext pContext)
+	{
+<span class="pc bpc" id="L72" title="1 of 2 branches missed.">		assert pElement instanceof AbstractPackageNode;</span>
+<span class="fc" id="L73">		Rectangle topBounds = getTopBounds((AbstractPackageNode)pElement);</span>
+<span class="fc" id="L74">		Rectangle bottomBounds = getBottomBounds((AbstractPackageNode)pElement);</span>
+<span class="fc" id="L75">		pContext.drawRectangle(topBounds, ColorScheme.get().fill(), </span>
+<span class="fc" id="L76">				ColorScheme.get().stroke(), Optional.of(ColorScheme.get().dropShadow()));</span>
+<span class="fc" id="L77">		pContext.drawRectangle(bottomBounds, ColorScheme.get().fill(), </span>
+<span class="fc" id="L78">				ColorScheme.get().stroke(), Optional.of(ColorScheme.get().dropShadow()));</span>
+<span class="fc" id="L79">		LABEL_RENDERER.draw(((AbstractPackageNode)pElement).getName(), new Rectangle(topBounds.x() + HORIZONTAL_PADDING, </span>
+<span class="fc" id="L80">				topBounds.y(), topBounds.width(), topBounds.height()), pContext);</span>
+<span class="fc" id="L81">	}</span>
+	
+	@Override
+	public Point getConnectionPoint(Node pNode, Direction pDirection)
+	{
+<span class="nc bnc" id="L86" title="All 2 branches missed.">		assert pNode instanceof AbstractPackageNode;</span>
+<span class="nc" id="L87">		Rectangle topBounds = getTopBounds((AbstractPackageNode)pNode);</span>
+<span class="nc" id="L88">		Rectangle bottomBounds = getBottomBounds((AbstractPackageNode)pNode);</span>
+<span class="nc" id="L89">		Rectangle bounds = topBounds.add(bottomBounds);</span>
+		
+<span class="nc" id="L91">		Point connectionPoint = super.getConnectionPoint(pNode, pDirection);</span>
+<span class="nc bnc" id="L92" title="All 4 branches missed.">		if( connectionPoint.y() &lt; bottomBounds.y() &amp;&amp; topBounds.maxX() &lt; connectionPoint.x() )</span>
+		{
+			// The connection point falls in the empty top-right corner, re-compute it so
+			// it intersects the top of the bottom rectangle (basic triangle proportions)
+<span class="nc" id="L96">			int delta = topBounds.height() * (connectionPoint.x() - bounds.center().x()) * 2 / </span>
+<span class="nc" id="L97">					bounds.height();</span>
+<span class="nc" id="L98">			int newX = connectionPoint.x() - delta;</span>
+<span class="nc bnc" id="L99" title="All 2 branches missed.">			if( newX &lt; topBounds.maxX() )</span>
+			{
+<span class="nc" id="L101">				newX = topBounds.maxX() + 1;</span>
+			}
+<span class="nc" id="L103">			return new Point(newX, bottomBounds.y());	</span>
+		}
+		else
+		{
+<span class="nc" id="L107">			return connectionPoint;</span>
+		}
+	}
+	
+	/*
+	 * The top face of a package node is only the side of the bottom (main) rectangle.
+	 */
+	@Override
+	public Line getFace(Node pNode, Side pSide) 
+	{
+<span class="pc bpc" id="L117" title="2 of 4 branches missed.">		assert pNode != null &amp;&amp; pSide != null;</span>
+<span class="fc bfc" id="L118" title="All 2 branches covered.">		if( pSide == Side.TOP )</span>
+		{
+<span class="fc" id="L120">			Rectangle topBounds = getTopBounds((AbstractPackageNode)pNode);</span>
+<span class="fc" id="L121">			Rectangle bottomBounds = getBottomBounds((AbstractPackageNode)pNode);</span>
+<span class="fc" id="L122">			return new Line(topBounds.maxX(), bottomBounds.y(), bottomBounds.maxX(), bottomBounds.y());</span>
+			
+		}
+<span class="pc bpc" id="L125" title="1 of 2 branches missed.">		else if( pSide == Side.RIGHT )</span>
+		{
+<span class="nc" id="L127">			return pSide.getCorrespondingLine(getBottomBounds((AbstractPackageNode)pNode));</span>
+		}
+		else
+		{
+<span class="fc" id="L131">			return super.getFace(pNode, pSide);</span>
+		}
+		
+	}
+
+	@Override
+	protected Rectangle internalGetBounds(Node pNode)
+	{
+<span class="pc bpc" id="L139" title="1 of 2 branches missed.">		assert pNode instanceof AbstractPackageNode;</span>
+<span class="fc" id="L140">		return getTopBounds((AbstractPackageNode)pNode).add(getBottomBounds((AbstractPackageNode)pNode));</span>
+	}
+	
+	/**
+	 * @param pNode The package node
+	 * @return The point that corresponds to the actual top right
+	 *     corner of the figure (as opposed to bounds).
+	 */
+	public Point getTopRightCorner(AbstractPackageNode pNode)
+	{
+<span class="nc" id="L150">		Rectangle bottomBounds = getBottomBounds(pNode);</span>
+<span class="nc" id="L151">		return new Point(bottomBounds.maxX(), bottomBounds.y());</span>
+	}
+	
+	protected Dimension getTopDimension(AbstractPackageNode pNode)
+	{
+<span class="fc" id="L156">		Dimension textDimensions = LABEL_RENDERER.getDimension(pNode.getName());</span>
+<span class="fc" id="L157">		int topWidth = max(textDimensions.width() + 2 * HORIZONTAL_PADDING, DEFAULT_TOP_WIDTH);</span>
+<span class="fc" id="L158">		int topHeight = max(textDimensions.height(), TOP_HEIGHT);</span>
+<span class="fc" id="L159">		return new Dimension(topWidth, topHeight);</span>
+	}
+	
+	/*
+	 * By default the node's top bounds is based on its position.
+	 */
+	protected Rectangle getTopBounds(AbstractPackageNode pNode)
+	{
+<span class="fc" id="L167">		Point position = pNode.position();</span>
+<span class="fc" id="L168">		Dimension topDimension = getTopDimension(pNode);</span>
+<span class="fc" id="L169">		return new Rectangle(position.x(), position.y(), topDimension.width(), topDimension.height());</span>
+	}
+	
+	protected abstract Rectangle getBottomBounds(AbstractPackageNode pNode);
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

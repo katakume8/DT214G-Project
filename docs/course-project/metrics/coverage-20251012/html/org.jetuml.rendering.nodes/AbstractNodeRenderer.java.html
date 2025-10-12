@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AbstractNodeRenderer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.rendering.nodes</a> &gt; <span class="el_source">AbstractNodeRenderer.java</span></div><h1>AbstractNodeRenderer.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.rendering.nodes;
+
+import org.jetuml.diagram.DiagramElement;
+import org.jetuml.diagram.DiagramType;
+import org.jetuml.diagram.Node;
+import org.jetuml.geom.Direction;
+import org.jetuml.geom.GeomUtils;
+import org.jetuml.geom.Line;
+import org.jetuml.geom.Point;
+import org.jetuml.geom.Rectangle;
+import org.jetuml.rendering.DiagramRenderer;
+import org.jetuml.rendering.GraphicsRenderingContext;
+import org.jetuml.rendering.Side;
+
+import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.paint.Color;
+
+/**
+ * Basic services for drawing nodes.
+ */
+<span class="fc" id="L42">public abstract class AbstractNodeRenderer implements NodeRenderer</span>
+{
+	public static final int BUTTON_SIZE = 25;
+	public static final int OFFSET = 3;
+	
+<span class="fc" id="L47">	private NodeStorage aNodeStorage = new NodeStorage();</span>
+	private final DiagramRenderer aParent;
+	
+	protected AbstractNodeRenderer(DiagramRenderer pParent)
+<span class="fc" id="L51">	{</span>
+<span class="fc" id="L52">		aParent = pParent;</span>
+<span class="fc" id="L53">	}</span>
+	
+	protected DiagramRenderer parent()
+	{
+<span class="fc" id="L57">		return aParent;</span>
+	}
+	
+	/* 
+	 * The default behavior for containment is to return true if the point is
+	 * within the bounding box of the node view.
+	 * @see org.jetuml.rendering.DiagramElementView#contains(org.jetuml.geom.Point)
+	 */
+	@Override
+	public boolean contains(DiagramElement pElement, Point pPoint)
+	{
+<span class="fc" id="L68">		return getBounds(pElement).contains(pPoint);</span>
+	}
+	
+	/* 
+	 * The default behavior is to returns a point on the bounds of the node that intersects
+	 * the side of the node at the point where a line in pDirection originating from the center
+	 * intersects it.
+	 */
+	@Override
+	public Point getConnectionPoint(Node pNode, Direction pDirection)
+	{
+<span class="fc" id="L79">		return GeomUtils.intersectRectangle(getBounds(pNode), pDirection);</span>
+	}
+	
+	@Override
+	public Canvas createIcon(DiagramType pDiagramType, DiagramElement pElement)
+	{
+<span class="fc" id="L85">		Node node = (Node) pElement;</span>
+<span class="fc" id="L86">		Rectangle bounds = getBounds(node);</span>
+<span class="fc" id="L87">		int width = bounds.width();</span>
+<span class="fc" id="L88">		int height = bounds.height();</span>
+<span class="fc" id="L89">		double scaleX = (BUTTON_SIZE - OFFSET)/ (double) width;</span>
+<span class="fc" id="L90">		double scaleY = (BUTTON_SIZE - OFFSET)/ (double) height;</span>
+<span class="fc" id="L91">		double scale = Math.min(scaleX, scaleY);</span>
+<span class="fc" id="L92">		Canvas canvas = new Canvas(BUTTON_SIZE, BUTTON_SIZE);</span>
+<span class="fc" id="L93">		GraphicsContext graphics = canvas.getGraphicsContext2D();</span>
+<span class="fc" id="L94">		graphics.scale(scale, scale);</span>
+<span class="fc" id="L95">		graphics.translate(Math.max((height - width) / 2, 0), Math.max((width - height) / 2, 0));</span>
+<span class="fc" id="L96">		graphics.setFill(Color.WHITE);</span>
+<span class="fc" id="L97">		graphics.setStroke(Color.BLACK);</span>
+<span class="fc" id="L98">		draw(node, new GraphicsRenderingContext(canvas.getGraphicsContext2D()));</span>
+<span class="fc" id="L99">		return canvas;</span>
+	}
+	
+	@Override
+	public final Rectangle getBounds(DiagramElement pElement)
+	{
+<span class="fc" id="L105">		return aNodeStorage.getBounds((Node)pElement, this::internalGetBounds);</span>
+	}
+	
+	@Override
+	public final void activateNodeStorage()
+	{
+<span class="nc" id="L111">		aNodeStorage.activate();</span>
+<span class="nc" id="L112">	}</span>
+	
+	@Override
+	public final void deactivateAndClearNodeStorage() 
+	{
+<span class="nc" id="L117">		aNodeStorage.deactivateAndClear();</span>
+<span class="nc" id="L118">	}</span>
+	
+	/**
+     * Gets the smallest rectangle that bounds this element.
+     * The bounding rectangle contains all labels.
+     * @param pNode The node whose bounds we want.
+     * @pre pNode != null
+     * @return the bounding rectangle
+   	 */
+	protected abstract Rectangle internalGetBounds(Node pNode);
+	
+	/*
+	 * By default we return the side of the node's bounds.
+	 */
+	@Override
+	public Line getFace(Node pNode, Side pSide) 
+	{
+<span class="pc bpc" id="L135" title="2 of 4 branches missed.">		assert pNode != null &amp;&amp; pSide != null;</span>
+<span class="fc" id="L136">		return pSide.getCorrespondingLine(getBounds(pNode));</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

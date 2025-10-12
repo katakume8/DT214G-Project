@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CallNodeRenderer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.rendering.nodes</a> &gt; <span class="el_source">CallNodeRenderer.java</span></div><h1>CallNodeRenderer.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.rendering.nodes;
+
+import java.util.Optional;
+
+import org.jetuml.diagram.DiagramElement;
+import org.jetuml.diagram.Node;
+import org.jetuml.diagram.nodes.CallNode;
+import org.jetuml.diagram.nodes.ImplicitParameterNode;
+import org.jetuml.geom.Dimension;
+import org.jetuml.geom.Direction;
+import org.jetuml.geom.Point;
+import org.jetuml.geom.Rectangle;
+import org.jetuml.gui.ColorScheme;
+import org.jetuml.rendering.DiagramRenderer;
+import org.jetuml.rendering.LineStyle;
+import org.jetuml.rendering.RenderingContext;
+import org.jetuml.rendering.SequenceDiagramRenderer;
+
+/**
+ * An object to render a call node in a Sequence diagram.
+ */
+public final class CallNodeRenderer extends AbstractNodeRenderer
+{
+	private static final int WIDTH = 16;
+	private static final int DEFAULT_HEIGHT = 30;
+	
+	/* Number of pixels to shift a call node that is nested within another call on the same object. */
+	private static final int NESTING_SHIFT_DISTANCE = 10;
+	
+	/**
+	 * @param pParent The renderer for the parent diagram.
+	 */
+	public CallNodeRenderer(DiagramRenderer pParent)
+	{
+<span class="fc" id="L55">		super(pParent);</span>
+<span class="fc" id="L56">	}</span>
+	
+	@Override
+	public Dimension getDefaultDimension(Node pNode)
+	{
+<span class="fc" id="L61">		return new Dimension(WIDTH, DEFAULT_HEIGHT);</span>
+	}
+	
+	@Override
+	public void draw(DiagramElement pElement, RenderingContext pContext)
+	{
+<span class="fc bfc" id="L67" title="All 2 branches covered.">		if(((CallNode)pElement).isOpenBottom())</span>
+		{
+<span class="fc" id="L69">			pContext.drawRectangle(getBounds(pElement), ColorScheme.get().fill(), </span>
+<span class="fc" id="L70">					ColorScheme.get().fill(), Optional.of(ColorScheme.get().dropShadow()));</span>
+<span class="fc" id="L71">			final Rectangle bounds = getBounds(pElement);</span>
+<span class="fc" id="L72">			int x1 = bounds.x();</span>
+<span class="fc" id="L73">			int x2 = bounds.maxX();</span>
+<span class="fc" id="L74">			int y1 = bounds.y();</span>
+<span class="fc" id="L75">			int y3 = bounds.maxY();</span>
+<span class="fc" id="L76">			int y2 = y3 - CallNode.CALL_YGAP;</span>
+<span class="fc" id="L77">			pContext.strokeLine(x1, y1, x2, y1, ColorScheme.get().stroke(), LineStyle.SOLID);</span>
+<span class="fc" id="L78">			pContext.strokeLine(x1, y1, x1, y2, ColorScheme.get().stroke(), LineStyle.SOLID);</span>
+<span class="fc" id="L79">			pContext.strokeLine(x2, y1, x2, y2, ColorScheme.get().stroke(), LineStyle.SOLID);</span>
+<span class="fc" id="L80">			pContext.strokeLine(x1, y2, x1, y3, ColorScheme.get().stroke(), LineStyle.DOTTED);</span>
+<span class="fc" id="L81">			pContext.strokeLine(x2, y2, x2, y3, ColorScheme.get().stroke(), LineStyle.DOTTED);</span>
+<span class="fc" id="L82">		}</span>
+		else
+		{
+<span class="fc" id="L85">			pContext.drawRectangle(getBounds(pElement), ColorScheme.get().fill(), </span>
+<span class="fc" id="L86">					ColorScheme.get().stroke(), Optional.of(ColorScheme.get().dropShadow()));</span>
+		}
+<span class="fc" id="L88">	}</span>
+
+	@Override
+	public Point getConnectionPoint(Node pNode, Direction pDirection)
+	{
+<span class="fc bfc" id="L93" title="All 2 branches covered.">		if(pDirection == Direction.EAST)</span>
+		{
+<span class="fc" id="L95">			return new Point(getBounds(pNode).maxX(), getBounds(pNode).y());</span>
+		}
+		else
+		{
+<span class="fc" id="L99">			return new Point(getBounds(pNode).x(), getBounds(pNode).y());</span>
+		}
+	}
+	
+	/*
+	 * The x position is a function of the position of the implicit parameter
+	 * node and the nesting depth of the call node.
+	 */
+	private int getX(Node pNode)
+	{
+<span class="fc" id="L109">		final int nestingDepth = parent().getNestingDepth((CallNode)pNode);</span>
+<span class="fc" id="L110">		final int lifelineXCoordinate = SequenceDiagramRenderer.getCenterXCoordinate((ImplicitParameterNode)pNode.getParent());</span>
+<span class="fc" id="L111">		return lifelineXCoordinate - NESTING_SHIFT_DISTANCE + (NESTING_SHIFT_DISTANCE * nestingDepth);</span>
+	}
+	
+	@Override
+	protected Rectangle internalGetBounds(Node pNode)
+	{
+<span class="fc" id="L117">		final int y = parent().getY(pNode);</span>
+<span class="fc" id="L118">		final int maxY = parent().getMaxY(pNode);</span>
+<span class="fc" id="L119">		return new Rectangle(getX(pNode), y, WIDTH, maxY-y);</span>
+	}
+	
+	@Override
+	protected SequenceDiagramRenderer parent()
+	{
+<span class="fc" id="L125">		return (SequenceDiagramRenderer) super.parent();</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

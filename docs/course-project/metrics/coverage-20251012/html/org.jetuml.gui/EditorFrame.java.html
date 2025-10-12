@@ -1,0 +1,778 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EditorFrame.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.gui</a> &gt; <span class="el_source">EditorFrame.java</span></div><h1>EditorFrame.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.gui;
+
+import static org.jetuml.application.ApplicationResources.RESOURCES;
+
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.Transparency;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.text.MessageFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.prefs.Preferences;
+import java.util.stream.Stream;
+
+import javax.imageio.ImageIO;
+
+import org.jetuml.JetUML;
+import org.jetuml.application.FileExtensions;
+import org.jetuml.application.RecentFilesQueue;
+import org.jetuml.application.UserPreferences;
+import org.jetuml.application.UserPreferences.BooleanPreference;
+import org.jetuml.application.UserPreferences.BooleanPreferenceChangeHandler;
+import org.jetuml.diagram.Diagram;
+import org.jetuml.diagram.DiagramType;
+import org.jetuml.gui.tips.TipDialog;
+import org.jetuml.persistence.DeserializationException;
+import org.jetuml.persistence.PersistenceService;
+
+import javafx.embed.swing.SwingFXUtils;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.CheckMenuItem;
+import javafx.scene.control.Menu;
+import javafx.scene.control.MenuBar;
+import javafx.scene.control.MenuItem;
+import javafx.scene.control.SeparatorMenuItem;
+import javafx.scene.control.Tab;
+import javafx.scene.control.TabPane;
+import javafx.scene.image.Image;
+import javafx.scene.input.Clipboard;
+import javafx.scene.input.ClipboardContent;
+import javafx.scene.layout.BorderPane;
+import javafx.stage.FileChooser;
+import javafx.stage.FileChooser.ExtensionFilter;
+import javafx.stage.Stage;
+
+/**
+ * The main frame that contains panes that contain diagrams.
+ */
+public class EditorFrame extends BorderPane implements BooleanPreferenceChangeHandler
+{
+	private static final String KEY_LAST_EXPORT_DIR = &quot;lastExportDir&quot;;
+	private static final String KEY_LAST_SAVEAS_DIR = &quot;lastSaveAsDir&quot;;
+	private static final String KEY_LAST_IMAGE_FORMAT = &quot;lastImageFormat&quot;;
+	private static final String USER_MANUAL_URL = &quot;https://www.jetuml.org/docs/user-guide.html&quot;;
+	
+<span class="nc" id="L86">	private static final String[] IMAGE_FORMATS = validFormats(&quot;png&quot;, &quot;svg&quot;, &quot;jpg&quot;, &quot;gif&quot;, &quot;bmp&quot;);</span>
+	
+	private final Stage aMainStage;
+	private final Stage aDialogStage;
+<span class="nc" id="L90">	private final String aDarkModeCSSPath = getClass().getResource(&quot;DarkMode.css&quot;).toExternalForm();</span>
+<span class="nc" id="L91">	private RecentFilesQueue aRecentFiles = new RecentFilesQueue();</span>
+	private Menu aRecentFilesMenu;
+	private WelcomeTab aWelcomeTab;
+
+	/**
+	 * Constructs a blank frame with a desktop pane but no diagram window.
+	 * 
+	 * @param pMainStage The main stage used by the UMLEditor
+	 * @param pDialogStage The stage for all dialogs.
+	 */
+	public EditorFrame(Stage pMainStage, Stage pDialogStage) 
+<span class="nc" id="L102">	{</span>
+<span class="nc" id="L103">		aMainStage = pMainStage;</span>
+<span class="nc" id="L104">		aDialogStage = pDialogStage;</span>
+<span class="nc" id="L105">		aRecentFiles.deserialize(Preferences.userNodeForPackage(JetUML.class).get(&quot;recent&quot;, &quot;&quot;).trim());</span>
+
+<span class="nc" id="L107">		MenuBar menuBar = new MenuBar();</span>
+<span class="nc" id="L108">		setTop(menuBar);</span>
+		
+<span class="nc" id="L110">		TabPane tabPane = new TabPane();</span>
+//		tabPane.setTabDragPolicy(TabPane.TabDragPolicy.REORDER); // This JavaFX feature is too buggy to use at the moment see issue #455
+<span class="nc" id="L112">		tabPane.getSelectionModel().selectedItemProperty().addListener((pValue, pOld, pNew) -&gt; setMenuVisibility());</span>
+<span class="nc" id="L113">		setCenter( tabPane );</span>
+
+<span class="nc" id="L115">		List&lt;NewDiagramHandler&gt; newDiagramHandlers = createNewDiagramHandlers();</span>
+<span class="nc" id="L116">		createFileMenu(menuBar, newDiagramHandlers);</span>
+<span class="nc" id="L117">		createEditMenu(menuBar);</span>
+<span class="nc" id="L118">		createViewMenu(menuBar);</span>
+<span class="nc" id="L119">		createHelpMenu(menuBar);</span>
+<span class="nc" id="L120">		setMenuVisibility();</span>
+		
+<span class="nc" id="L122">		aWelcomeTab = new WelcomeTab(newDiagramHandlers);</span>
+<span class="nc" id="L123">		showWelcomeTabIfNecessary();</span>
+		
+<span class="nc" id="L125">		UserPreferences.instance().addBooleanPreferenceChangeHandler(this);</span>
+		
+<span class="nc" id="L127">		setOnKeyPressed(e -&gt; </span>
+		{
+<span class="nc bnc" id="L129" title="All 4 branches missed.">			if( !isWelcomeTabShowing() &amp;&amp; e.isShiftDown() )</span>
+			{
+<span class="nc" id="L131">				getSelectedDiagramTab().shiftKeyPressed();</span>
+			}
+<span class="nc" id="L133">		});</span>
+<span class="nc" id="L134">		setOnKeyTyped(e -&gt; </span>
+		{
+<span class="nc bnc" id="L136" title="All 4 branches missed.">			if( !isWelcomeTabShowing() &amp;&amp; !e.isShortcutDown())</span>
+			{
+<span class="nc" id="L138">				getSelectedDiagramTab().keyTyped(e.getCharacter());</span>
+			}
+<span class="nc" id="L140">		});</span>
+<span class="nc" id="L141">	}</span>
+	
+	/* Returns the subset of pDesiredFormats for which a registered image writer 
+	 * claims to recognize the format */
+	private static String[] validFormats(String... pDesiredFormats)
+	{
+<span class="nc" id="L147">		List&lt;String&gt; recognizedWriters = Arrays.asList(ImageIO.getWriterFormatNames());</span>
+<span class="nc" id="L148">		List&lt;String&gt; validFormats = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L149" title="All 2 branches missed.">		for( String format : pDesiredFormats )</span>
+		{
+<span class="nc bnc" id="L151" title="All 4 branches missed.">			if( recognizedWriters.contains(format) || &quot;svg&quot;.equals(format))</span>
+			{
+<span class="nc" id="L153">				validFormats.add(format);</span>
+			}
+		}
+<span class="nc" id="L156">		return validFormats.toArray(new String[validFormats.size()]);</span>
+	}
+	
+	/*
+	 * Traverses all menu items up to the second level (top level
+	 * menus and their immediate sub-menus), that have &quot;true&quot; in their user data,
+	 * indicating that they should only be enabled if there is a diagram 
+	 * present. Then, sets their visibility to the boolean value that
+	 * indicates whether there is a diagram present.
+	 * 
+	 * This method assumes that any sub-menu beyond the second level (sub-menus of
+	 * top menus) will NOT be diagram-specific.
+	 */
+	private void setMenuVisibility()
+	{
+<span class="nc" id="L171">			((MenuBar)getTop()).getMenus().stream() // All top level menus</span>
+<span class="nc" id="L172">				.flatMap(menu -&gt; Stream.concat(Stream.of(menu), menu.getItems().stream())) // All menus and immediate sub-menus</span>
+<span class="nc" id="L173">				.filter( item -&gt; Boolean.TRUE.equals(item.getUserData())) // Retain only diagram-relevant menu items</span>
+<span class="nc" id="L174">				.forEach( item -&gt; item.setDisable(isWelcomeTabShowing()));</span>
+<span class="nc" id="L175">	}</span>
+	
+	// Returns the new menu
+	private void createFileMenu(MenuBar pMenuBar, List&lt;NewDiagramHandler&gt; pNewDiagramHandlers) 
+	{
+<span class="nc" id="L180">		MenuFactory factory = new MenuFactory(RESOURCES);</span>
+		
+		// Special menu items whose creation can't be inlined in the factory call.
+<span class="nc" id="L183">		Menu newMenu = factory.createMenu(&quot;file.new&quot;, false);</span>
+<span class="nc bnc" id="L184" title="All 2 branches missed.">		for( NewDiagramHandler handler : pNewDiagramHandlers )</span>
+		{
+<span class="nc" id="L186">			newMenu.getItems().add(factory.createMenuItem(handler.getDiagramType().getName().toLowerCase(), false, handler));</span>
+<span class="nc" id="L187">		}</span>
+		
+<span class="nc" id="L189">		aRecentFilesMenu = factory.createMenu(&quot;file.recent&quot;, false);</span>
+<span class="nc" id="L190">		buildRecentFilesMenu();</span>
+		
+		// Standard factory invocation
+<span class="nc" id="L193">		pMenuBar.getMenus().add(factory.createMenu(&quot;file&quot;, false, </span>
+				newMenu,
+<span class="nc" id="L195">				factory.createMenuItem(&quot;file.open&quot;, false, event -&gt; openFile()),</span>
+				aRecentFilesMenu,
+<span class="nc" id="L197">				factory.createMenuItem(&quot;file.close&quot;, true, event -&gt; close()),</span>
+<span class="nc" id="L198">				factory.createMenuItem(&quot;file.save&quot;, true, event -&gt; save()),</span>
+<span class="nc" id="L199">				factory.createMenuItem(&quot;file.save_as&quot;, true, event -&gt; saveAs()),</span>
+<span class="nc" id="L200">				factory.createMenuItem(&quot;file.duplicate&quot;, true, event -&gt; duplicate()),</span>
+<span class="nc" id="L201">				factory.createMenuItem(&quot;file.export_image&quot;, true, event -&gt; exportImage()),</span>
+<span class="nc" id="L202">				factory.createMenuItem(&quot;file.copy_to_clipboard&quot;, true, event -&gt; copyToClipboard()),</span>
+				new SeparatorMenuItem(),
+<span class="nc" id="L204">				factory.createMenuItem(&quot;file.exit&quot;, false, event -&gt; exit())));</span>
+<span class="nc" id="L205">	}</span>
+	
+	private void createEditMenu(MenuBar pMenuBar) 
+	{
+<span class="nc" id="L209">		MenuFactory factory = new MenuFactory(RESOURCES);</span>
+<span class="nc" id="L210">		pMenuBar.getMenus().add(factory.createMenu(&quot;edit&quot;, true, </span>
+<span class="nc" id="L211">				factory.createMenuItem(&quot;edit.undo&quot;, true, pEvent -&gt; getSelectedDiagramTab().undo()),</span>
+<span class="nc" id="L212">				factory.createMenuItem(&quot;edit.redo&quot;, true, pEvent -&gt; getSelectedDiagramTab().redo()),</span>
+<span class="nc" id="L213">				factory.createMenuItem(&quot;edit.selectall&quot;, true, pEvent -&gt; getSelectedDiagramTab().selectAll()),</span>
+<span class="nc" id="L214">				factory.createMenuItem(&quot;edit.properties&quot;, true, pEvent -&gt; getSelectedDiagramTab().editSelected()),</span>
+<span class="nc" id="L215">				factory.createMenuItem(&quot;edit.cut&quot;, true, pEvent -&gt; getSelectedDiagramTab().cut()),</span>
+<span class="nc" id="L216">				factory.createMenuItem(&quot;edit.paste&quot;, true, pEvent -&gt; getSelectedDiagramTab().paste()),</span>
+<span class="nc" id="L217">				factory.createMenuItem(&quot;edit.copy&quot;, true, pEvent -&gt; getSelectedDiagramTab().copy()),</span>
+<span class="nc" id="L218">				factory.createMenuItem(&quot;edit.delete&quot;, true, pEvent -&gt; getSelectedDiagramTab().removeSelected() )));</span>
+<span class="nc" id="L219">	}</span>
+	
+	private void createViewMenu(MenuBar pMenuBar) 
+	{
+<span class="nc" id="L223">		MenuFactory factory = new MenuFactory(RESOURCES);</span>
+<span class="nc" id="L224">		pMenuBar.getMenus().add(factory.createMenu(&quot;view&quot;, false, </span>
+				
+<span class="nc" id="L226">				factory.createCheckMenuItem(&quot;view.show_grid&quot;, false, </span>
+<span class="nc" id="L227">				UserPreferences.instance().getBoolean(BooleanPreference.showGrid), </span>
+<span class="nc" id="L228">					pEvent -&gt; UserPreferences.instance().setBoolean(BooleanPreference.showGrid, </span>
+<span class="nc" id="L229">							((CheckMenuItem) pEvent.getSource()).isSelected())),</span>
+			
+<span class="nc" id="L231">				factory.createCheckMenuItem(&quot;view.show_hints&quot;, false, </span>
+<span class="nc" id="L232">				UserPreferences.instance().getBoolean(BooleanPreference.showToolHints),</span>
+<span class="nc" id="L233">				pEvent -&gt; UserPreferences.instance().setBoolean(BooleanPreference.showToolHints, </span>
+<span class="nc" id="L234">						((CheckMenuItem) pEvent.getSource()).isSelected())),</span>
+				
+<span class="nc" id="L236">				factory.createCheckMenuItem(&quot;view.verbose_tooltips&quot;, false, </span>
+<span class="nc" id="L237">						UserPreferences.instance().getBoolean(BooleanPreference.verboseToolTips),</span>
+<span class="nc" id="L238">						pEvent -&gt; UserPreferences.instance().setBoolean(BooleanPreference.verboseToolTips, </span>
+<span class="nc" id="L239">								((CheckMenuItem) pEvent.getSource()).isSelected())),</span>
+				
+<span class="nc" id="L241">				factory.createCheckMenuItem(&quot;view.autoedit_node&quot;, false, </span>
+<span class="nc" id="L242">						UserPreferences.instance().getBoolean(BooleanPreference.autoEditNode),</span>
+<span class="nc" id="L243">						event -&gt; UserPreferences.instance().setBoolean(BooleanPreference.autoEditNode, </span>
+<span class="nc" id="L244">								((CheckMenuItem) event.getSource()).isSelected())),</span>
+				
+<span class="nc" id="L246">				factory.createCheckMenuItem(&quot;view.dark_mode&quot;, false, </span>
+<span class="nc" id="L247">						UserPreferences.instance().getBoolean(BooleanPreference.darkMode),</span>
+<span class="nc" id="L248">						event -&gt; UserPreferences.instance().setBoolean(BooleanPreference.darkMode, </span>
+<span class="nc" id="L249">								((CheckMenuItem) event.getSource()).isSelected())),</span>
+		
+<span class="nc" id="L251">				factory.createMenuItem(&quot;view.diagram_size&quot;, false, event -&gt; new DiagramSizeDialog(aDialogStage).show()),</span>
+<span class="nc" id="L252">				factory.createMenuItem(&quot;view.font&quot;, false, event -&gt; new FontDialog(aDialogStage).show()),</span>
+<span class="nc" id="L253">				factory.createMenuItem(&quot;view.notifications&quot;, false, event -&gt; new NotificationTimeDialog(aDialogStage).show()),</span>
+<span class="nc" id="L254">				factory.createMenuItem(&quot;view.zoom_in&quot;, true, event -&gt; getSelectedDiagramTab().zoomIn()),</span>
+<span class="nc" id="L255">				factory.createMenuItem(&quot;view.zoom_out&quot;, true, event -&gt; getSelectedDiagramTab().zoomOut()),</span>
+<span class="nc" id="L256">				factory.createMenuItem(&quot;view.reset_zoom&quot;, true, event -&gt; getSelectedDiagramTab().resetZoom())));</span>
+<span class="nc" id="L257">	}</span>
+	
+	private void createHelpMenu(MenuBar pMenuBar) 
+	{
+<span class="nc" id="L261">		MenuFactory factory = new MenuFactory(RESOURCES);</span>
+<span class="nc" id="L262">		pMenuBar.getMenus().add(factory.createMenu(&quot;help&quot;, false,</span>
+<span class="nc" id="L263">				factory.createMenuItem(&quot;help.tips&quot;, false, event -&gt; new TipDialog(aDialogStage).show()),</span>
+<span class="nc" id="L264">				factory.createMenuItem(&quot;help.guide&quot;, false, event -&gt; JetUML.openBrowser(USER_MANUAL_URL)),</span>
+<span class="nc" id="L265">				factory.createMenuItem(&quot;help.about&quot;, false, event -&gt; new AboutDialog(aDialogStage).show())));</span>
+<span class="nc" id="L266">	}</span>
+	
+	/*
+	 * @return The diagram tab whose corresponding file is pFile,
+	 * or empty if there are none.
+	 */
+	private Optional&lt;DiagramTab&gt; findTabFor(File pFile)
+	{
+<span class="nc bnc" id="L274" title="All 2 branches missed.">		for( Tab tab : tabs() )</span>
+		{
+<span class="nc bnc" id="L276" title="All 2 branches missed.">			if(tab instanceof DiagramTab diagramTab)</span>
+			{	
+<span class="nc bnc" id="L278" title="All 2 branches missed.">				if(diagramTab.getFile().isPresent()	&amp;&amp; </span>
+<span class="nc bnc" id="L279" title="All 2 branches missed.">						diagramTab.getFile().get().getAbsoluteFile().equals(pFile.getAbsoluteFile())) </span>
+				{
+<span class="nc" id="L281">					return Optional.of(diagramTab);</span>
+				}
+			}
+<span class="nc" id="L284">		}</span>
+<span class="nc" id="L285">		return Optional.empty();</span>
+	}
+	
+	/*
+	 * Opens a file with the given name, or switches to the frame if it is already
+	 * open.
+	 * 
+	 * @param pName the file to open. Not null.
+	 */
+	private void open(File pFile) 
+	{
+<span class="nc bnc" id="L296" title="All 2 branches missed.">		assert pFile != null;</span>
+<span class="nc" id="L297">		Optional&lt;DiagramTab&gt; tab = findTabFor(pFile);</span>
+<span class="nc bnc" id="L298" title="All 2 branches missed.">		if( tab.isPresent() )</span>
+		{
+<span class="nc" id="L300">			tabPane().getSelectionModel().select(tab.get());</span>
+<span class="nc" id="L301">			addRecentFile(pFile.getPath());</span>
+<span class="nc" id="L302">			return;</span>
+		}
+		
+		try 
+		{
+<span class="nc" id="L307">			Diagram diagram = PersistenceService.read(pFile);</span>
+<span class="nc" id="L308">			setOpenFileAsDiagram(pFile, diagram);</span>
+		}
+<span class="nc" id="L310">		catch(IOException | DeserializationException exception) </span>
+		{
+<span class="nc" id="L312">			Alert alert = new DeserializationErrorAlert(exception);</span>
+<span class="nc" id="L313">			alert.initOwner(aMainStage);</span>
+<span class="nc" id="L314">			alert.showAndWait();</span>
+<span class="nc" id="L315">		}</span>
+<span class="nc" id="L316">	}</span>
+	
+	/**
+	 * Given a valid file and the diagram loaded from this file,
+	 * opens a new tab in the editor with this combination.
+	 * 
+	 * @param pFile A valid diagram file.
+	 * @param pDiagram The diagram loaded from the file.
+	 */
+	public void setOpenFileAsDiagram(File pFile, Diagram pDiagram)
+	{
+<span class="nc" id="L327">		DiagramTab frame = new DiagramTab(pDiagram);</span>
+<span class="nc" id="L328">		frame.setFile(pFile.getAbsoluteFile());</span>
+<span class="nc" id="L329">		addRecentFile(pFile.getPath());</span>
+<span class="nc" id="L330">		insertGraphFrameIntoTabbedPane(frame);</span>
+<span class="nc" id="L331">	}</span>
+	
+	private List&lt;NamedHandler&gt; getOpenFileHandlers()
+	{
+<span class="nc" id="L335">		List&lt;NamedHandler&gt; result = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L336" title="All 2 branches missed.">		for( File file : aRecentFiles )</span>
+   		{
+<span class="nc" id="L338">			result.add(new NamedHandler(file.getName(), pEvent -&gt; open(file)));</span>
+<span class="nc" id="L339">   		}</span>
+<span class="nc" id="L340">		return Collections.unmodifiableList(result);</span>
+	}
+	
+	private List&lt;NewDiagramHandler&gt; createNewDiagramHandlers()
+	{
+<span class="nc" id="L345">		List&lt;NewDiagramHandler&gt; result = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L346" title="All 2 branches missed.">		for( DiagramType diagramType : DiagramType.values() )</span>
+		{
+<span class="nc" id="L348">			result.add(new NewDiagramHandler(diagramType, pEvent -&gt;</span>
+			{
+<span class="nc" id="L350">				insertGraphFrameIntoTabbedPane(new DiagramTab(new Diagram(diagramType)));</span>
+<span class="nc" id="L351">			}));</span>
+		}
+<span class="nc" id="L353">		return Collections.unmodifiableList(result);</span>
+	}
+
+	/*
+	 * Adds a file name to the &quot;recent files&quot; list and rebuilds the &quot;recent files&quot;
+	 * menu.
+	 * 
+	 * @param pNewFile the file name to add
+	 */
+	private void addRecentFile(String pNewFile) 
+	{
+<span class="nc" id="L364">		aRecentFiles.add(pNewFile);</span>
+<span class="nc" id="L365">		buildRecentFilesMenu();</span>
+<span class="nc" id="L366">	}</span>
+	
+   	/*
+   	 * Rebuilds the &quot;recent files&quot; menu. Only works if the number of
+   	 * recent files is less than 10. Otherwise, additional logic will need
+   	 * to be added to 0-index the mnemonics for files 1-9.
+   	 */
+   	private void buildRecentFilesMenu()
+   	{ 
+<span class="nc" id="L375">   		aRecentFilesMenu.getItems().clear();</span>
+<span class="nc bnc" id="L376" title="All 2 branches missed.">   		aRecentFilesMenu.setDisable(!(aRecentFiles.size() &gt; 0));</span>
+<span class="nc" id="L377">   		int i = 1;</span>
+<span class="nc bnc" id="L378" title="All 2 branches missed.">   		for( File file : aRecentFiles )</span>
+   		{
+<span class="nc" id="L380">   			String name = &quot;_&quot; + i + &quot; &quot; + file.getName();</span>
+<span class="nc" id="L381">   			MenuItem item = new MenuItem(name);</span>
+<span class="nc" id="L382">   			aRecentFilesMenu.getItems().add(item);</span>
+<span class="nc" id="L383">   			item.setOnAction(pEvent -&gt; open(file));</span>
+<span class="nc" id="L384">            i++;</span>
+<span class="nc" id="L385">   		}</span>
+<span class="nc" id="L386">   }</span>
+
+	private void openFile() 
+	{
+<span class="nc" id="L390">		FileChooser fileChooser = new FileChooser();</span>
+<span class="nc" id="L391">		fileChooser.setInitialDirectory(aRecentFiles.getMostRecentDirectory());</span>
+<span class="nc" id="L392">		fileChooser.getExtensionFilters().addAll(FileExtensions.all());</span>
+
+<span class="nc" id="L394">		File selectedFile = fileChooser.showOpenDialog(aMainStage);</span>
+		
+<span class="nc bnc" id="L396" title="All 2 branches missed.">		if(selectedFile != null) </span>
+		{
+<span class="nc" id="L398">			open(selectedFile);</span>
+		}
+<span class="nc" id="L400">	}</span>
+
+	/**
+	 * Copies the current image to the clipboard.
+	 */
+	public void copyToClipboard() 
+	{
+<span class="nc" id="L407">		DiagramTab frame = getSelectedDiagramTab();</span>
+<span class="nc" id="L408">		final Image image = frame.createImage();</span>
+<span class="nc" id="L409">		final Clipboard clipboard = Clipboard.getSystemClipboard();</span>
+<span class="nc" id="L410">	    final ClipboardContent content = new ClipboardContent();</span>
+<span class="nc" id="L411">	    content.putImage(image);</span>
+<span class="nc" id="L412">	    clipboard.setContent(content);</span>
+<span class="nc" id="L413">		NotificationService.instance().spawnNotification(RESOURCES.getString(&quot;dialog.to_clipboard.message&quot;), ToastNotification.Type.SUCCESS);</span>
+<span class="nc" id="L414">	}</span>
+
+	/* @pre there is a selected diagram tab, not just the welcome tab */
+	private DiagramTab getSelectedDiagramTab()
+	{
+<span class="nc" id="L419">		Tab tab = ((TabPane) getCenter()).getSelectionModel().getSelectedItem();</span>
+<span class="nc bnc" id="L420" title="All 2 branches missed.">		assert tab instanceof DiagramTab; // implies a null check.</span>
+<span class="nc" id="L421">		return (DiagramTab) tab;</span>
+	}
+
+	private void close() 
+	{
+<span class="nc" id="L426">		DiagramTab diagramTab = getSelectedDiagramTab();</span>
+		// we only want to check attempts to close a frame
+<span class="nc bnc" id="L428" title="All 2 branches missed.">		if( diagramTab.hasUnsavedChanges() ) </span>
+		{
+			// ask user if it is ok to close
+<span class="nc" id="L431">			Alert alert = new Alert(AlertType.CONFIRMATION, RESOURCES.getString(&quot;dialog.close.ok&quot;), ButtonType.YES, ButtonType.NO);</span>
+<span class="nc" id="L432">			alert.initOwner(aMainStage);</span>
+<span class="nc" id="L433">			alert.setTitle(RESOURCES.getString(&quot;dialog.close.title&quot;));</span>
+<span class="nc" id="L434">			alert.setHeaderText(RESOURCES.getString(&quot;dialog.close.title&quot;));</span>
+<span class="nc" id="L435">			alert.showAndWait();</span>
+
+<span class="nc bnc" id="L437" title="All 2 branches missed.">			if(alert.getResult() == ButtonType.YES) </span>
+			{
+<span class="nc" id="L439">				removeGraphFrameFromTabbedPane(diagramTab);</span>
+			}
+<span class="nc" id="L441">			return;</span>
+		} 
+		else 
+		{
+<span class="nc" id="L445">			removeGraphFrameFromTabbedPane(diagramTab);</span>
+		}
+<span class="nc" id="L447">	}</span>
+	
+	/**
+	 * If a user confirms that they want to close their modified graph, this method
+	 * will remove it from the current list of tabs.
+	 * 
+	 * @param pDiagramTab The current Tab that one wishes to close.
+	 */
+	public void close(DiagramTab pDiagramTab) 
+	{
+<span class="nc bnc" id="L457" title="All 2 branches missed.">		if(pDiagramTab.hasUnsavedChanges()) </span>
+		{
+<span class="nc" id="L459">			Alert alert = new Alert(AlertType.CONFIRMATION, RESOURCES.getString(&quot;dialog.close.ok&quot;), ButtonType.YES, ButtonType.NO);</span>
+<span class="nc" id="L460">			alert.initOwner(aMainStage);</span>
+<span class="nc" id="L461">			alert.setTitle(RESOURCES.getString(&quot;dialog.close.title&quot;));</span>
+<span class="nc" id="L462">			alert.setHeaderText(RESOURCES.getString(&quot;dialog.close.title&quot;));</span>
+<span class="nc" id="L463">			alert.showAndWait();</span>
+
+<span class="nc bnc" id="L465" title="All 2 branches missed.">			if(alert.getResult() == ButtonType.YES) </span>
+			{
+<span class="nc" id="L467">				removeGraphFrameFromTabbedPane(pDiagramTab);</span>
+			}
+<span class="nc" id="L469">		}</span>
+		else
+		{
+<span class="nc" id="L472">			removeGraphFrameFromTabbedPane(pDiagramTab);</span>
+		}
+<span class="nc" id="L474">	}</span>
+	
+	private void duplicate() 
+	{
+<span class="nc" id="L478">		insertGraphFrameIntoTabbedPane(new DiagramTab(getSelectedDiagramTab().getDiagram().duplicate()));</span>
+<span class="nc" id="L479">	}</span>
+	
+	
+
+	private void save() 
+	{
+<span class="nc" id="L485">		DiagramTab diagramTab = getSelectedDiagramTab();</span>
+<span class="nc" id="L486">		Optional&lt;File&gt; file = diagramTab.getFile();</span>
+<span class="nc bnc" id="L487" title="All 2 branches missed.">		if(!file.isPresent()) </span>
+		{
+<span class="nc" id="L489">			saveAs();</span>
+<span class="nc" id="L490">			return;</span>
+		}
+		try 
+		{
+<span class="nc" id="L494">			PersistenceService.save(diagramTab.getDiagram(), file.get());</span>
+<span class="nc" id="L495">			diagramTab.diagramSaved();</span>
+		} 
+<span class="nc" id="L497">		catch(IOException exception) </span>
+		{
+<span class="nc" id="L499">			Alert alert = new Alert(AlertType.ERROR, RESOURCES.getString(&quot;error.save_file&quot;), ButtonType.OK);</span>
+<span class="nc" id="L500">			alert.initOwner(aMainStage);</span>
+<span class="nc" id="L501">			alert.showAndWait();</span>
+<span class="nc" id="L502">		}</span>
+<span class="nc" id="L503">	}</span>
+
+	private void saveAs() 
+	{
+<span class="nc" id="L507">		DiagramTab diagramTab = getSelectedDiagramTab();</span>
+<span class="nc" id="L508">		Diagram diagram = diagramTab.getDiagram();</span>
+
+<span class="nc" id="L510">		FileChooser fileChooser = new FileChooser();</span>
+<span class="nc" id="L511">		fileChooser.getExtensionFilters().addAll(FileExtensions.all());</span>
+<span class="nc" id="L512">		fileChooser.setSelectedExtensionFilter(FileExtensions.forDiagramType(diagram.getType()));</span>
+
+<span class="nc bnc" id="L514" title="All 2 branches missed.">		if(diagramTab.getFile().isPresent()) </span>
+		{
+<span class="nc" id="L516">			fileChooser.setInitialDirectory(diagramTab.getFile().get().getParentFile());</span>
+<span class="nc" id="L517">			fileChooser.setInitialFileName(diagramTab.getFile().get().getName());</span>
+		} 
+		else 
+		{
+<span class="nc" id="L521">			fileChooser.setInitialDirectory(getLastDir(KEY_LAST_SAVEAS_DIR));</span>
+<span class="nc" id="L522">			fileChooser.setInitialFileName(&quot;&quot;);</span>
+		}
+
+		try 
+		{
+<span class="nc" id="L527">			File result = fileChooser.showSaveDialog(aMainStage);</span>
+<span class="nc bnc" id="L528" title="All 2 branches missed.">			if( result != null )</span>
+			{
+<span class="nc" id="L530">				PersistenceService.save(diagram, result);</span>
+<span class="nc" id="L531">				addRecentFile(result.getAbsolutePath());</span>
+<span class="nc" id="L532">				diagramTab.setFile(result);</span>
+<span class="nc" id="L533">				diagramTab.setText(diagramTab.getFile().get().getName());</span>
+<span class="nc" id="L534">				diagramTab.diagramSaved();</span>
+<span class="nc" id="L535">				File dir = result.getParentFile();</span>
+<span class="nc bnc" id="L536" title="All 2 branches missed.">				if( dir != null )</span>
+				{
+<span class="nc" id="L538">					setLastDir(KEY_LAST_SAVEAS_DIR, dir);</span>
+				}
+			}
+		} 
+<span class="nc" id="L542">		catch (IOException exception) </span>
+		{
+<span class="nc" id="L544">			Alert alert = new Alert(AlertType.ERROR, RESOURCES.getString(&quot;error.save_file&quot;), ButtonType.OK);</span>
+<span class="nc" id="L545">			alert.initOwner(aMainStage);</span>
+<span class="nc" id="L546">			alert.showAndWait();</span>
+<span class="nc" id="L547">		}</span>
+<span class="nc" id="L548">	}</span>
+
+	private static File getLastDir(String pKey)
+	{
+<span class="nc" id="L552">		String dir = Preferences.userNodeForPackage(JetUML.class).get(pKey, &quot;.&quot;);</span>
+<span class="nc" id="L553">		File result = new File(dir);</span>
+<span class="nc bnc" id="L554" title="All 4 branches missed.">		if( !(result.exists() &amp;&amp; result.isDirectory()))</span>
+		{
+<span class="nc" id="L556">			result = new File(&quot;.&quot;);</span>
+		}
+<span class="nc" id="L558">		return result;</span>
+	}
+	
+	private static void setLastDir(String pKey, File pLastExportDir)
+	{
+<span class="nc" id="L563">		Preferences.userNodeForPackage(JetUML.class).put(pKey, pLastExportDir.getAbsolutePath().toString());</span>
+<span class="nc" id="L564">	}</span>
+	
+	/**
+	 * Exports the current graph to an image file.
+	 */
+	private void exportImage() 
+	{
+<span class="nc" id="L571">		FileChooser fileChooser = getImageFileChooser(getLastDir(KEY_LAST_EXPORT_DIR), </span>
+<span class="nc" id="L572">				Preferences.userNodeForPackage(JetUML.class).get(KEY_LAST_IMAGE_FORMAT, &quot;png&quot;));</span>
+<span class="nc" id="L573">		File file = fileChooser.showSaveDialog(aMainStage);</span>
+<span class="nc bnc" id="L574" title="All 2 branches missed.">		if(file == null) </span>
+		{
+<span class="nc" id="L576">			return;</span>
+		}
+
+<span class="nc" id="L579">		String fileName = file.getPath();</span>
+<span class="nc" id="L580">		String format = fileName.substring(fileName.lastIndexOf(&quot;.&quot;) + 1);</span>
+<span class="nc" id="L581">		Preferences.userNodeForPackage(JetUML.class).put(KEY_LAST_IMAGE_FORMAT, format);</span>
+				
+<span class="nc" id="L583">		File dir = file.getParentFile();</span>
+<span class="nc bnc" id="L584" title="All 2 branches missed.">		if( dir != null )</span>
+		{
+<span class="nc" id="L586">			setLastDir(KEY_LAST_EXPORT_DIR, dir);</span>
+		}
+<span class="nc" id="L588">		DiagramTab frame = getSelectedDiagramTab();</span>
+<span class="nc" id="L589">		try (OutputStream out = new FileOutputStream(file)) </span>
+		{
+<span class="nc bnc" id="L591" title="All 2 branches missed.">			if (&quot;svg&quot;.equals(format))</span>
+			{
+<span class="nc" id="L593">				out.write(frame.createSvgImage().getBytes(StandardCharsets.UTF_8));</span>
+			}
+			else
+			{
+<span class="nc" id="L597">				BufferedImage image = getBufferedImage(frame); </span>
+<span class="nc bnc" id="L598" title="All 2 branches missed.">				if(&quot;jpg&quot;.equals(format))	// to correct the display of JPEG/JPG images (removes red hue)</span>
+				{
+<span class="nc" id="L600">					BufferedImage imageRGB = new BufferedImage(image.getWidth(), image.getHeight(), Transparency.OPAQUE);</span>
+<span class="nc" id="L601">					Graphics2D graphics = imageRGB.createGraphics();</span>
+<span class="nc" id="L602">					graphics.drawImage(image, 0,  0, null);</span>
+<span class="nc" id="L603">					ImageIO.write(imageRGB, format, out);</span>
+<span class="nc" id="L604">					graphics.dispose();</span>
+<span class="nc" id="L605">				}</span>
+<span class="nc bnc" id="L606" title="All 2 branches missed.">				else if(&quot;bmp&quot;.equals(format))	// to correct the BufferedImage type</span>
+				{
+<span class="nc" id="L608">					BufferedImage imageRGB = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_RGB);</span>
+<span class="nc" id="L609">					Graphics2D graphics = imageRGB.createGraphics();</span>
+<span class="nc" id="L610">					graphics.drawImage(image, 0, 0, Color.WHITE, null);</span>
+<span class="nc" id="L611">					ImageIO.write(imageRGB, format, out);</span>
+<span class="nc" id="L612">					graphics.dispose();</span>
+<span class="nc" id="L613">				}</span>
+				else
+				{
+<span class="nc" id="L616">					ImageIO.write(image, format, out);</span>
+				}
+			}
+		} 
+<span class="nc" id="L620">		catch(IOException exception) </span>
+		{
+<span class="nc" id="L622">			Alert alert = new Alert(AlertType.ERROR, RESOURCES.getString(&quot;error.save_file&quot;), ButtonType.OK);</span>
+<span class="nc" id="L623">			alert.initOwner(aMainStage);</span>
+<span class="nc" id="L624">			alert.showAndWait();</span>
+<span class="nc" id="L625">		}</span>
+<span class="nc" id="L626">	}</span>
+	
+	private FileChooser getImageFileChooser(File pInitialDirectory, String pInitialFormat) 
+	{
+<span class="nc bnc" id="L630" title="All 4 branches missed.">		assert pInitialDirectory.exists() &amp;&amp; pInitialDirectory.isDirectory();</span>
+<span class="nc" id="L631">		DiagramTab frame = getSelectedDiagramTab();</span>
+
+<span class="nc" id="L633">		FileChooser fileChooser = new FileChooser();</span>
+<span class="nc bnc" id="L634" title="All 2 branches missed.">		for(String format : IMAGE_FORMATS ) </span>
+		{
+<span class="nc" id="L636">			ExtensionFilter filter = </span>
+<span class="nc" id="L637">					new ExtensionFilter(format.toUpperCase() + &quot; &quot; + RESOURCES.getString(&quot;files.image.name&quot;), &quot;*.&quot; +format);</span>
+<span class="nc" id="L638">			fileChooser.getExtensionFilters().add(filter);</span>
+<span class="nc bnc" id="L639" title="All 2 branches missed.">			if( format.equals(pInitialFormat ))</span>
+			{
+<span class="nc" id="L641">				fileChooser.setSelectedExtensionFilter(filter);</span>
+			}
+		}
+<span class="nc" id="L644">		fileChooser.setInitialDirectory(pInitialDirectory);</span>
+
+		// If the file was previously saved, use that to suggest a file name root.
+<span class="nc bnc" id="L647" title="All 2 branches missed.">		if(frame.getFile().isPresent()) </span>
+		{
+<span class="nc" id="L649">			File file = FileExtensions.clipApplicationExtension(frame.getFile().get());</span>
+<span class="nc" id="L650">			fileChooser.setInitialDirectory(file.getParentFile());</span>
+<span class="nc" id="L651">			fileChooser.setInitialFileName(file.getName());</span>
+		}
+<span class="nc" id="L653">		return fileChooser;</span>
+	}
+
+	private static BufferedImage getBufferedImage(DiagramTab pDiagramTab) 
+	{
+<span class="nc" id="L658">		return SwingFXUtils.fromFXImage(pDiagramTab.createImage(), null);</span>
+	}
+	
+	private int getNumberOfUsavedDiagrams()
+	{
+<span class="nc" id="L663">		return (int) tabs().stream()</span>
+<span class="nc" id="L664">			.filter( tab -&gt; tab instanceof DiagramTab ) </span>
+<span class="nc" id="L665">			.filter( frame -&gt; ((DiagramTab) frame).hasUnsavedChanges())</span>
+<span class="nc" id="L666">			.count();</span>
+	}
+
+	/**
+	 * Exits the program if no graphs have been modified or if the user agrees to
+	 * abandon modified graphs.
+	 */
+	public void exit() 
+	{
+<span class="nc" id="L675">		final int modcount = getNumberOfUsavedDiagrams();</span>
+<span class="nc bnc" id="L676" title="All 2 branches missed.">		if(modcount &gt; 0) </span>
+		{
+<span class="nc" id="L678">			Alert alert = new Alert(AlertType.CONFIRMATION, </span>
+<span class="nc" id="L679">					MessageFormat.format(RESOURCES.getString(&quot;dialog.exit.ok&quot;), new Object[] { Integer.valueOf(modcount) }),</span>
+					ButtonType.YES, 
+					ButtonType.NO);
+<span class="nc" id="L682">			alert.initOwner(aMainStage);</span>
+<span class="nc" id="L683">			alert.setTitle(RESOURCES.getString(&quot;dialog.exit.title&quot;));</span>
+<span class="nc" id="L684">			alert.setHeaderText(RESOURCES.getString(&quot;dialog.exit.title&quot;));</span>
+<span class="nc" id="L685">			alert.showAndWait();</span>
+
+<span class="nc bnc" id="L687" title="All 2 branches missed.">			if(alert.getResult() == ButtonType.YES) </span>
+			{
+<span class="nc" id="L689">				Preferences.userNodeForPackage(JetUML.class).put(&quot;recent&quot;, aRecentFiles.serialize());</span>
+<span class="nc" id="L690">				System.exit(0);</span>
+			}
+<span class="nc" id="L692">		}</span>
+		else 
+		{
+<span class="nc" id="L695">			Preferences.userNodeForPackage(JetUML.class).put(&quot;recent&quot;, aRecentFiles.serialize());</span>
+<span class="nc" id="L696">			System.exit(0);</span>
+		}
+<span class="nc" id="L698">	}		</span>
+	
+	/**
+	 * Getter for the dialog stage.
+	 * 
+	 * @return The dialog stage.
+	 */
+	public Stage getDialogStage()
+	{
+<span class="nc" id="L707">		return aDialogStage;</span>
+	}
+	
+	private List&lt;Tab&gt; tabs()
+	{
+<span class="nc" id="L712">		return ((TabPane) getCenter()).getTabs();</span>
+	}
+	
+	private TabPane tabPane()
+	{
+<span class="nc" id="L717">		return (TabPane) getCenter();</span>
+	}
+	
+	private boolean isWelcomeTabShowing()
+	{
+<span class="nc bnc" id="L722" title="All 2 branches missed.">		return aWelcomeTab != null &amp;&amp; </span>
+<span class="nc bnc" id="L723" title="All 2 branches missed.">				tabs().size() == 1 &amp;&amp; </span>
+<span class="nc bnc" id="L724" title="All 2 branches missed.">				tabs().get(0) instanceof WelcomeTab;</span>
+	}
+	
+	/* Insert a graph frame into the tabbedpane */ 
+	private void insertGraphFrameIntoTabbedPane(DiagramTab pGraphFrame) 
+	{
+<span class="nc bnc" id="L730" title="All 2 branches missed.">		if( isWelcomeTabShowing() )</span>
+		{
+<span class="nc" id="L732">			tabs().remove(0);</span>
+		}
+<span class="nc" id="L734">		tabs().add(pGraphFrame);</span>
+<span class="nc" id="L735">		tabPane().getSelectionModel().selectLast();</span>
+<span class="nc" id="L736">	}</span>
+	
+	/*
+	 * Shows the welcome tab if there are no other tabs.
+	 */
+	private void showWelcomeTabIfNecessary() 
+	{
+<span class="nc bnc" id="L743" title="All 2 branches missed.">		if( tabs().size() == 0)</span>
+		{
+<span class="nc" id="L745">			aWelcomeTab.loadRecentFileLinks(getOpenFileHandlers());</span>
+<span class="nc" id="L746">			tabs().add(aWelcomeTab);</span>
+		}
+<span class="nc" id="L748">	}</span>
+	
+	/*
+	 * Removes the graph frame from the tabbed pane
+	 */
+	private void removeGraphFrameFromTabbedPane(DiagramTab pTab) 
+	{
+<span class="nc" id="L755">		pTab.close();</span>
+<span class="nc" id="L756">		tabs().remove(pTab);</span>
+<span class="nc" id="L757">		showWelcomeTabIfNecessary();</span>
+<span class="nc" id="L758">	}</span>
+	
+	@Override
+	public void booleanPreferenceChanged(BooleanPreference pPreference)
+	{
+<span class="nc bnc" id="L763" title="All 2 branches missed.">		if( pPreference == BooleanPreference.darkMode )</span>
+		{
+<span class="nc bnc" id="L765" title="All 2 branches missed.">			if( UserPreferences.instance().getBoolean(pPreference) )</span>
+			{
+<span class="nc" id="L767">				getScene().getStylesheets().add(aDarkModeCSSPath);</span>
+<span class="nc" id="L768">				aDialogStage.getScene().getStylesheets().add(aDarkModeCSSPath);</span>
+			}
+			else
+			{
+<span class="nc" id="L772">				getScene().getStylesheets().remove(aDarkModeCSSPath);</span>
+<span class="nc" id="L773">				aDialogStage.getScene().getStylesheets().remove(aDarkModeCSSPath);</span>
+			}
+		}
+<span class="nc" id="L776">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

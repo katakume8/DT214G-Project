@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SelectableToolButton.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.gui</a> &gt; <span class="el_source">SelectableToolButton.java</span></div><h1>SelectableToolButton.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.gui;
+
+import java.util.Optional;
+
+import org.jetuml.application.UserPreferences;
+import org.jetuml.application.UserPreferences.BooleanPreference;
+import org.jetuml.application.UserPreferences.BooleanPreferenceChangeHandler;
+import org.jetuml.diagram.DiagramElement;
+import org.jetuml.diagram.Prototypes;
+
+import javafx.geometry.Pos;
+import javafx.scene.canvas.Canvas;
+import javafx.scene.control.ToggleButton;
+import javafx.scene.control.ToggleGroup;
+import javafx.scene.control.Tooltip;
+
+/**
+ * A selectable button that wraps a creation tool represented by an 
+ * object prototype.
+ */
+<span class="fc" id="L41">public class SelectableToolButton extends ToggleButton implements BooleanPreferenceChangeHandler</span>
+{
+	private static final String BUTTON_STYLE_CSS = &quot;-fx-background-radius: 0&quot;;
+	private static final int TOOLTIP_WIDTH = 250;
+	
+<span class="fc" id="L46">	private Optional&lt;DiagramElement&gt; aPrototype = Optional.empty(); // If empty, indicates the &quot;Select&quot; tool</span>
+	
+	/**
+	 * Creates a button with an empty tool prototype.
+	 *
+	 * @param pIcon The button's icon.
+	 * @param pToolTip A short sentence describing the button.
+	 * @param pToggleGroup The toggle group this button is part of.
+	 * @pre pImage != null &amp;&amp; pToolTip != null &amp;&amp; pToggleGroup != null.
+	 */
+	public SelectableToolButton(Canvas pIcon, String pToolTip, ToggleGroup pToggleGroup)
+<span class="fc" id="L57">	{</span>
+<span class="pc bpc" id="L58" title="3 of 6 branches missed.">		assert pIcon != null &amp;&amp; pToolTip != null &amp;&amp; pToggleGroup != null;</span>
+<span class="fc" id="L59">		setStyle(BUTTON_STYLE_CSS);</span>
+<span class="fc" id="L60">		setGraphic(pIcon);</span>
+<span class="fc" id="L61">		setToggleGroup(pToggleGroup);</span>
+<span class="fc" id="L62">		setSelected(true);</span>
+<span class="fc" id="L63">		setTooltip(new Tooltip(pToolTip));</span>
+<span class="fc" id="L64">		getTooltip().setStyle(&quot;-fx-font-size: 100%&quot;); // Override JavaFX defaults</span>
+<span class="fc" id="L65">		getTooltip().setWrapText(true);</span>
+<span class="fc" id="L66">		getTooltip().setMaxWidth(TOOLTIP_WIDTH);</span>
+<span class="fc" id="L67">		setAlignment(Pos.BASELINE_LEFT);</span>
+<span class="fc" id="L68">		setOnAction( pEvent -&gt; setSelected(true) );</span>
+<span class="fc" id="L69">	}</span>
+	
+	/**
+	 * Creates a button to represent a node or edge creation tool.
+	 *
+	 * @param pToolTip A short sentence describing the tool.
+	 * @param pToggleGroup The toggle group this button is part of.
+	 * @param pPrototype The object prototype for the creation.
+	 * @pre pImage != null &amp;&amp; pToolTip != null &amp;&amp; pToggleGroup != null.
+	 */
+	public SelectableToolButton(Canvas pIcon, String pToolTip, ToggleGroup pToggleGroup, DiagramElement pPrototype)
+	{
+<span class="fc" id="L81">		this(pIcon, pToolTip, pToggleGroup);</span>
+<span class="fc" id="L82">		aPrototype = Optional.of(pPrototype);</span>
+<span class="fc" id="L83">		setSelected(false);</span>
+<span class="fc" id="L84">	}</span>
+	
+	/**
+	 * @return The prototype graph element to create new ones. isPresent() == false indicates
+	 *     that the Selection Tool is selected.
+	 */
+	public Optional&lt;DiagramElement&gt; getPrototype()
+	{
+<span class="nc" id="L92">		return aPrototype;</span>
+	}
+
+	@Override
+	public void booleanPreferenceChanged(BooleanPreference pPreference)
+	{
+<span class="pc bpc" id="L98" title="3 of 4 branches missed.">		if( pPreference == BooleanPreference.verboseToolTips &amp;&amp; aPrototype.isPresent())</span>
+		{
+<span class="nc" id="L100">			getTooltip().setText(Prototypes.instance().tooltip(aPrototype.get(), </span>
+<span class="nc" id="L101">					UserPreferences.instance().getBoolean(BooleanPreference.verboseToolTips)));</span>
+		}
+<span class="fc" id="L103">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

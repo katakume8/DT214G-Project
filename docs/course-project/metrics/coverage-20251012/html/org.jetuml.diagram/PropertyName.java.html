@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PropertyName.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.diagram</a> &gt; <span class="el_source">PropertyName.java</span></div><h1>PropertyName.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.diagram;
+
+import static org.jetuml.application.ApplicationResources.RESOURCES;
+
+/**
+ * List of all the possible names of Property objects.
+ */
+<span class="fc" id="L28">public enum PropertyName</span>
+{
+	// List in alphabetical order.
+<span class="fc" id="L31">	AGGREGATION_TYPE(&quot;Aggregation Type&quot;),</span>
+<span class="fc" id="L32">	ATTRIBUTES(&quot;attributes&quot;),</span>
+<span class="fc" id="L33">	CONTENTS(&quot;contents&quot;),</span>
+<span class="fc" id="L34">	DIRECTIONALITY(&quot;directionality&quot;),</span>
+<span class="fc" id="L35">	END_LABEL(&quot;endLabel&quot;),</span>
+<span class="fc" id="L36">	GENERALIZATION_TYPE(&quot;Generalization Type&quot;),</span>
+<span class="fc" id="L37">	METHODS(&quot;methods&quot;),</span>
+<span class="fc" id="L38">	MIDDLE_LABEL(&quot;middleLabel&quot;),</span>
+<span class="fc" id="L39">	NAME(&quot;name&quot;),</span>
+<span class="fc" id="L40">	OPEN_BOTTOM(&quot;openBottom&quot;),</span>
+<span class="fc" id="L41">	SIGNAL(&quot;signal&quot;),</span>
+<span class="fc" id="L42">	START_LABEL(&quot;startLabel&quot;),</span>
+<span class="fc" id="L43">	USE_CASE_DEPENDENCY_TYPE(&quot;Dependency Type&quot;),</span>
+<span class="fc" id="L44">	VALUE(&quot;value&quot;);</span>
+	
+	/* External representation of the property when externalizing it to diagram files.
+	 * In principle it should be possible to derive this directly from enum name, but 
+	 * this was not done consistently at first and changing the external representation
+	 * now would break backward compatibility. We could implement this change with the 
+	 * next major version, with a corresponding version migrator. TODO
+	 */
+	private final String aExternal;
+	
+	PropertyName(String pExternal)
+<span class="fc" id="L55">	{</span>
+<span class="pc bpc" id="L56" title="1 of 2 branches missed.">		assert pExternal != null;</span>
+<span class="fc" id="L57">		aExternal = pExternal;</span>
+<span class="fc" id="L58">	}</span>
+	
+	/**
+	 * @return The name of this property for purpose of externalizing it in a diagram file.
+	 */
+	public String external()
+	{
+<span class="fc" id="L65">		return aExternal;</span>
+	}
+	
+	/**
+	 * @return The name of the property as users should see it, that is, 
+	 *     obtained from the application resources.
+	 */
+	public String visible()
+	{
+<span class="fc" id="L74">		return RESOURCES.getString(&quot;property.&quot; + name().toLowerCase());</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

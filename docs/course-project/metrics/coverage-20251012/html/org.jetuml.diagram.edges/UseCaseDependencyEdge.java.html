@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UseCaseDependencyEdge.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.diagram.edges</a> &gt; <span class="el_source">UseCaseDependencyEdge.java</span></div><h1>UseCaseDependencyEdge.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.diagram.edges;
+
+import org.jetuml.diagram.PropertyName;
+
+/**
+ *  An edge that that represents a UML dependency
+ *  between use cases.
+ */
+public final class UseCaseDependencyEdge extends AbstractEdge
+{
+	/**
+	 * Type of use case dependency with corresponding edge label.
+	 */
+<span class="fc" id="L34">	public enum Type </span>
+	{
+<span class="fc" id="L36">		None(&quot;&quot;), Include(&quot;\u00ABinclude\u00BB&quot;), Extend(&quot;\u00ABextend\u00BB&quot;);</span>
+		
+		private final String aLabel;
+		
+		Type(String pLabel)
+<span class="fc" id="L41">		{ aLabel = pLabel; }</span>
+		
+		public String getLabel()
+<span class="fc" id="L44">		{ return aLabel; }</span>
+	}
+	
+<span class="fc" id="L47">	private Type aType = Type.None;</span>
+	
+	/**
+	 * Creates a general dependency.
+	 */
+	public UseCaseDependencyEdge()
+<span class="fc" id="L53">	{}</span>
+	
+	/**
+	 * Creates a typed dependency.
+	 * @param pType The type of dependency.
+	 */
+	public UseCaseDependencyEdge(Type pType)
+<span class="fc" id="L60">	{</span>
+<span class="fc" id="L61">		aType = pType;</span>
+<span class="fc" id="L62">	}</span>
+	
+	/**
+	 * @return The type of this dependency edge.
+	 */
+	public Type getType()
+	{
+<span class="fc" id="L69">		return aType;</span>
+	}
+	
+	@Override
+	protected void buildProperties()
+	{
+<span class="fc" id="L75">		super.buildProperties();</span>
+<span class="fc" id="L76">		properties().add(PropertyName.USE_CASE_DEPENDENCY_TYPE, () -&gt; aType, pType -&gt; aType = Type.valueOf((String)pType));</span>
+<span class="fc" id="L77">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

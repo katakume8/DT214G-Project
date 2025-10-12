@@ -1,0 +1,373 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Diagram.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.diagram</a> &gt; <span class="el_source">Diagram.java</span></div><h1>Diagram.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.diagram;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+
+import org.jetuml.diagram.nodes.CallNode;
+import org.jetuml.diagram.nodes.FieldNode;
+
+/**
+ * Stores the logical structure of a diagram. This class is only concerned with 
+ * maintaining information about the logical structure of a diagram (nodes and edges). 
+ * Specifically, it should not encode any business rules about the valid construction
+ * of diagrams (handled by DiagramBuilder), or of computing the geometry of a diagram
+ * (handled by DiagramView). DiagramData provides immutable access to the information
+ * stored in the diagram.
+ */
+<span class="fc" id="L39">public final class Diagram implements DiagramData</span>
+{
+	/*
+	 * Only root nodes are explicitly tracked by a diagram object. Nodes that are children of their parent should be
+	 * managed and accessed through their parent node.
+	 */
+	private final ArrayList&lt;Node&gt; aRootNodes;
+	private final ArrayList&lt;Edge&gt; aEdges;
+	private final DiagramType aType;
+
+	/**
+	 * Creates an empty diagram.
+	 * 
+	 * @param pType The type of the diagram.
+	 */
+	public Diagram(DiagramType pType)
+<span class="fc" id="L55">	{</span>
+<span class="fc" id="L56">		aType = pType;</span>
+<span class="fc" id="L57">		aRootNodes = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L58">		aEdges = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L59">	}</span>
+
+	/**
+	 * Creates a copy of the current diagram. The copy is a completely distinct graph of nodes and edges with the same
+	 * topology as this diagram.
+	 * 
+	 * @return A copy of this diagram. Never null.
+	 */
+	public Diagram duplicate()
+	{
+<span class="fc" id="L69">		Diagram copy = new Diagram(this.aType);</span>
+<span class="fc" id="L70">		aEdges.forEach(edge -&gt; copy.aEdges.add(edge.clone()));</span>
+
+<span class="fc bfc" id="L72" title="All 2 branches covered.">		for( Node node : aRootNodes )</span>
+		{
+<span class="fc" id="L74">			Node nodeCopy = node.clone();</span>
+<span class="fc" id="L75">			copy.aRootNodes.add(nodeCopy);</span>
+<span class="fc" id="L76">			reassignEdges(copy.aEdges, node, nodeCopy);</span>
+<span class="fc" id="L77">		}</span>
+
+		// Reassign diagram
+<span class="fc" id="L80">		copy.aEdges.forEach(edge -&gt; edge.connect(edge.start(), edge.end()));</span>
+<span class="fc" id="L81">		return copy;</span>
+	}
+
+	/*
+	 * For node pOriginal, go through all edges that refer to it and replace it with pCopy in the edge. Do this
+	 * recursively for all children of pOriginal, assuming the same topology for pCopy.
+	 */
+	private static void reassignEdges(List&lt;Edge&gt; pEdges, Node pOriginal, Node pCopy)
+	{
+<span class="fc bfc" id="L90" title="All 2 branches covered.">		for( Edge edge : pEdges )</span>
+		{
+<span class="fc bfc" id="L92" title="All 2 branches covered.">			if( edge.start() == pOriginal )</span>
+			{
+<span class="fc" id="L94">				edge.connect(pCopy, edge.end());</span>
+			}
+<span class="fc bfc" id="L96" title="All 2 branches covered.">			if( edge.end() == pOriginal )</span>
+			{
+<span class="fc" id="L98">				edge.connect(edge.start(), pCopy);</span>
+			}
+<span class="fc" id="L100">		}</span>
+<span class="fc" id="L101">		List&lt;Node&gt; oldChildren = pOriginal.getChildren();</span>
+<span class="fc" id="L102">		List&lt;Node&gt; newChildren = pCopy.getChildren();</span>
+<span class="fc bfc" id="L103" title="All 2 branches covered.">		for( int i = 0; i &lt; oldChildren.size(); i++ )</span>
+		{
+<span class="fc" id="L105">			reassignEdges(pEdges, oldChildren.get(i), newChildren.get(i));</span>
+		}
+<span class="fc" id="L107">	}</span>
+
+	@Override
+	public List&lt;Node&gt; rootNodes()
+	{
+<span class="fc" id="L112">		return Collections.unmodifiableList(aRootNodes);</span>
+	}
+	
+	/**
+	 * @return All the nodes in the diagram: both the root nodes
+	 * and their children.
+	 */
+	public List&lt;Node&gt; allNodes()
+	{
+<span class="fc" id="L121">		List&lt;Node&gt; allNodes = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L122">		rootNodes().forEach(node -&gt; collectNodes(node, allNodes));</span>
+<span class="fc" id="L123">		return allNodes;</span>
+	}
+	
+	/*
+	 * Adds pParent to the list, then all its children recursively.
+	 */
+	private static void collectNodes(Node pParent, List&lt;Node&gt; pNodes)
+	{
+<span class="fc" id="L131">		pNodes.add(pParent);</span>
+<span class="fc" id="L132">		pParent.getChildren().forEach(child -&gt; collectNodes(child, pNodes));</span>
+<span class="fc" id="L133">	}</span>
+
+	@Override
+	public List&lt;Edge&gt; edges()
+	{
+<span class="fc" id="L138">		return Collections.unmodifiableList(aEdges);</span>
+	}
+
+	/**
+	 * @return The type of this diagram.
+	 */
+	public DiagramType getType()
+	{
+<span class="fc" id="L146">		return aType;</span>
+	}
+
+	/**
+	 * @return The file extension (including the dot) corresponding to files of this diagram type.
+	 */
+	public String getFileExtension()
+	{
+<span class="fc" id="L154">		return aType.getFileExtension();</span>
+	}
+
+	/**
+	 * @return The name of the diagram.
+	 */
+	public String getName()
+	{
+<span class="fc" id="L162">		return aType.getName();</span>
+	}
+
+	/**
+	 * Checks whether pElement is in the diagram. If pElement is a node, the method returns true if it is a root node,
+	 * or any of its parent is a root node.
+	 * 
+	 * @param pElement The element we want to check is in the diagram.
+	 * @return True if pElement is a node or edge in this diagram.
+	 * @pre pElement != null
+	 */
+	public boolean contains(DiagramElement pElement)
+	{
+<span class="pc bpc" id="L175" title="1 of 2 branches missed.">		assert pElement != null;</span>
+<span class="fc bfc" id="L176" title="All 2 branches covered.">		if( aEdges.contains(pElement) )</span>
+		{
+<span class="fc" id="L178">			return true;</span>
+		}
+<span class="fc bfc" id="L180" title="All 2 branches covered.">		for( Node node : aRootNodes )</span>
+		{
+<span class="fc bfc" id="L182" title="All 2 branches covered.">			if( containsNode(node, pElement) )</span>
+			{
+<span class="fc" id="L184">				return true;</span>
+			}
+<span class="fc" id="L186">		}</span>
+<span class="fc" id="L187">		return false;</span>
+	}
+
+	private boolean containsNode(Node pTest, DiagramElement pTarget)
+	{
+<span class="fc bfc" id="L192" title="All 2 branches covered.">		if( pTest == pTarget )</span>
+		{
+<span class="fc" id="L194">			return true;</span>
+		}
+<span class="fc bfc" id="L196" title="All 2 branches covered.">		for( Node node : pTest.getChildren() )</span>
+		{
+<span class="fc bfc" id="L198" title="All 2 branches covered.">			if( containsNode(node, pTarget) )</span>
+			{
+<span class="fc" id="L200">				return true;</span>
+			}
+<span class="fc" id="L202">		}</span>
+<span class="fc" id="L203">		return false;</span>
+	}
+
+	/**
+	 * @param pNode The node to check.
+	 * @return True if pNode is a root node of the Diagram.
+	 * @pre pNode != null.
+	 */
+	public boolean containsAsRoot(Node pNode)
+	{
+<span class="pc bpc" id="L213" title="1 of 2 branches missed.">		assert pNode != null;</span>
+<span class="fc" id="L214">		return aRootNodes.contains(pNode);</span>
+	}
+
+	/**
+	 * Gets the types of elements that can be using prototypes for a diagram type. 
+	 * The list returned is a copy of the prototypes: it can be safely modified.
+	 * 
+	 * @return A non-null list of node prototypes
+	 */
+	public List&lt;DiagramElement&gt; getPrototypes()
+	{
+<span class="fc" id="L225">		return aType.getPrototypes();</span>
+	}
+
+	/**
+	 * @param pNode The node to test for
+	 * @return All the edges connected to pNode
+	 * @pre pNode != null
+	 * @pre contains(pNode)
+	 */
+	public Iterable&lt;Edge&gt; edgesConnectedTo(Node pNode)
+	{
+<span class="pc bpc" id="L236" title="2 of 4 branches missed.">		assert pNode != null &amp;&amp; contains(pNode);</span>
+<span class="fc" id="L237">		Collection&lt;Edge&gt; lReturn = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L238" title="All 2 branches covered.">		for( Edge edge : aEdges )</span>
+		{
+<span class="fc bfc" id="L240" title="All 4 branches covered.">			if( edge.start() == pNode || edge.end() == pNode )</span>
+			{
+<span class="fc" id="L242">				lReturn.add(edge);</span>
+			}
+<span class="fc" id="L244">		}</span>
+<span class="fc" id="L245">		return lReturn;</span>
+	}
+	
+	/**
+	 * Returns all the edges in the diagram of a type assignable to pType,
+	 * and that have pNode as end node.
+	 * 
+	 * @param pNode The desired end node.
+	 * @param pOfType The desired edge type. Use Edge.class to get edges of any type.
+	 * @return An unmodifiable list of edges of type pOfType (or a subtype) that
+	 * have pNode as end node.
+	 */
+	public List&lt;Edge&gt; edgesTo(Node pNode, Class&lt;? extends Edge&gt; pOfType)
+	{
+<span class="pc bpc" id="L259" title="2 of 4 branches missed.">		assert pNode != null &amp;&amp; pOfType != null;</span>
+<span class="fc" id="L260">		return aEdges.stream()</span>
+<span class="fc" id="L261">				.filter(pOfType::isInstance)</span>
+<span class="fc bfc" id="L262" title="All 2 branches covered.">				.filter(edge -&gt; edge.end() == pNode)</span>
+<span class="fc" id="L263">				.toList();</span>
+	}
+
+	/**
+	 * Adds pNode as a root node in this diagram. Callers of this method must ensure that the addition respects the
+	 * integrity of the diagram.
+	 * 
+	 * @param pNode The node to add.
+	 * @pre pNode != null
+	 */
+	public void addRootNode(Node pNode)
+	{
+<span class="pc bpc" id="L275" title="1 of 2 branches missed.">		assert pNode != null;</span>
+<span class="fc" id="L276">		aRootNodes.add(pNode);</span>
+<span class="fc" id="L277">	}</span>
+
+	/**
+	 * Removes pNode from the list of root nodes in this diagram. Callers must ensure that the removal preserves the
+	 * integrity of the diagram.
+	 * 
+	 * @param pNode The node to remove.
+	 * @pre pNode != null &amp;&amp; pNode is contained as a root node.
+	 */
+	public void removeRootNode(Node pNode)
+	{
+<span class="pc bpc" id="L288" title="2 of 4 branches missed.">		assert pNode != null &amp;&amp; aRootNodes.contains(pNode);</span>
+<span class="fc" id="L289">		aRootNodes.remove(pNode);</span>
+<span class="fc" id="L290">	}</span>
+
+	/**
+	 * Adds pEdge to the diagram. pEdge should already be connected to its start and end nodes. The edge is added to the
+	 * end of the list of edges.
+	 * 
+	 * @param pEdge The edge to add.
+	 * @pre pEdge != null &amp;&amp; pEdge.getStart() != null &amp;&amp; pEdge.getEnd() != null &amp;&amp; pEdge.getGraph != null
+	 */
+	public void addEdge(Edge pEdge)
+	{
+<span class="pc bpc" id="L301" title="3 of 6 branches missed.">		assert pEdge != null &amp;&amp; pEdge.start() != null &amp;&amp; pEdge.end() != null;</span>
+<span class="fc" id="L302">		aEdges.add(pEdge);</span>
+<span class="fc" id="L303">	}</span>
+	
+	/**
+	 * Adds pEdge at index pIndex, and shifts the existing edges to the right of the list.
+	 * 
+	 * @param pIndex Where to add the edge.
+	 * @param pEdge The edge to add.
+	 * @pre pEdge != null &amp;&amp; pIndex &gt;=0 &amp;&amp; pIndex &lt; aEdges.size()
+	 */
+	public void addEdge(int pIndex, Edge pEdge)
+	{
+<span class="pc bpc" id="L314" title="3 of 6 branches missed.">		assert pEdge != null &amp;&amp; pIndex &gt;= 0 &amp;&amp; pIndex &lt;= aEdges.size();</span>
+<span class="fc" id="L315">		aEdges.add(pIndex, pEdge);</span>
+<span class="fc" id="L316">	}</span>
+
+
+	/**
+	 * @param pEdge
+	 *            The edge to check.
+	 * @return The index of pEdge in the list of edges.
+	 * @pre contains(pEdge)
+	 */
+	public int indexOf(Edge pEdge)
+	{
+<span class="pc bpc" id="L327" title="1 of 2 branches missed.">		assert contains(pEdge);</span>
+<span class="fc" id="L328">		return aEdges.indexOf(pEdge);</span>
+	}
+
+	/**
+	 * Removes pEdge from this diagram. Callers must ensure that the removal preserves the integrity of the diagram.
+	 * 
+	 * @param pEdge The edge to remove.
+	 * @pre pEdge != null &amp;&amp; pEdge is contained in the diagram
+	 */
+	public void removeEdge(Edge pEdge)
+	{
+<span class="pc bpc" id="L339" title="2 of 4 branches missed.">		assert pEdge != null &amp;&amp; aEdges.contains(pEdge);</span>
+<span class="fc" id="L340">		aEdges.remove(pEdge);</span>
+<span class="fc" id="L341">	}</span>
+
+	/**
+	 * Recursively reorder the node to be on top of its parent's children. If the node is not a child node or the node
+	 * does not have a parent, check if the node is a root node of the diagram and place it on top.
+	 * 
+	 * @param pNode The node to be placed on top
+	 * @pre pNode != null
+	 */
+	public void placeOnTop(Node pNode)
+	{
+<span class="pc bpc" id="L352" title="1 of 2 branches missed.">		assert pNode != null;</span>
+		// Certain nodes should not have their order changed
+<span class="pc bpc" id="L354" title="1 of 4 branches missed.">		if( pNode.getClass() == CallNode.class || pNode.getClass() == FieldNode.class )</span>
+		{
+<span class="fc" id="L356">			return;</span>
+		}
+<span class="fc bfc" id="L358" title="All 2 branches covered.">		if( pNode.hasParent() )</span>
+		{
+<span class="fc" id="L360">			Node parent = pNode.getParent();</span>
+			// Move the child node to the top of all other children
+<span class="fc" id="L362">			parent.placeLast(pNode);</span>
+			// Recursively reorder the node's parent
+<span class="fc" id="L364">			placeOnTop(parent);</span>
+<span class="fc" id="L365">		}</span>
+<span class="fc bfc" id="L366" title="All 2 branches covered.">		else if( containsAsRoot(pNode) )</span>
+		{
+<span class="fc" id="L368">			removeRootNode(pNode);</span>
+<span class="fc" id="L369">			addRootNode(pNode);</span>
+		}
+<span class="fc" id="L371">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

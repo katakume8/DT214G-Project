@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ArrowHeadRenderer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.rendering.edges</a> &gt; <span class="el_source">ArrowHeadRenderer.java</span></div><h1>ArrowHeadRenderer.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.rendering.edges;
+
+import static org.jetuml.rendering.ArrowHead.NONE;
+import static org.jetuml.rendering.ArrowHead.V;
+
+import java.util.Optional;
+
+import org.jetuml.geom.GeomUtils;
+import org.jetuml.geom.Line;
+import org.jetuml.geom.Point;
+import org.jetuml.geom.Rectangle;
+import org.jetuml.gui.ColorScheme;
+import org.jetuml.rendering.ArrowHead;
+import org.jetuml.rendering.RenderingContext;
+
+import javafx.geometry.Bounds;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.LineTo;
+import javafx.scene.shape.MoveTo;
+import javafx.scene.shape.Path;
+
+/**
+ * Static functions to compute the geometry of arrow heads and render them.
+ */
+<span class="fc" id="L45">public final class ArrowHeadRenderer</span>
+{
+	private static final double ARROW_ANGLE = Math.PI / 6; 
+	private static final double ARROW_LENGTH = 10;
+	
+	private ArrowHeadRenderer() {}
+	
+	/**
+	 * Draws an arrow head at the end of the axis.
+	 * 
+	 * @param pContext The rendering context on which to draw.
+	 * @param pArrowHead The type of arrow head to draw
+	 * @param pAxis A line in the direction of the arrow ending a pAxis.getPoint2()
+	 */
+	public static void draw(RenderingContext pContext, ArrowHead pArrowHead, Line pAxis)
+	{
+<span class="pc bpc" id="L61" title="3 of 6 branches missed.">		assert pContext != null &amp;&amp; pArrowHead != null &amp;&amp; pAxis != null;</span>
+		
+		// Don't draw anything if the path is empty, which is the case
+		// if there's no arrowhead.
+<span class="fc" id="L65">		Path path = getPath(pArrowHead, pAxis);</span>
+<span class="fc bfc" id="L66" title="All 2 branches covered.">		if (path.getElements().isEmpty())</span>
+		{
+<span class="fc" id="L68">			return;</span>
+		}
+		
+<span class="fc bfc" id="L71" title="All 2 branches covered.">		if(pArrowHead.isFilled()) </span>
+		{
+<span class="fc" id="L73">			pContext.drawClosedPath(path, Color.BLACK, ColorScheme.get().stroke(), Optional.empty());</span>
+		}
+		else 
+		{
+<span class="fc" id="L77">			pContext.drawClosedPath(path, Color.WHITE, ColorScheme.get().stroke(), Optional.empty());</span>
+		}
+<span class="fc" id="L79">	}</span>
+	
+	/**
+	 * Draws an arrow head at pPoint2 for a direction given from pPoint2.
+	 * 
+	 * @param pContext The rendering context on which to draw.
+	 * @param pArrowHead The type of arrow head to draw
+	 * @param pAxis A line in the direction of the arrow ending a pAxis.getPoint2()
+	 */
+	public static void draw(RenderingContext pContext, ArrowHead pArrowHead, Point pPoint1, Point pPoint2)
+	{
+<span class="pc bpc" id="L90" title="4 of 8 branches missed.">		assert pContext != null &amp;&amp; pArrowHead != null &amp;&amp; pPoint1 != null &amp;&amp; pPoint2 != null;</span>
+<span class="fc" id="L91">		draw(pContext, pArrowHead, new Line(pPoint1, pPoint2));</span>
+<span class="fc" id="L92">	}</span>
+	
+	/**
+	 * Get the bounds for an arrow head pointing to the second point in the axis.
+	 * 
+	 * @param pArrowHead The type of arrow head.
+	 * @param pAxis The axis of the arrow.
+	 * @return The bounds of the arrow head.
+	 */
+	public static Rectangle getBounds(ArrowHead pArrowHead, Line pAxis)
+	{
+<span class="fc" id="L103">		return toRectangle(getPath(pArrowHead, pAxis).getBoundsInLocal());</span>
+	}
+	
+   	/**
+     * Gets the path of the arrowhead.
+     * 
+     * @param pAxis The axis of the arrow. The Arrow points to pAxis.getPoint2()
+     * @return the path
+     */
+   	private static Path getPath(ArrowHead pArrowHead, Line pAxis)
+   	{
+<span class="fc bfc" id="L114" title="All 2 branches covered.">   		if(pArrowHead == NONE) </span>
+   		{
+<span class="fc" id="L116">   			return new Path();</span>
+   		}
+   		
+<span class="fc" id="L119">   		int dx = pAxis.x2() - pAxis.x1();</span>
+<span class="fc" id="L120">   		int dy = pAxis.y2() - pAxis.y1();</span>
+<span class="fc" id="L121">   		final double angle = Math.atan2(dy, dx);</span>
+<span class="fc" id="L122">   		int x1 = GeomUtils.round(pAxis.x2() - ARROW_LENGTH * Math.cos(angle + ARROW_ANGLE));</span>
+<span class="fc" id="L123">   		int y1 = GeomUtils.round(pAxis.y2() - ARROW_LENGTH * Math.sin(angle + ARROW_ANGLE));</span>
+<span class="fc" id="L124">   		int x2 = GeomUtils.round(pAxis.x2() - ARROW_LENGTH * Math.cos(angle - ARROW_ANGLE));</span>
+<span class="fc" id="L125">   		int y2 = GeomUtils.round(pAxis.y2() - ARROW_LENGTH * Math.sin(angle - ARROW_ANGLE));</span>
+
+<span class="fc" id="L127">   		MoveTo moveToOrigin = new MoveTo(pAxis.x2(), pAxis.y2());</span>
+<span class="fc" id="L128">   		LineTo lineTo1 = new LineTo(x1, y1);</span>
+<span class="fc" id="L129">   		Path path = new Path();</span>
+<span class="fc" id="L130">   		path.getElements().addAll(moveToOrigin, lineTo1);</span>
+<span class="fc bfc" id="L131" title="All 2 branches covered.">   		if(pArrowHead == V)</span>
+   		{
+<span class="fc" id="L133">   			MoveTo moveTo2 = new MoveTo(x2, y2);</span>
+<span class="fc" id="L134">   			LineTo lineTo2 = new LineTo(pAxis.x2(), pAxis.y2());</span>
+<span class="fc" id="L135">   			path.getElements().addAll(moveTo2, lineTo2);</span>
+<span class="fc" id="L136">   		}</span>
+<span class="fc bfc" id="L137" title="All 2 branches covered.">   		else if(pArrowHead.isTriangle())</span>
+   		{
+<span class="fc" id="L139">   			LineTo lineTo3 = new LineTo(x2, y2); </span>
+<span class="fc" id="L140">   			LineTo lineTo4 = new LineTo(moveToOrigin.getX(), moveToOrigin.getY());</span>
+<span class="fc" id="L141">   			path.getElements().addAll(lineTo3, lineTo4);</span>
+<span class="fc" id="L142">   		}</span>
+<span class="fc bfc" id="L143" title="All 2 branches covered.">   		else if(pArrowHead.isDiamond())</span>
+   		{
+<span class="fc" id="L145">   			final int x3 = GeomUtils.round( x2 - ARROW_LENGTH * Math.cos(angle + ARROW_ANGLE));</span>
+<span class="fc" id="L146">   			final int y3 = GeomUtils.round( y2 - ARROW_LENGTH * Math.sin(angle + ARROW_ANGLE));</span>
+<span class="fc" id="L147">   			LineTo lineTo5 = new LineTo(x3, y3);</span>
+<span class="fc" id="L148">   			LineTo lineTo6 = new LineTo(x2, y2);</span>
+<span class="fc" id="L149">   			LineTo lineTo7 = new LineTo(moveToOrigin.getX(), moveToOrigin.getY());</span>
+<span class="fc" id="L150">   			path.getElements().addAll(lineTo5, lineTo6, lineTo7);</span>
+   		}      
+<span class="fc" id="L152">   		return path;</span>
+   	}
+   	
+   	/*
+	 * @param pBounds An input bounds object.
+	 * @return A rectangle that corresponds to pBounds.
+	 * @pre pBounds != null;
+	 */
+	private static Rectangle toRectangle(Bounds pBounds)
+	{
+<span class="pc bpc" id="L162" title="1 of 2 branches missed.">		assert pBounds != null;</span>
+<span class="fc" id="L163">		return new Rectangle((int)pBounds.getMinX(), (int)pBounds.getMinY(), (int)pBounds.getWidth(), (int)pBounds.getHeight());</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,275 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AbstractDiagramRenderer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.rendering</a> &gt; <span class="el_source">AbstractDiagramRenderer.java</span></div><h1>AbstractDiagramRenderer.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ * 
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
+ * License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later
+ * version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with this program. If not, see
+ * http://www.gnu.org/licenses.
+ ******************************************************************************/
+package org.jetuml.rendering;
+
+import java.util.IdentityHashMap;
+import java.util.Iterator;
+import java.util.Optional;
+
+import org.jetuml.diagram.Diagram;
+import org.jetuml.diagram.DiagramElement;
+import org.jetuml.diagram.DiagramType;
+import org.jetuml.diagram.Edge;
+import org.jetuml.diagram.Node;
+import org.jetuml.diagram.edges.NoteEdge;
+import org.jetuml.diagram.nodes.NoteNode;
+import org.jetuml.diagram.nodes.PointNode;
+import org.jetuml.geom.Dimension;
+import org.jetuml.geom.Direction;
+import org.jetuml.geom.Line;
+import org.jetuml.geom.Point;
+import org.jetuml.geom.Rectangle;
+import org.jetuml.rendering.edges.EdgeRenderer;
+import org.jetuml.rendering.edges.NoteEdgeRenderer;
+import org.jetuml.rendering.nodes.NodeRenderer;
+import org.jetuml.rendering.nodes.NoteNodeRenderer;
+import org.jetuml.rendering.nodes.PointNodeRenderer;
+
+import javafx.scene.canvas.Canvas;
+
+/**
+ * Default implementation of the rendering operations.
+ */
+<span class="fc" id="L48">public abstract class AbstractDiagramRenderer implements DiagramRenderer</span>
+{
+<span class="fc" id="L50">	private final IdentityHashMap&lt;Class&lt;? extends DiagramElement&gt;, DiagramElementRenderer&gt; aRenderers = new IdentityHashMap&lt;&gt;();</span>
+	private final Diagram aDiagram;
+	
+	/*
+	 * Add renderers for elements that are present in all diagrams. 
+	 */
+	protected AbstractDiagramRenderer(Diagram pDiagram)
+<span class="fc" id="L57">	{</span>
+<span class="fc" id="L58">		aDiagram = pDiagram;</span>
+<span class="fc" id="L59">		addElementRenderer(NoteNode.class, new NoteNodeRenderer(this));</span>
+<span class="fc" id="L60">		addElementRenderer(PointNode.class, new PointNodeRenderer(this));</span>
+<span class="fc" id="L61">		addElementRenderer(NoteEdge.class, new NoteEdgeRenderer(this));</span>
+<span class="fc" id="L62">	}</span>
+	
+	// Recursively enlarge the current rectangle to include the selected DiagramElements
+	private Rectangle addBounds(Rectangle pBounds, DiagramElement pElement)
+	{
+<span class="nc bnc" id="L67" title="All 4 branches missed.">		if( pElement instanceof Node node &amp;&amp; node.hasParent())</span>
+		{
+<span class="nc" id="L69">			return addBounds(pBounds, node.getParent());</span>
+		}
+		else
+		{
+<span class="nc" id="L73">			return pBounds.add(getBounds(pElement));</span>
+		}
+	}
+	
+	protected void addElementRenderer(Class&lt;? extends DiagramElement&gt; pElementClass,
+			DiagramElementRenderer pElementRenderer)
+	{
+<span class="fc" id="L80">		aRenderers.put(pElementClass, pElementRenderer);</span>
+<span class="fc" id="L81">	}</span>
+
+	/**
+	 * Activates all the NodeStorages of the NodeViewers present in the renderer.
+	 */
+	protected void activateNodeStorages()
+	{
+<span class="nc" id="L88">		aRenderers.values().stream().filter(renderer -&gt; NodeRenderer.class.isAssignableFrom(renderer.getClass()))</span>
+<span class="nc" id="L89">				.map(NodeRenderer.class::cast).forEach(NodeRenderer::activateNodeStorage);</span>
+<span class="nc" id="L90">	}</span>
+
+	/**
+	 * Deactivates and clears all the NodeStorages of the NodeViewers present in the renderer.
+	 */
+	protected void deactivateAndClearNodeStorages()
+	{
+<span class="nc" id="L97">		aRenderers.values().stream().filter(renderer -&gt; NodeRenderer.class.isAssignableFrom(renderer.getClass()))</span>
+<span class="nc" id="L98">				.map(NodeRenderer.class::cast).forEach(NodeRenderer::deactivateAndClearNodeStorage);</span>
+<span class="nc" id="L99">	}</span>
+
+	protected void drawNode(Node pNode, RenderingContext pContext)
+	{
+<span class="nc" id="L103">		draw(pNode, pContext);</span>
+<span class="nc" id="L104">		pNode.getChildren().forEach(node -&gt; drawNode(node, pContext));</span>
+<span class="nc" id="L105">	}</span>
+	
+	protected Optional&lt;Node&gt; deepFindNode(Node pNode, Point pPoint)
+	{
+<span class="pc bpc" id="L109" title="2 of 4 branches missed.">		assert pNode != null &amp;&amp; pPoint != null;</span>
+
+<span class="fc" id="L111">		return pNode.getChildren().stream()</span>
+<span class="fc" id="L112">				.map(node -&gt; deepFindNode(node, pPoint))</span>
+<span class="fc" id="L113">				.filter(Optional::isPresent)</span>
+<span class="fc" id="L114">				.map(Optional::get)</span>
+<span class="fc" id="L115">				.findFirst()</span>
+<span class="fc" id="L116">				.or(() -&gt; Optional.of(pNode).filter(originalNode -&gt; contains(originalNode, pPoint)));</span>
+	}
+
+	@Override
+	public Rectangle getBounds()
+	{
+<span class="fc" id="L122">		Rectangle bounds = null;</span>
+<span class="fc bfc" id="L123" title="All 2 branches covered.">		for(Node node : aDiagram.rootNodes())</span>
+		{
+<span class="fc bfc" id="L125" title="All 2 branches covered.">			if(bounds == null)</span>
+			{
+<span class="fc" id="L127">				bounds = getBounds(node);</span>
+			}
+			else
+			{
+<span class="fc" id="L131">				bounds = bounds.add(getBounds(node));</span>
+			}
+<span class="fc" id="L133">		}</span>
+<span class="fc bfc" id="L134" title="All 2 branches covered.">		for(Edge edge : aDiagram.edges())</span>
+		{
+<span class="fc" id="L136">			bounds = bounds.add(getBounds(edge));</span>
+<span class="fc" id="L137">		}</span>
+<span class="pc bpc" id="L138" title="1 of 2 branches missed.">		if(bounds == null)</span>
+		{
+<span class="nc" id="L140">			return new Rectangle(0, 0, 0, 0);</span>
+		}
+		else
+		{
+<span class="fc" id="L144">			return new Rectangle(bounds.x(), bounds.y(), bounds.width(), bounds.height());</span>
+		}
+	}
+	
+	@Override
+	public DiagramElementRenderer rendererFor(Class&lt;? extends DiagramElement&gt; pClass)
+	{
+<span class="pc bpc" id="L151" title="1 of 2 branches missed.">		assert aRenderers.containsKey(pClass);</span>
+<span class="fc" id="L152">		return aRenderers.get(pClass);</span>
+	}
+
+	@Override
+	public void draw(RenderingContext pContext)
+	{
+<span class="nc bnc" id="L158" title="All 2 branches missed.">		assert pContext != null;</span>
+<span class="nc" id="L159">		activateNodeStorages();</span>
+<span class="nc" id="L160">		aDiagram.rootNodes().forEach(node -&gt; drawNode(node, pContext));</span>
+<span class="nc" id="L161">		aDiagram.edges().forEach(edge -&gt; draw(edge, pContext));</span>
+<span class="nc" id="L162">		deactivateAndClearNodeStorages();</span>
+<span class="nc" id="L163">	}</span>
+
+	@Override
+	public void draw(DiagramElement pElement, RenderingContext pContext)
+	{
+<span class="nc" id="L168">		aRenderers.get(pElement.getClass()).draw(pElement, pContext);</span>
+<span class="nc" id="L169">	}</span>
+
+	@Override
+	public Optional&lt;Edge&gt; edgeAt(Point pPoint)
+	{
+<span class="pc bpc" id="L174" title="1 of 2 branches missed.">		assert pPoint != null;</span>
+<span class="fc" id="L175">		return aDiagram.edges().stream()</span>
+<span class="fc" id="L176">				.filter(edge -&gt; contains(edge, pPoint))</span>
+<span class="fc" id="L177">				.findFirst();</span>
+	}
+
+	@Override
+	public Optional&lt;Node&gt; nodeAt(Point pPoint)
+	{
+<span class="pc bpc" id="L183" title="1 of 2 branches missed.">		assert pPoint != null;</span>
+<span class="fc" id="L184">		return aDiagram.rootNodes().stream()</span>
+<span class="fc" id="L185">				.map(node -&gt; deepFindNode(node, pPoint))</span>
+<span class="fc" id="L186">				.filter(Optional::isPresent)</span>
+<span class="fc" id="L187">				.map(Optional::get)</span>
+<span class="fc" id="L188">				.reduce((first, second) -&gt; second);</span>
+	}
+
+	@Override
+	public boolean contains(DiagramElement pElement, Point pPoint)
+	{
+<span class="fc" id="L194">		return aRenderers.get(pElement.getClass()).contains(pElement, pPoint);</span>
+	}
+
+	@Override
+	public Canvas createIcon(DiagramElement pElement)
+	{
+<span class="pc bpc" id="L200" title="1 of 2 branches missed.">		assert pElement != null;</span>
+<span class="fc" id="L201">		return aRenderers.get(pElement.getClass()).createIcon(DiagramType.USECASE, pElement);</span>
+	}
+
+	@Override
+	public Line getConnectionPoints(Edge pEdge)
+	{
+<span class="pc bpc" id="L207" title="1 of 2 branches missed.">		assert pEdge != null;</span>
+<span class="fc" id="L208">		return ((EdgeRenderer) aRenderers.get(pEdge.getClass())).getConnectionPoints(pEdge);</span>
+	}
+
+	@Override
+	public Point getConnectionPoints(Node pNode, Direction pDirection)
+	{
+<span class="pc bpc" id="L214" title="2 of 4 branches missed.">		assert pNode != null &amp;&amp; pDirection != null;</span>
+<span class="fc" id="L215">		return ((NodeRenderer) aRenderers.get(pNode.getClass())).getConnectionPoint(pNode, pDirection);</span>
+	}
+	
+	@Override
+	public Optional&lt;Node&gt; selectableNodeAt(Point pPoint)
+	{
+<span class="nc" id="L221">		return nodeAt(pPoint);</span>
+	}
+	
+	@Override
+	public final Diagram diagram()
+	{
+<span class="fc" id="L227">		return aDiagram;</span>
+	}
+	
+	@Override
+	public Rectangle getBoundsIncludingParents(Iterable&lt;DiagramElement&gt; pElements)
+	{
+<span class="nc bnc" id="L233" title="All 2 branches missed.">		assert pElements != null;</span>
+<span class="nc bnc" id="L234" title="All 2 branches missed.">		assert pElements.iterator().hasNext();</span>
+<span class="nc" id="L235">		Iterator&lt;DiagramElement&gt; elements = pElements.iterator();</span>
+<span class="nc" id="L236">		DiagramElement next = elements.next();</span>
+<span class="nc" id="L237">		Rectangle bounds = getBounds(next);</span>
+<span class="nc" id="L238">		bounds = addBounds(bounds, next);</span>
+<span class="nc bnc" id="L239" title="All 2 branches missed.">		while( elements.hasNext() )</span>
+		{
+<span class="nc" id="L241">			bounds = addBounds(bounds, elements.next());</span>
+		}
+<span class="nc" id="L243">		return bounds;</span>
+	}
+	
+	@Override
+	public final Rectangle getBoundsNotIncludingParents(Iterable&lt;DiagramElement&gt; pElements)
+	{
+<span class="nc bnc" id="L249" title="All 2 branches missed.">		assert pElements != null;</span>
+<span class="nc bnc" id="L250" title="All 2 branches missed.">		assert pElements.iterator().hasNext();</span>
+<span class="nc" id="L251">		Iterator&lt;DiagramElement&gt; elements = pElements.iterator();</span>
+<span class="nc" id="L252">		DiagramElement next = elements.next();</span>
+<span class="nc" id="L253">		Rectangle bounds = getBounds(next);</span>
+<span class="nc bnc" id="L254" title="All 2 branches missed.">		while( elements.hasNext() )</span>
+		{
+<span class="nc" id="L256">			bounds = bounds.add(getBounds(elements.next()));</span>
+		}
+<span class="nc" id="L258">		return bounds;</span>
+	}
+	
+	@Override
+	public Dimension getDefaultDimension(Node pNode)
+	{
+<span class="fc" id="L264">		return ((NodeRenderer)rendererFor(pNode.getClass())).getDefaultDimension(pNode);</span>
+	}
+	
+	// CSOFF: Not sure why it complains about the placement of this method
+	@Override
+	public Rectangle getBounds(DiagramElement pElement)
+	{
+<span class="pc bpc" id="L271" title="1 of 2 branches missed.">		assert pElement != null;</span>
+<span class="fc" id="L272">		return aRenderers.get(pElement.getClass()).getBounds(pElement);</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

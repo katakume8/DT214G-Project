@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>StringRenderer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.rendering</a> &gt; <span class="el_source">StringRenderer.java</span></div><h1>StringRenderer.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ * 
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option) any later
+ * version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+ * details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * this program. If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.rendering;
+
+import java.util.Collections;
+import java.util.EnumSet;
+
+import org.jetuml.annotations.Immutable;
+import org.jetuml.application.UserPreferences;
+import org.jetuml.application.UserPreferences.IntegerPreference;
+import org.jetuml.application.UserPreferences.StringPreference;
+import org.jetuml.geom.Alignment;
+import org.jetuml.geom.Dimension;
+import org.jetuml.geom.GeomUtils;
+import org.jetuml.geom.Rectangle;
+import org.jetuml.gui.ColorScheme;
+
+import javafx.geometry.Bounds;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontPosture;
+import javafx.scene.text.FontWeight;
+import javafx.scene.text.Text;
+
+/**
+ * A class to render strings with various decorations: underline, bold,
+ * with different alignments.
+ */
+@Immutable
+public final class StringRenderer
+{
+<span class="fc" id="L49">	private static final Text TEXT_NODE = new Text();</span>
+	
+	/**
+	 * Various text decorations.
+	 */
+<span class="fc" id="L54">	public enum Decoration</span>
+	{
+<span class="fc" id="L56">		BOLD, ITALIC, UNDERLINED</span>
+	}
+	
+	private final Alignment aAlign;
+	private final EnumSet&lt;Decoration&gt; aDecorations;
+
+	/**
+	 * Creates a new String Renderer.
+	 * 
+	 * @param pPosition The desired alignment.
+	 * @param pDecorations The desired decorations.
+	 */
+	public StringRenderer(Alignment pPosition, Decoration... pDecorations)
+<span class="fc" id="L69">	{</span>
+<span class="fc" id="L70">		aAlign = pPosition;</span>
+<span class="fc" id="L71">		aDecorations = EnumSet.noneOf(Decoration.class);</span>
+<span class="fc" id="L72">		Collections.addAll(aDecorations, pDecorations);</span>
+<span class="fc" id="L73">	}</span>
+	
+	/**
+	 * Draws the string inside a given bounding box. Does not draw a blank string.
+	 * Automatically splits lines and draws each separately.
+	 * 
+	 * @param pString The string to draw.
+	 * @param pBoundingBox the rectangle into which to place the string.
+	 * @param pContext The rendering context on which to draw the text.
+	 */
+	public void draw(String pString, Rectangle pBoundingBox, RenderingContext pContext)
+	{
+<span class="fc" id="L85">		int currentY = pBoundingBox.y();</span>
+<span class="fc bfc" id="L86" title="All 2 branches covered.">		for (String line : pString.split(&quot;\n&quot;))</span>
+		{
+<span class="fc" id="L88">			drawSingleLine(line, new Rectangle(pBoundingBox.x(), currentY, pBoundingBox.width(), lineHeight()), pContext);</span>
+<span class="fc" id="L89">			currentY += lineHeight();</span>
+		}
+<span class="fc" id="L91">	}</span>
+	
+	private void drawSingleLine(String pString, Rectangle pBoundingBox, RenderingContext pContext)
+	{
+<span class="pc bpc" id="L95" title="1 of 2 branches missed.">		assert !pString.contains(&quot;\n&quot;);</span>
+		
+<span class="fc bfc" id="L97" title="All 2 branches covered.">		if (pString.trim().isBlank())</span>
+		{
+<span class="fc" id="L99">			return;</span>
+		}
+<span class="fc" id="L101">		pContext.drawText(pString, pBoundingBox, aAlign, ColorScheme.get().stroke(),</span>
+<span class="fc" id="L102">				font(), fontDimension());</span>
+
+<span class="pc bpc" id="L104" title="3 of 4 branches missed.">		if( aDecorations.contains(Decoration.UNDERLINED) &amp;&amp; pString.trim().length() &gt; 0 )</span>
+		{
+<span class="nc" id="L106">			final int textWidth = getDimension(pString).width();</span>
+<span class="nc" id="L107">			int x1 = pBoundingBox.x();</span>
+<span class="nc bnc" id="L108" title="All 2 branches missed.">			if (aAlign == Alignment.CENTER)</span>
+			{
+<span class="nc" id="L110">				x1 += (pBoundingBox.width() - textWidth)/2;</span>
+			}
+			/* We position the underline in the middle of the baseline offset */
+<span class="nc" id="L113">			int y = pBoundingBox.maxY() - fontDimension().baselineOffset()/2;</span>
+<span class="nc" id="L114">			pContext.strokeLine(x1, y, x1 + textWidth, y, ColorScheme.get().stroke(), LineStyle.SOLID);</span>
+		}
+<span class="fc" id="L116">	}</span>
+
+	/**
+	 * Gets the width and height required to show pString, including padding
+	 * around the string.
+	 * 
+	 * @param pString The input string.
+	 * @return The dimension pString will use on the screen.
+	 * @pre pString != null.
+	 */
+	public Dimension getDimension(String pString)
+	{
+<span class="pc bpc" id="L128" title="1 of 2 branches missed.">		assert pString != null;</span>
+<span class="fc bfc" id="L129" title="All 2 branches covered.">		if( pString.length() == 0 )</span>
+		{
+<span class="fc" id="L131">			return Dimension.NULL;</span>
+		}
+<span class="fc" id="L133">		TEXT_NODE.setFont(font());</span>
+<span class="fc" id="L134">		TEXT_NODE.setText(pString);</span>
+<span class="fc" id="L135">		Bounds bounds = TEXT_NODE.getLayoutBounds();</span>
+<span class="fc" id="L136">		return new Dimension(GeomUtils.round(bounds.getWidth()), GeomUtils.round(bounds.getHeight()));</span>
+	}
+	
+	/**
+	 * @return The height of one line of text, including skip.
+	 */
+	public int lineHeight()
+	{
+<span class="fc" id="L144">		return getDimension(&quot;|&quot;).height();</span>
+	}
+	
+	/**
+	 * @return The dimensions of the current font.
+	 */
+	public FontDimension fontDimension()
+	{
+<span class="fc" id="L152">		return new FontDimension(lineHeight(), lineHeight()- baselineOffset(font()));</span>
+	}
+	
+	private Font font()
+	{
+<span class="pc bpc" id="L157" title="1 of 4 branches missed.">		if( aDecorations.contains(Decoration.BOLD) &amp;&amp; aDecorations.contains(Decoration.ITALIC) )</span>
+		{
+<span class="nc" id="L159">			return Font.font(UserPreferences.instance().getString(StringPreference.fontName), FontWeight.BOLD,</span>
+<span class="nc" id="L160">					FontPosture.ITALIC, UserPreferences.instance().getInteger(IntegerPreference.fontSize));</span>
+		}
+<span class="fc bfc" id="L162" title="All 2 branches covered.">		else if( aDecorations.contains(Decoration.BOLD) )</span>
+		{
+<span class="fc" id="L164">			return Font.font(UserPreferences.instance().getString(StringPreference.fontName), FontWeight.BOLD,</span>
+<span class="fc" id="L165">					UserPreferences.instance().getInteger(IntegerPreference.fontSize));</span>
+		}
+<span class="pc bpc" id="L167" title="1 of 2 branches missed.">		else if( aDecorations.contains(Decoration.ITALIC) )</span>
+		{
+<span class="nc" id="L169">			return Font.font(UserPreferences.instance().getString(StringPreference.fontName), FontPosture.ITALIC,</span>
+<span class="nc" id="L170">					UserPreferences.instance().getInteger(IntegerPreference.fontSize));</span>
+		}
+<span class="fc" id="L172">		return Font.font(UserPreferences.instance().getString(StringPreference.fontName),</span>
+<span class="fc" id="L173">				UserPreferences.instance().getInteger(IntegerPreference.fontSize));</span>
+	}
+	
+	/**
+	 * Returns the distance between the top and baseline of a single lined text.
+	 * 
+	 * @param pFont The font used for the metric.
+	 * @return the distance above the baseline for a single lined text.
+	 * @pre pFont != null
+	 */
+	private static int baselineOffset(Font pFont)
+	{
+<span class="pc bpc" id="L185" title="1 of 2 branches missed.">		assert pFont != null;</span>
+		
+<span class="fc" id="L187">		TEXT_NODE.setFont(pFont);</span>
+<span class="fc" id="L188">		TEXT_NODE.setText(&quot;|&quot;);</span>
+<span class="fc" id="L189">		return GeomUtils.round(TEXT_NODE.getBaselineOffset());</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
