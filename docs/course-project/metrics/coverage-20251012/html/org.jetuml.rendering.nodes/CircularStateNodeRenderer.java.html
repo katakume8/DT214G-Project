@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CircularStateNodeRenderer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.rendering.nodes</a> &gt; <span class="el_source">CircularStateNodeRenderer.java</span></div><h1>CircularStateNodeRenderer.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.rendering.nodes;
+
+import java.util.Optional;
+
+import org.jetuml.diagram.DiagramElement;
+import org.jetuml.diagram.Node;
+import org.jetuml.geom.Dimension;
+import org.jetuml.geom.Direction;
+import org.jetuml.geom.GeomUtils;
+import org.jetuml.geom.Point;
+import org.jetuml.geom.Rectangle;
+import org.jetuml.gui.ColorScheme;
+import org.jetuml.rendering.DiagramRenderer;
+import org.jetuml.rendering.RenderingContext;
+
+import javafx.scene.paint.Color;
+
+/**
+ * An object to render a initial or final node.
+ */
+public final class CircularStateNodeRenderer extends AbstractNodeRenderer
+{
+	private static final int DIAMETER = 20;
+	private final boolean aFinal;
+	
+	/**
+	 * @param pFinal true if this is a final node, false if it is an initial node.
+	 */
+	public CircularStateNodeRenderer(DiagramRenderer pParent, boolean pFinal)
+	{
+<span class="fc" id="L51">		super(pParent);</span>
+<span class="fc" id="L52">		aFinal = pFinal;</span>
+<span class="fc" id="L53">	}</span>
+	
+	@Override
+	public Dimension getDefaultDimension(Node pNode)
+	{
+<span class="fc" id="L58">		return new Dimension(DIAMETER, DIAMETER);</span>
+	}
+
+	@Override
+	public void draw(DiagramElement pElement, RenderingContext pContext)
+	{
+<span class="nc" id="L64">		final Rectangle bounds = getBounds(pElement);</span>
+<span class="nc bnc" id="L65" title="All 2 branches missed.">		if( aFinal )</span>
+		{
+<span class="nc" id="L67">			pContext.drawOval(bounds.x(), bounds.y(), DIAMETER, DIAMETER, Color.WHITE, ColorScheme.get().stroke(),</span>
+<span class="nc" id="L68">					Optional.of(ColorScheme.get().dropShadow()));</span>
+<span class="nc" id="L69">			int innerDiameter = DIAMETER/2;</span>
+<span class="nc" id="L70">			pContext.drawOval(bounds.x() + innerDiameter/2, </span>
+<span class="nc" id="L71">					bounds.y() + innerDiameter/2, innerDiameter, innerDiameter, Color.BLACK, Color.BLACK, Optional.empty());</span>
+<span class="nc" id="L72">		}</span>
+		else
+		{
+<span class="nc" id="L75">			pContext.drawOval(bounds.x(), bounds.y(), DIAMETER, DIAMETER, Color.BLACK, ColorScheme.get().stroke(),</span>
+<span class="nc" id="L76">					Optional.of(ColorScheme.get().dropShadow()));</span>
+		}
+<span class="nc" id="L78">	}</span>
+	
+	@Override
+	public Point getConnectionPoint(Node pNode, Direction pDirection)
+	{
+<span class="fc" id="L83">		return GeomUtils.intersectCircle(getBounds(pNode), pDirection);</span>
+	}   	 
+
+	@Override
+	protected Rectangle internalGetBounds(Node pNode)
+	{
+<span class="fc" id="L89">		return new Rectangle(pNode.position().x(), pNode.position().y(), DIAMETER, DIAMETER);</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

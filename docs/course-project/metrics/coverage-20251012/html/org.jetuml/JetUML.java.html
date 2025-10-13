@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JetUML.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml</a> &gt; <span class="el_source">JetUML.java</span></div><h1>JetUML.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+
+package org.jetuml;
+
+import static org.jetuml.application.ApplicationResources.RESOURCES;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
+import java.util.Optional;
+
+import org.jetuml.application.UserPreferences;
+import org.jetuml.application.Version;
+import org.jetuml.diagram.Diagram;
+import org.jetuml.geom.Rectangle;
+import org.jetuml.gui.DeserializationErrorAlert;
+import org.jetuml.gui.DialogStage;
+import org.jetuml.gui.EditorFrame;
+import org.jetuml.gui.GuiUtils;
+import org.jetuml.gui.NotificationService;
+import org.jetuml.gui.tips.TipDialog;
+import org.jetuml.persistence.DeserializationException;
+import org.jetuml.persistence.PersistenceService;
+
+import javafx.application.Application;
+import javafx.application.HostServices;
+import javafx.scene.Scene;
+import javafx.scene.control.Alert;
+import javafx.scene.image.Image;
+import javafx.stage.Stage;
+
+/**
+ * Entry point for launching JetUML.
+ */
+<span class="nc" id="L54">public final class JetUML extends Application</span>
+{
+	@SuppressWarnings(&quot;exports&quot;)
+<span class="fc" id="L57">	public static final Version VERSION = Version.create(3, 9);</span>
+	
+	private static HostServices aHostServices; // Required to open a browser page.
+	
+	/**
+	 * @param pArgs Not used.
+	 */
+	public static void main(String[] pArgs)
+	{
+<span class="nc" id="L66">		System.setProperty(&quot;apple.laf.useScreenMenuBar&quot;, &quot;true&quot;);</span>
+<span class="nc" id="L67">		launch(pArgs);</span>
+<span class="nc" id="L68">	}</span>
+	
+	@Override
+	public void start(Stage pStage) throws Exception 
+	{
+<span class="nc" id="L73">		aHostServices = getHostServices();</span>
+<span class="nc" id="L74">		setStageBoundaries(pStage);</span>
+
+<span class="nc" id="L76">		pStage.setTitle(RESOURCES.getString(&quot;application.name&quot;));</span>
+<span class="nc" id="L77">		pStage.getIcons().add(new Image(RESOURCES.getString(&quot;application.icon&quot;)));</span>
+
+<span class="nc" id="L79">		Optional&lt;Diagram&gt; diagramToOpen = Optional.empty();</span>
+<span class="nc" id="L80">		Optional&lt;File&gt; fileToOpen = getFileToOpenIfPresent();</span>
+		
+		/* For simplicity, the code below does not set up a stage just to serve
+		 * as a parent for the Alert dialog. The only consequence is that if
+		 * this dialog appears, a default &quot;Java&quot; icon will be shown in the OS
+		 * taskbar instead of the JetUML-branded icon. To show the JetUML
+		 * icon, the code needs to be extended to create an empty stage
+		 * and ensure the dialog shows up in the middle of the screen, before
+		 * exiting.
+		 */
+		try
+		{
+<span class="nc bnc" id="L92" title="All 2 branches missed.">			if( fileToOpen.isPresent())</span>
+			{
+<span class="nc" id="L94">				diagramToOpen = Optional.of(PersistenceService.read(fileToOpen.get()));</span>
+			}
+		}
+<span class="nc" id="L97">		catch( IOException | DeserializationException exception )</span>
+		{
+<span class="nc" id="L99">			Alert alert = new DeserializationErrorAlert(exception);</span>
+<span class="nc" id="L100">			alert.showAndWait();</span>
+<span class="nc" id="L101">			System.exit(0);</span>
+<span class="nc" id="L102">		}</span>
+		
+<span class="nc" id="L104">		DialogStage dialogStage = new DialogStage(pStage);</span>
+<span class="nc" id="L105">		dialogStage.getScene().getStylesheets().add(getClass().getResource(&quot;JetUML.css&quot;).toExternalForm());</span>
+		
+<span class="nc" id="L107">		EditorFrame editor = new EditorFrame(pStage, dialogStage);</span>
+<span class="nc" id="L108">		diagramToOpen.ifPresent(diagram -&gt; editor.setOpenFileAsDiagram(fileToOpen.get(), diagram));</span>
+<span class="nc" id="L109">		pStage.setScene(new Scene(editor));</span>
+
+<span class="nc" id="L111">		NotificationService.instance().setMainStage(pStage);</span>
+		
+<span class="nc" id="L113">		pStage.getScene().getStylesheets().add(getClass().getResource(&quot;JetUML.css&quot;).toExternalForm());</span>
+<span class="nc" id="L114">		editor.booleanPreferenceChanged(UserPreferences.BooleanPreference.darkMode);</span>
+		
+<span class="nc" id="L116">		pStage.setOnCloseRequest(pWindowEvent -&gt; </span>
+		{
+<span class="nc" id="L118">			pWindowEvent.consume();</span>
+<span class="nc" id="L119">			((EditorFrame)((Stage)pWindowEvent.getSource()).getScene().getRoot()).exit();</span>
+<span class="nc" id="L120">		});</span>
+<span class="nc" id="L121">		pStage.show();</span>
+		
+<span class="nc bnc" id="L123" title="All 2 branches missed.">		if(UserPreferences.instance().getBoolean(UserPreferences.BooleanPreference.showTips))</span>
+		{
+<span class="nc" id="L125">			new TipDialog(dialogStage).show();</span>
+		}
+<span class="nc" id="L127">	}</span>
+	
+	// If the first argument passed to the application is a valid file
+	private Optional&lt;File&gt; getFileToOpenIfPresent()
+	{
+<span class="nc" id="L132">		List&lt;String&gt; parameters = getParameters().getUnnamed();</span>
+<span class="nc bnc" id="L133" title="All 2 branches missed.">		if( parameters.isEmpty() )</span>
+		{
+<span class="nc" id="L135">			return Optional.empty();</span>
+		}
+<span class="nc" id="L137">		File file = new File(parameters.get(0));</span>
+<span class="nc bnc" id="L138" title="All 4 branches missed.">		if(file.exists() &amp;&amp; !file.isDirectory())</span>
+		{
+<span class="nc" id="L140">			return Optional.of(file);</span>
+		}
+		else
+		{
+<span class="nc" id="L144">			return Optional.empty();</span>
+		}
+	}
+	
+	/**
+	 * Open pUrl in the default system browser.
+	 * 
+	 * @param pUrl The url to open.
+	 * @pre pUrl != null
+	 */
+	public static void openBrowser(String pUrl)
+	{
+<span class="nc bnc" id="L156" title="All 2 branches missed.">		assert pUrl != null;</span>
+<span class="nc" id="L157">		aHostServices.showDocument(pUrl);</span>
+<span class="nc" id="L158">	}</span>
+
+	private static void setStageBoundaries(Stage pStage)
+	{
+<span class="nc" id="L162">		Rectangle defaultStageBounds = GuiUtils.defaultStageBounds();</span>
+<span class="nc" id="L163">		pStage.setX(defaultStageBounds.x());</span>
+<span class="nc" id="L164">		pStage.setY(defaultStageBounds.y());</span>
+<span class="nc" id="L165">		pStage.setWidth(defaultStageBounds.width());</span>
+<span class="nc" id="L166">		pStage.setHeight(defaultStageBounds.height());</span>
+<span class="nc" id="L167">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

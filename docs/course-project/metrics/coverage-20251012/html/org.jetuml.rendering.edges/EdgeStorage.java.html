@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EdgeStorage.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.rendering.edges</a> &gt; <span class="el_source">EdgeStorage.java</span></div><h1>EdgeStorage.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.rendering.edges;
+
+import java.util.ArrayList;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import org.jetuml.diagram.Edge;
+import org.jetuml.diagram.Node;
+import org.jetuml.geom.Point;
+import org.jetuml.rendering.EdgePath;
+
+/**
+ * Stores the EdgePaths of Edges for class diagrams.
+ */
+<span class="fc" id="L37">public class EdgeStorage</span>
+{
+<span class="fc" id="L39">	private Map&lt;Edge, EdgePath&gt; aEdgePaths = new IdentityHashMap&lt;&gt;();</span>
+ 	
+ 	/**
+ 	 * Adds pEdge and pEdgePath into storage.
+ 	 * If pEdge is already in storage, then its EdgePath is updated to pEdgePath.
+ 	 * @param pEdge the edge to store
+ 	 * @pre pEdge!=null
+ 	 * @pre pEdgePath!=null
+ 	 */
+ 	public void store(Edge pEdge, EdgePath pEdgePath)
+ 	{
+<span class="pc bpc" id="L50" title="2 of 4 branches missed."> 		assert pEdge!=null &amp;&amp; pEdgePath!=null;</span>
+<span class="fc" id="L51"> 		aEdgePaths.put(pEdge, pEdgePath);</span>
+<span class="fc" id="L52"> 	}</span>
+ 
+ 	
+ 	/**
+ 	 * Returns whether storage is empty.  
+ 	 * @return true if aEdgePaths is empty, false otherwise.
+ 	 */
+ 	public boolean isEmpty()
+ 	{
+<span class="fc" id="L61"> 		return aEdgePaths.isEmpty();</span>
+ 	}
+ 	
+ 	/**
+ 	 * Returns pEdge's EdgePath from storage.
+ 	 * @param pEdge the stored edge of interest
+ 	 * @return the EdgePath for pEdge from storage 
+ 	 * @pre pEdge!=null
+ 	 * @pre this.contains(pEdge)
+ 	 */
+ 	public EdgePath getEdgePath(Edge pEdge)
+ 	{
+<span class="pc bpc" id="L73" title="1 of 2 branches missed."> 		assert pEdge!=null;</span>
+<span class="pc bpc" id="L74" title="1 of 2 branches missed."> 		assert this.contains(pEdge);</span>
+<span class="fc" id="L75"> 		return aEdgePaths.get(pEdge);</span>
+	
+ 	}
+ 	
+ 	/**
+ 	 * Returns whether pEdge is in storage.
+ 	 * @param pEdge the edge of interest
+ 	 * @return true if pEdge is in storage, false otherwise
+ 	 * @pre pEdge!=null
+ 	 */
+ 	public boolean contains(Edge pEdge)
+ 	{
+<span class="pc bpc" id="L87" title="1 of 2 branches missed."> 		assert pEdge!=null;</span>
+<span class="fc" id="L88"> 		return aEdgePaths.containsKey(pEdge);</span>
+ 	}
+
+ 	/**
+ 	 * Returns a list of edges in storage which are connected to pNode.
+	 * @param pNode The node of interest
+	 * @return All the edges connected to pNode
+	 * @pre pNode != null
+	 */
+	public List&lt;Edge&gt; edgesConnectedTo(Node pNode)
+	{
+<span class="pc bpc" id="L99" title="1 of 2 branches missed.">		assert pNode != null;</span>
+<span class="fc" id="L100">		List&lt;Edge&gt; result = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L101" title="All 2 branches covered.">		for( Edge edge : aEdgePaths.keySet() )</span>
+		{
+<span class="fc bfc" id="L103" title="All 4 branches covered.">			if( edge.start() == pNode || edge.end() == pNode )</span>
+			{
+<span class="fc" id="L105">				result.add(edge);</span>
+			}
+<span class="fc" id="L107">		}</span>
+<span class="fc" id="L108">		return result;</span>
+	}
+	
+	/**
+	 * Returns whether pConnectionPoint is available.
+	 * @param pConnectionPoint a Point in the diagram
+	 * @return false if pPoint is a start or end connection point for an edge in storage, true otherwise
+	 * @pre pConnectionPoint !=null;
+	 */
+	public boolean connectionPointIsAvailable(Point pConnectionPoint)
+	{
+<span class="pc bpc" id="L119" title="1 of 2 branches missed.">		assert pConnectionPoint !=null;</span>
+<span class="fc bfc" id="L120" title="All 2 branches covered.">		for( EdgePath path : aEdgePaths.values() )</span>
+		{
+<span class="fc bfc" id="L122" title="All 4 branches covered.">			if(path.getStartPoint().equals(pConnectionPoint) || path.getEndPoint().equals(pConnectionPoint))</span>
+			{
+<span class="fc" id="L124">				return false;</span>
+			}
+<span class="fc" id="L126">		}</span>
+<span class="fc" id="L127">		return true;</span>
+	}
+	
+	/**
+	 * Returns a list of edges which share the same two attached nodes as pEdge, reffered to as &quot;shared-node edges&quot;.
+	 * Based on diagram constraints, this list will typically either be empty or contain a maximum of 1 edge. 
+	 * @param pEdge the edge of interest
+	 * @return a list of edges from storage which are also attached to pEdge.getStart() and pEdge.getEnd(). 	 
+	 */
+	public List&lt;Edge&gt; getEdgesWithSameNodes(Edge pEdge)
+	{
+<span class="fc" id="L138">		return aEdgePaths.keySet().stream()</span>
+<span class="fc bfc" id="L139" title="All 4 branches covered.">				.filter(edge -&gt; edge.start() == pEdge.start() || edge.start() == pEdge.end())</span>
+<span class="fc bfc" id="L140" title="All 4 branches covered.">				.filter(edge -&gt; edge.end() == pEdge.start() || edge.end() == pEdge.end())</span>
+<span class="fc bfc" id="L141" title="All 2 branches covered.">				.filter(edge -&gt; !edge.equals(pEdge))</span>
+<span class="fc" id="L142">				.collect(Collectors.toList());</span>
+	}
+	
+	/**
+	 * Clears edge storage.
+	 */
+	public void clearStorage()
+	{
+<span class="fc" id="L150">		aEdgePaths.clear();</span>
+<span class="fc" id="L151">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

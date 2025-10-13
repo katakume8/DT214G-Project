@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AbstractNode.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.diagram.nodes</a> &gt; <span class="el_source">AbstractNode.java</span></div><h1>AbstractNode.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.diagram.nodes;
+
+import static java.util.Collections.emptyList;
+
+import java.util.List;
+
+import org.jetuml.diagram.AbstractDiagramElement;
+import org.jetuml.diagram.Node;
+import org.jetuml.geom.Point;
+
+/**
+ * Common elements for the Node hierarchy.
+ */
+<span class="fc" id="L34">public abstract class AbstractNode extends AbstractDiagramElement implements Node</span>
+{
+<span class="fc" id="L36">	private Point aPosition = new Point(0, 0);</span>
+	
+	@Override
+	public void translate(int pDeltaX, int pDeltaY)
+	{
+<span class="fc" id="L41">		aPosition = new Point( aPosition.x() + pDeltaX, aPosition.y() + pDeltaY );</span>
+<span class="fc" id="L42">	}</span>
+	
+	@Override
+	public final Point position()
+	{
+<span class="fc" id="L47">		return aPosition;</span>
+	}
+	
+	@Override
+	public final void moveTo(Point pPoint)
+	{
+<span class="fc" id="L53">		aPosition = pPoint;</span>
+<span class="fc" id="L54">	}</span>
+
+	@Override
+	public AbstractNode clone()
+	{
+<span class="fc" id="L59">		AbstractNode clone = (AbstractNode) super.clone();</span>
+<span class="fc" id="L60">		clone.aPosition = aPosition.copy();</span>
+<span class="fc" id="L61">		return clone;</span>
+	}
+	
+	@Override
+	public String toString()
+	{
+<span class="fc" id="L67">		return getClass().getSimpleName() + &quot; at &quot; + position();</span>
+	}
+	
+	@Override
+	public boolean hasParent()
+	{
+<span class="fc" id="L73">		return false;</span>
+	}
+	
+	@Override
+	public boolean requiresParent()
+	{
+<span class="fc" id="L79">		return false;</span>
+	}
+	
+	@Override
+	public Node getParent()
+	{
+<span class="nc" id="L85">		assert false; // Safer way than assert hasParent() to trigger an assertion error if not overridden</span>
+<span class="nc" id="L86">		return null; // Unreachable.</span>
+	}
+	
+	@Override
+	public void unlink()
+	{
+<span class="nc" id="L92">		assert false; // Safer way than assert hasParent() to trigger an assertion error if not overridden</span>
+<span class="nc" id="L93">	}</span>
+	
+	@Override
+	public void link(Node pParentNode)
+	{
+<span class="nc" id="L98">		assert false;</span>
+<span class="nc" id="L99">	}</span>
+	
+	@Override
+	public List&lt;Node&gt; getChildren()
+	{
+<span class="fc" id="L104">		return emptyList();</span>
+	}
+	
+	@Override
+	public boolean allowsAsChild(Node pNode)
+	{
+<span class="fc" id="L110">		return false;</span>
+	}
+	
+	@Override
+	public void addChild(Node pNode)
+	{
+<span class="nc bnc" id="L116" title="All 2 branches missed.">		assert allowsAsChild(pNode); </span>
+		// Do nothing
+<span class="nc" id="L118">	}</span>
+	
+	@Override
+	public void addChild(int pIndex, Node pNode)
+	{
+<span class="nc bnc" id="L123" title="All 2 branches missed.">		assert allowsAsChild(pNode); </span>
+		// Do nothing
+<span class="nc" id="L125">	}</span>
+	
+	@Override
+	public void removeChild(Node pNode)
+	{
+<span class="nc bnc" id="L130" title="All 2 branches missed.">		assert getChildren().contains(pNode);</span>
+<span class="nc" id="L131">	}</span>
+	
+	@Override
+	public void placeLast(Node pNode)
+	{
+<span class="pc bpc" id="L136" title="1 of 2 branches missed.">		assert pNode != null;</span>
+<span class="pc bpc" id="L137" title="1 of 2 branches missed.">		assert getChildren().contains(pNode);</span>
+<span class="fc" id="L138">		removeChild(pNode);</span>
+<span class="fc" id="L139">		addChild(pNode);</span>
+<span class="fc" id="L140">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

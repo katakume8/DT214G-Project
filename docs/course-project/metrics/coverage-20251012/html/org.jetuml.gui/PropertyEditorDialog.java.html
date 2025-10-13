@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PropertyEditorDialog.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.gui</a> &gt; <span class="el_source">PropertyEditorDialog.java</span></div><h1>PropertyEditorDialog.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.gui;
+
+import static org.jetuml.application.ApplicationResources.RESOURCES;
+
+import java.util.EnumMap;
+
+import org.jetuml.diagram.DiagramElement;
+import org.jetuml.diagram.Properties;
+import org.jetuml.diagram.Property;
+import org.jetuml.diagram.PropertyName;
+import org.jetuml.diagram.builder.CompoundOperation;
+import org.jetuml.diagram.builder.SimpleOperation;
+
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.control.Button;
+import javafx.scene.image.Image;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.Pane;
+import javafx.stage.Stage;
+
+/**
+ * A modal dialog that allows the user to edit the 
+ * properties of a DiagramElement.
+ */
+public class PropertyEditorDialog
+{
+	private static final int LAYOUT_PADDING = 20;
+	
+	private final Stage aStage;
+	private final DiagramElement aElement;
+	
+	/**
+	 * Creates a new dialog.
+	 * 
+	 * @param pDialogStage The stage that owns this dialog.
+	 * @param pElement The element to edit with this dialog.
+	 * @param pPropertyChangeListener A callback to run whenever a property changes.
+	 */
+	public PropertyEditorDialog( Stage pDialogStage, DiagramElement pElement, 
+			PropertySheet.PropertyChangeListener pPropertyChangeListener )
+<span class="nc" id="L62">	{</span>
+<span class="nc" id="L63">		aStage = pDialogStage;</span>
+<span class="nc" id="L64">		aElement = pElement;</span>
+<span class="nc" id="L65">		prepareStage();</span>
+<span class="nc" id="L66">		aStage.getScene().setRoot(createRoot(pPropertyChangeListener));</span>
+<span class="nc" id="L67">	}</span>
+	
+	private void prepareStage() 
+	{
+<span class="nc" id="L71">		aStage.setTitle(RESOURCES.getString(&quot;dialog.properties&quot;));</span>
+<span class="nc" id="L72">		aStage.getIcons().add(new Image(RESOURCES.getString(&quot;application.icon&quot;)));</span>
+<span class="nc" id="L73">	}</span>
+	
+	private Pane createRoot(PropertySheet.PropertyChangeListener pPropertyChangeListener) 
+	{
+<span class="nc" id="L77">		PropertySheet sheet = new PropertySheet(aElement, pPropertyChangeListener);</span>
+				
+<span class="nc" id="L79">		BorderPane layout = new BorderPane();</span>
+<span class="nc" id="L80">		Button button = new Button(RESOURCES.getString(&quot;dialog.diagram_size.ok&quot;));</span>
+		
+		// The line below allows to click the button by using the &quot;Enter&quot; key, 
+		// by making it the default button, but only when it has the focus.
+<span class="nc" id="L84">		button.defaultButtonProperty().bind(button.focusedProperty());</span>
+<span class="nc" id="L85">		button.setOnAction(pEvent -&gt; aStage.close());</span>
+<span class="nc" id="L86">		BorderPane.setAlignment(button, Pos.CENTER_RIGHT);</span>
+		
+<span class="nc" id="L88">		layout.setPadding(new Insets(LAYOUT_PADDING));</span>
+<span class="nc" id="L89">		layout.setCenter(sheet);</span>
+<span class="nc" id="L90">		layout.setBottom(button);</span>
+		
+<span class="nc" id="L92">		return layout;</span>
+	}
+	
+	private PropertySheet getPropertySheet()
+	{
+<span class="nc" id="L97">		return (PropertySheet)((BorderPane) aStage.getScene().getRoot()).getCenter();</span>
+	}
+
+	/**
+	 * Shows the dialog and blocks the remainder of the UI
+	 * until it is closed.
+	 * 
+	 * @return A compound operation that represents the modification of
+	 *     each property modified through this dialog.
+	 */
+	public CompoundOperation show() 
+	{
+<span class="nc bnc" id="L109" title="All 2 branches missed.">		if(!getPropertySheet().isEmpty())</span>
+		{
+<span class="nc" id="L111">			PropertyChangeTracker tracker = new PropertyChangeTracker(getPropertySheet().getElement());</span>
+<span class="nc" id="L112">			tracker.startTracking();</span>
+<span class="nc" id="L113">			aStage.showAndWait();</span>
+<span class="nc" id="L114">			return tracker.stopTracking();</span>
+		}
+		else
+		{
+<span class="nc" id="L118">			return new CompoundOperation();</span>
+		}
+    }
+	
+<span class="fc" id="L122">	private static class PropertyChangeTracker </span>
+	{
+<span class="fc" id="L124">		private EnumMap&lt;PropertyName, Object&gt; aOldValues = new EnumMap&lt;&gt;(PropertyName.class);</span>
+		private Properties aProperties;
+		
+		/**
+		 * Creates a new tracker for pEdited.
+		 *  
+		 * @param pEdited The element to track.
+		 * @pre pEdited != null;
+		 */
+		PropertyChangeTracker(DiagramElement pEdited)
+<span class="fc" id="L134">		{</span>
+<span class="pc bpc" id="L135" title="1 of 2 branches missed.">			assert pEdited != null;</span>
+<span class="fc" id="L136">			aProperties = pEdited.properties();</span>
+<span class="fc" id="L137">		}</span>
+
+		/**
+		 * Makes a snapshot of the properties values of the tracked element.
+		 */
+		public void startTracking()
+		{
+<span class="fc bfc" id="L144" title="All 2 branches covered.">			for( Property property : aProperties )</span>
+			{
+<span class="fc" id="L146">				aOldValues.put(property.name(), property.get());</span>
+<span class="fc" id="L147">			}</span>
+<span class="fc" id="L148">		}</span>
+		
+		/**
+		 * Creates and returns a CompoundOperation that represents any change
+		 * in properties detected between the time startTracking
+		 * and stopTracking were called.
+		 * 
+		 * @return A CompoundOperation describing the property changes.
+		 */
+		public CompoundOperation stopTracking()
+		{
+<span class="fc" id="L159">			CompoundOperation operation = new CompoundOperation();</span>
+<span class="fc bfc" id="L160" title="All 2 branches covered.">			for( Property property : aProperties )</span>
+			{
+<span class="fc bfc" id="L162" title="All 2 branches covered.">				if( !aOldValues.get(property.name()).equals(property.get()))</span>
+				{
+<span class="fc" id="L164">					final Object newValue = property.get();</span>
+<span class="fc" id="L165">					final Object oldValue = aOldValues.get(property.name());</span>
+<span class="fc" id="L166">					operation.add(new SimpleOperation(</span>
+<span class="fc" id="L167">							()-&gt; property.set(newValue),</span>
+<span class="fc" id="L168">							()-&gt; property.set(oldValue)));</span>
+				}
+<span class="fc" id="L170">			}</span>
+<span class="fc" id="L171">			return operation;</span>
+		}
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

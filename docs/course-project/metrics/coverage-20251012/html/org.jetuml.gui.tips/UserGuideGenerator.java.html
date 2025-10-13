@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UserGuideGenerator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.gui.tips</a> &gt; <span class="el_source">UserGuideGenerator.java</span></div><h1>UserGuideGenerator.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ * 
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option) any later
+ * version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+ * details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * this program. If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.gui.tips;
+
+import static org.jetuml.application.ApplicationResources.RESOURCES;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.StringJoiner;
+
+import org.jetuml.gui.tips.TipLoader.Tip;
+
+/**
+ * Script to generate the user guide by collecting all the tips of the day in a
+ * single page.
+ */
+public final class UserGuideGenerator
+{
+<span class="nc" id="L39">	private static final int NUMBER_OF_TIPS = Integer.parseInt(RESOURCES.getString(&quot;tips.quantity&quot;));</span>
+<span class="nc" id="L40">	private static final Path PATH_OUTPUT = Path.of(&quot;docs/tips.md&quot;);</span>
+	private static final String TEMPLATE_TITLE = &quot;\n### %d. %s&quot;;
+	private static final String TEMPLATE_IMAGE = &quot;\n![Image](../tipdata/tip_images/%s)&quot;;
+	private static final String HEADER = &quot;&quot;&quot;
+			## Tips for JetUML Users
+			
+			This section lists all the &quot;Tip of the Day&quot; entries available through JetUML's help menu.
+			&quot;&quot;&quot;;
+	
+	private UserGuideGenerator() {}
+	
+	/**
+	 * Use without arguments.
+	 * 
+	 * @param pArgs Not used.
+	 */
+	public static void main(String[] pArgs) throws IOException
+	{
+<span class="nc" id="L58">		StringBuilder page = new StringBuilder(HEADER);</span>
+		
+<span class="nc bnc" id="L60" title="All 2 branches missed.">		for (int tipNumber = 1; tipNumber &lt;= NUMBER_OF_TIPS; tipNumber++)</span>
+		{
+<span class="nc" id="L62">			page.append(toMarkdown(TipLoader.loadTip(tipNumber))).append(&quot;\n&quot;);</span>
+		}
+<span class="nc" id="L64">		Files.write(PATH_OUTPUT, page.toString().getBytes(StandardCharsets.UTF_8));</span>
+<span class="nc" id="L65">		System.out.println(&quot;User guide generated with %d tips.&quot;.formatted(NUMBER_OF_TIPS));</span>
+<span class="nc" id="L66">	}</span>
+	
+	/*
+	 * Creates a markdown representation of pTip suitable for display in the user
+	 * guide.
+	 */
+	private static String toMarkdown(Tip pTip)
+	{
+<span class="nc" id="L74">		StringJoiner markdown = new StringJoiner(&quot;\n&quot;);</span>
+<span class="nc" id="L75">		markdown.add(TEMPLATE_TITLE.formatted(pTip.getId(), pTip.getTitle()));</span>
+<span class="nc bnc" id="L76" title="All 2 branches missed.">		for (TipElement element : pTip.getElements())</span>
+		{
+<span class="nc" id="L78">			markdown.add(toMarkdown(element));</span>
+<span class="nc" id="L79">		}</span>
+
+<span class="nc" id="L81">		return markdown.toString();</span>
+	}
+	
+	/*
+	 * Creates a markdown representation of pTipElement suitable for display in the
+	 * user guide.
+	 */
+	private static String toMarkdown(TipElement pTipElement)
+	{
+<span class="nc bnc" id="L90" title="All 2 branches missed.">		if (pTipElement.getMedia() == Media.TEXT)</span>
+		{
+<span class="nc" id="L92">			return &quot;\n&quot; + pTipElement.getContent().replace(&quot; | &quot;, &quot; &gt; &quot;);</span>
+		}
+		else
+		{
+<span class="nc" id="L96">			return TEMPLATE_IMAGE.formatted(pTipElement.getContent());</span>
+		}
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

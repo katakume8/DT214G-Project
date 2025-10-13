@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NotificationService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.gui</a> &gt; <span class="el_source">NotificationService.java</span></div><h1>NotificationService.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.gui;
+
+import javafx.beans.value.ChangeListener;
+import javafx.stage.Stage;
+import org.jetuml.annotations.Singleton;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+/**
+ * Singleton object that manages the notification object positions and display states.
+ */
+@Singleton
+public final class NotificationService
+{
+
+    private static final int NOTIFICATION_DISPLAY_SPACING = 8;
+    private static final int NOTIFICATION_DISPLAY_X_MARGIN = 25;
+    private static final int NOTIFICATION_DISPLAY_Y_MARGIN = 25;
+
+<span class="fc" id="L42">    private static final NotificationService INSTANCE = new NotificationService();</span>
+
+    /*
+        This attribute sets the parent stage of all notifications. It is set at initialization,
+        in JetUML.java. It is impossible to spawn a notification if the main stage attribute
+        is null.
+     */
+    private Stage aMainStage;
+<span class="fc" id="L50">    private final List&lt;Notification&gt; aNotifications = new ArrayList&lt;&gt;();</span>
+    // Dead notifications are notifications that reached the end of their lifespan and should be
+    // removed. We store them in a separate list so that we can close them all at once when
+    // the window is maximized, to prevent having the JetUML taskbar window flashing. - See Issue #524
+<span class="fc" id="L54">    private final List&lt;Notification&gt; aDeadNotifications = new ArrayList&lt;&gt;();</span>
+
+<span class="fc" id="L56">    private NotificationService() {}</span>
+
+    /**
+     * @return The NotificationService singleton instance
+     */
+    public static NotificationService instance()
+    {
+<span class="fc" id="L63">        return INSTANCE;</span>
+    }
+
+    /**
+     * Sets the parent stage of all the notification stages.
+     * Only used once in JetUML.java at initialization. The parent stage should
+     * be the application stage.
+     *
+     * @param pStage The target parent stage of the notification objects
+     */
+    public void setMainStage(Stage pStage)
+    {
+<span class="fc" id="L75">        aMainStage = pStage;</span>
+
+<span class="fc bfc" id="L77" title="All 2 branches covered.">        if(pStage != null)</span>
+        {
+            // Window position and size listener for notifications
+<span class="fc" id="L80">            ChangeListener&lt;Number&gt; stageTransformationListener = (pObservableValue, pOldValue, pNewValue) -&gt;</span>
+<span class="fc" id="L81">                    NotificationService.instance().updateNotificationPosition();</span>
+
+            // When the stage is moved, update the notification positions
+<span class="fc" id="L84">            pStage.xProperty().addListener(stageTransformationListener);</span>
+<span class="fc" id="L85">            pStage.yProperty().addListener(stageTransformationListener);</span>
+
+            // When the stage is resized, update the notification positions
+<span class="fc" id="L88">            pStage.heightProperty().addListener(stageTransformationListener);</span>
+<span class="fc" id="L89">            pStage.widthProperty().addListener(stageTransformationListener);</span>
+        }
+<span class="fc" id="L91">    }</span>
+
+    /**
+     * Rearranges the notifications so that they are stacked properly and do not overlap.
+     */
+    public void updateNotificationPosition()
+    {
+<span class="fc" id="L98">        double y = aMainStage.getY() + aMainStage.getHeight() - NOTIFICATION_DISPLAY_Y_MARGIN;</span>
+<span class="fc" id="L99">        double x = aMainStage.getX() + NOTIFICATION_DISPLAY_X_MARGIN;</span>
+
+<span class="fc" id="L101">        ArrayList&lt;Notification&gt; reverseNotifications = new ArrayList&lt;&gt;(aNotifications);</span>
+<span class="fc" id="L102">        Collections.reverse(reverseNotifications);</span>
+<span class="fc bfc" id="L103" title="All 2 branches covered.">        for(Notification notification : reverseNotifications)</span>
+        {
+<span class="fc" id="L105">            notification.setPosition(x, y);</span>
+<span class="fc" id="L106">            y = y - notification.getHeight() - NOTIFICATION_DISPLAY_SPACING;</span>
+
+<span class="fc bfc" id="L108" title="All 2 branches covered.">            if(y &lt; aMainStage.getY())</span>
+            {
+<span class="fc" id="L110">                notification.close();</span>
+<span class="fc" id="L111">                aNotifications.remove(notification);</span>
+            }
+<span class="fc" id="L113">        }</span>
+<span class="fc" id="L114">    }</span>
+
+    /**
+     * Spawns a notification (it should be instantiated first).
+     *
+     * @param pNotification The notification object to spawn
+     */
+    public void spawnNotification(Notification pNotification)
+    {
+<span class="pc bpc" id="L123" title="1 of 2 branches missed.">        if(aMainStage == null)</span>
+        {
+<span class="nc" id="L125">            return;</span>
+        }
+<span class="fc" id="L127">        aDeadNotifications.forEach(Notification::close);</span>
+<span class="fc" id="L128">        aDeadNotifications.clear();</span>
+
+<span class="fc" id="L130">        aNotifications.add(pNotification);</span>
+
+<span class="fc" id="L132">        pNotification.show(() -&gt; {</span>
+<span class="nc" id="L133">            aNotifications.remove(pNotification);</span>
+<span class="nc" id="L134">            aDeadNotifications.add(pNotification);</span>
+<span class="nc" id="L135">        });</span>
+<span class="fc" id="L136">        updateNotificationPosition();</span>
+<span class="fc" id="L137">    }</span>
+
+    /**
+     * Spawns a new toast notification without having to pass a ToastNotification object, i.e. without having
+     * to fetch the main stage.
+     *
+     * @param pText The text to show on the toast
+     */
+    public void spawnNotification(String pText, ToastNotification.Type pType)
+    {
+<span class="pc bpc" id="L147" title="1 of 2 branches missed.">        if(aMainStage == null)</span>
+        {
+<span class="nc" id="L149">            return;</span>
+        }
+
+<span class="fc" id="L152">        ToastNotification toast = new ToastNotification(pText, pType, aMainStage);</span>
+<span class="fc" id="L153">        spawnNotification(toast);</span>
+<span class="fc" id="L154">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FieldNodeRenderer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.rendering.nodes</a> &gt; <span class="el_source">FieldNodeRenderer.java</span></div><h1>FieldNodeRenderer.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.rendering.nodes;
+
+import org.jetuml.diagram.DiagramElement;
+import org.jetuml.diagram.DiagramType;
+import org.jetuml.diagram.Node;
+import org.jetuml.diagram.nodes.FieldNode;
+import org.jetuml.diagram.nodes.ObjectNode;
+import org.jetuml.geom.Alignment;
+import org.jetuml.geom.Dimension;
+import org.jetuml.geom.Direction;
+import org.jetuml.geom.Point;
+import org.jetuml.geom.Rectangle;
+import org.jetuml.rendering.DiagramRenderer;
+import org.jetuml.rendering.GraphicsRenderingContext;
+import org.jetuml.rendering.RenderingContext;
+import org.jetuml.rendering.StringRenderer;
+
+import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.paint.Color;
+
+/**
+ * An object to render a FieldNode.
+ */
+public final class FieldNodeRenderer extends AbstractNodeRenderer
+{
+	private static final String ICON_LABEL = &quot;x = y&quot;;
+	private static final String EQUALS = &quot; = &quot;;
+	private static final int DEFAULT_WIDTH = 60;
+	private static final int DEFAULT_HEIGHT = 20;
+	private static final int XGAP = 5;
+<span class="fc" id="L52">	private static final StringRenderer VALUE_VIEWER = new StringRenderer(Alignment.LEFT);</span>
+<span class="fc" id="L53">	private static final StringRenderer NAME_VIEWER = new StringRenderer(Alignment.LEFT);</span>
+<span class="fc" id="L54">	private static final StringRenderer EQUALS_VIEWER = new StringRenderer(Alignment.CENTER);</span>
+	
+	/**
+	 * @param pParent The renderer for the parent diagram.
+	 */
+	public FieldNodeRenderer(DiagramRenderer pParent)
+	{
+<span class="fc" id="L61">		super(pParent);</span>
+<span class="fc" id="L62">	}</span>
+	
+	@Override
+	public Dimension getDefaultDimension(Node pNode)
+	{
+<span class="fc" id="L67">		return new Dimension(DEFAULT_WIDTH, DEFAULT_HEIGHT);</span>
+	}
+	
+	private ObjectNodeRenderer objectNodeViewer()
+	{
+<span class="fc" id="L72">		return (ObjectNodeRenderer) parent().rendererFor(ObjectNode.class);</span>
+	}
+	
+	@Override
+	public void draw(DiagramElement pElement, RenderingContext pContext)
+	{
+<span class="nc" id="L78">		final Rectangle bounds = getBounds(pElement);</span>
+<span class="nc" id="L79">		Node node = (Node) pElement;</span>
+<span class="nc" id="L80">		final int split = getSplitPosition(node);</span>
+<span class="nc" id="L81">		final int leftWidth = leftWidth(node);</span>
+<span class="nc" id="L82">		final int midOffset = EQUALS_VIEWER.getDimension(EQUALS).width() / 2;</span>
+<span class="nc" id="L83">		NAME_VIEWER.draw(((FieldNode)node).getName(), </span>
+<span class="nc" id="L84">				new Rectangle(split - leftWidth, bounds.y(), leftWidth, bounds.height()), pContext);</span>
+<span class="nc" id="L85">		EQUALS_VIEWER.draw(EQUALS, new Rectangle(split - midOffset, bounds.y(), midOffset * 2, bounds.height()), pContext);</span>
+<span class="nc" id="L86">		VALUE_VIEWER.draw(((FieldNode)node).getValue(), new Rectangle(split + midOffset, bounds.y(), rightWidth(node), bounds.height()), </span>
+				pContext);
+<span class="nc" id="L88">	}</span>
+	
+	private static int getSplitPosition(Node pNode)
+	{
+<span class="nc" id="L92">		ObjectNode parent = (ObjectNode)pNode.getParent();</span>
+<span class="nc bnc" id="L93" title="All 2 branches missed.">		if( parent != null )</span>
+		{
+<span class="nc" id="L95">			return ObjectNodeRenderer.getSplitPosition(parent);</span>
+		}
+		else
+		{
+<span class="nc" id="L99">			return DEFAULT_WIDTH / 2;</span>
+		}
+	}
+	
+	@Override
+	protected Rectangle internalGetBounds(Node pNode)
+	{
+<span class="fc" id="L106">		final int leftWidth = leftWidth(pNode);</span>
+<span class="fc" id="L107">		final int height = getHeight(pNode);</span>
+<span class="fc bfc" id="L108" title="All 2 branches covered.">		if( pNode.hasParent() )</span>
+		{
+<span class="fc" id="L110">			int yPosition = ObjectNodeRenderer.getYPosition(pNode.getParent(), (FieldNode) pNode);</span>
+<span class="fc" id="L111">			Rectangle parentBounds = objectNodeViewer().getBounds(pNode.getParent());</span>
+<span class="fc" id="L112">			return new Rectangle(parentBounds.x() + XGAP, yPosition, parentBounds.width() - 2*XGAP, height);</span>
+		}
+<span class="fc" id="L114">		return new Rectangle(DEFAULT_WIDTH / 2 - leftWidth, 0, leftWidth + rightWidth(pNode), height);</span>
+	}
+	
+	/**
+	 * @param pNode The node
+	 * @return The width of the left (name) part of the node.
+	 */
+	public static int leftWidth(Node pNode)
+	{
+<span class="pc bpc" id="L123" title="1 of 2 branches missed.">		assert FieldNode.class.isInstance(pNode);</span>
+<span class="fc" id="L124">		final int midOffset = EQUALS_VIEWER.getDimension(EQUALS).width() / 2;</span>
+<span class="fc" id="L125">		return NAME_VIEWER.getDimension(((FieldNode)pNode).getName()).width() + midOffset;</span>
+	}
+	
+	/**
+	 * @param pNode The node.
+	 * @return The width of the right (value) part of the node.
+	 */
+	public static int rightWidth(Node pNode)
+	{
+<span class="pc bpc" id="L134" title="1 of 2 branches missed.">		assert FieldNode.class.isInstance(pNode);</span>
+<span class="fc" id="L135">		final int midOffset = EQUALS_VIEWER.getDimension(EQUALS).width() / 2;</span>
+<span class="fc" id="L136">		int rightWidth = VALUE_VIEWER.getDimension(((FieldNode)pNode).getValue()).width();</span>
+<span class="fc bfc" id="L137" title="All 2 branches covered.">		if(rightWidth == 0)</span>
+		{
+<span class="fc" id="L139">			rightWidth = DEFAULT_WIDTH / 2;</span>
+		}
+<span class="fc" id="L141">		return rightWidth + midOffset;</span>
+	}
+	
+	/**
+	 * @param pNode The node
+	 * @return The height of this node.
+	 */
+	public static int getHeight(Node pNode)
+	{
+<span class="pc bpc" id="L150" title="1 of 2 branches missed.">		assert FieldNode.class.isInstance(pNode);</span>
+<span class="fc" id="L151">		return Math.max(DEFAULT_HEIGHT, Math.max(NAME_VIEWER.getDimension(((FieldNode)pNode).getName()).height(), </span>
+<span class="fc" id="L152">				Math.max(VALUE_VIEWER.getDimension(((FieldNode)pNode).getValue()).height(), </span>
+<span class="fc" id="L153">						EQUALS_VIEWER.getDimension(EQUALS).height())));</span>
+	}
+	
+	@Override
+	public Point getConnectionPoint(Node pNode, Direction pDirection)
+	{
+<span class="fc" id="L159">		final Rectangle bounds = getBounds(pNode);</span>
+<span class="fc" id="L160">		return new Point(bounds.maxX() - XGAP, bounds.center().y());</span>
+	}
+	
+	/*
+	 * Custom version because the field node cannot be drawn without a parent.
+	 */
+	@Override
+	public Canvas createIcon(DiagramType pDiagramType, DiagramElement pElement)
+	{
+<span class="nc" id="L169">		Dimension dimension = EQUALS_VIEWER.getDimension(ICON_LABEL);</span>
+<span class="nc" id="L170">		int width = dimension.width();</span>
+<span class="nc" id="L171">		int height = dimension.height();</span>
+<span class="nc" id="L172">		double scaleX = (BUTTON_SIZE - OFFSET)/ (double) width;</span>
+<span class="nc" id="L173">		double scaleY = (BUTTON_SIZE - OFFSET)/ (double) height;</span>
+<span class="nc" id="L174">		double scale = Math.min(scaleX, scaleY);</span>
+<span class="nc" id="L175">		Canvas canvas = new Canvas(BUTTON_SIZE, BUTTON_SIZE);</span>
+<span class="nc" id="L176">		GraphicsContext graphics = canvas.getGraphicsContext2D();</span>
+<span class="nc" id="L177">		graphics.scale(scale, scale);</span>
+<span class="nc" id="L178">		graphics.translate(Math.max((height - width) / 2, 0), 0);</span>
+<span class="nc" id="L179">		graphics.setFill(Color.WHITE);</span>
+<span class="nc" id="L180">		graphics.setStroke(Color.BLACK);</span>
+<span class="nc" id="L181">		EQUALS_VIEWER.draw(ICON_LABEL, new Rectangle(0, BUTTON_SIZE/2 - height/2+OFFSET, width, height),</span>
+				new GraphicsRenderingContext(graphics));
+<span class="nc" id="L183">		return canvas;</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

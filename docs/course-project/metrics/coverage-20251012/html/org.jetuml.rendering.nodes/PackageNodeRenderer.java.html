@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PackageNodeRenderer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.rendering.nodes</a> &gt; <span class="el_source">PackageNodeRenderer.java</span></div><h1>PackageNodeRenderer.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.rendering.nodes;
+
+import static org.jetuml.geom.GeomUtils.max;
+
+import java.util.Optional;
+
+import org.jetuml.diagram.Node;
+import org.jetuml.diagram.nodes.AbstractPackageNode;
+import org.jetuml.diagram.nodes.PackageNode;
+import org.jetuml.geom.Dimension;
+import org.jetuml.geom.Point;
+import org.jetuml.geom.Rectangle;
+import org.jetuml.rendering.DiagramRenderer;
+
+/**
+ * An object to render a package in a class diagram.
+ */
+<span class="fc" id="L38">public final class PackageNodeRenderer extends AbstractPackageNodeRenderer</span>
+{
+	/**
+	 * @param pParent Renderer of the parent diagram.
+	 */
+	public PackageNodeRenderer(DiagramRenderer pParent)
+	{
+<span class="fc" id="L45">		super(pParent);</span>
+<span class="fc" id="L46">	}</span>
+	
+	/*
+	 * Computes the bounding box that encompasses all children.
+	 */
+	private Optional&lt;Rectangle&gt; getChildrenBounds(Node pNode)
+	{
+<span class="fc bfc" id="L53" title="All 2 branches covered.">		if( ((PackageNode)pNode).getChildren().isEmpty() )</span>
+		{
+<span class="fc" id="L55">			return Optional.empty();</span>
+		}
+<span class="fc" id="L57">		Rectangle childBounds = null;</span>
+<span class="fc bfc" id="L58" title="All 2 branches covered.">		for( Node child : ((PackageNode)pNode).getChildren() )</span>
+		{
+<span class="fc bfc" id="L60" title="All 2 branches covered.">			if( childBounds == null )</span>
+			{
+<span class="fc" id="L62">				childBounds = parent().getBounds(child);</span>
+			}
+			else
+			{
+<span class="fc" id="L66">				childBounds = childBounds.add(parent().getBounds(child));</span>
+			}
+<span class="fc" id="L68">		}</span>
+<span class="pc bpc" id="L69" title="1 of 2 branches missed.">		assert childBounds != null;</span>
+<span class="fc" id="L70">		return Optional.of(childBounds);</span>
+	}
+	
+	/*
+	 * The node's position might have to get adjusted if there are children
+	 * whose position is to the left or up of the node's position.
+	 */
+	private Point getPosition(AbstractPackageNode pNode, Optional&lt;Rectangle&gt; pChildrenBounds)
+	{
+<span class="fc bfc" id="L79" title="All 2 branches covered.">		if( !pChildrenBounds.isPresent() )</span>
+		{
+<span class="fc" id="L81">			return pNode.position();</span>
+		}
+<span class="fc" id="L83">		return new Point(pChildrenBounds.get().x() - PADDING, </span>
+<span class="fc" id="L84">				pChildrenBounds.get().y() - PADDING - getTopDimension(pNode).height());</span>
+	}
+	
+	@Override
+	protected Rectangle getTopBounds(AbstractPackageNode pNode)
+	{
+<span class="fc" id="L90">		Optional&lt;Rectangle&gt; childrenBounds = getChildrenBounds(pNode);</span>
+<span class="fc" id="L91">		Point position = getPosition(pNode, childrenBounds);</span>
+<span class="fc" id="L92">		Dimension topDimension = getTopDimension(pNode);</span>
+<span class="fc" id="L93">		return new Rectangle(position.x(), position.y(), topDimension.width(), topDimension.height());</span>
+	}
+	
+	@Override
+	protected Rectangle getBottomBounds(AbstractPackageNode pNode)
+	{
+<span class="fc" id="L99">		int width = DEFAULT_WIDTH;</span>
+<span class="fc" id="L100">		int height = DEFAULT_BOTTOM_HEIGHT;</span>
+		
+<span class="fc" id="L102">		Optional&lt;Rectangle&gt; childrenBounds = getChildrenBounds(pNode);</span>
+<span class="fc" id="L103">		Point position = getPosition(pNode, childrenBounds);</span>
+		
+<span class="fc" id="L105">		Dimension topDimension = getTopDimension(pNode);</span>
+		
+<span class="fc bfc" id="L107" title="All 2 branches covered.">		if( childrenBounds.isPresent() )</span>
+		{
+<span class="fc" id="L109">			width = max( width, childrenBounds.get().maxX() + PADDING - position.x());</span>
+<span class="fc" id="L110">			height = max( height, childrenBounds.get().maxY() + PADDING - position.y() - topDimension.height());</span>
+		}
+		
+<span class="fc" id="L113">		width = max( width, topDimension.width()+ (DEFAULT_WIDTH - DEFAULT_TOP_WIDTH));</span>
+		
+<span class="fc" id="L115">		return new Rectangle(position.x(), position.y() + topDimension.height(), </span>
+				width, height);
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ObjectReferenceEdgeRenderer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.rendering.edges</a> &gt; <span class="el_source">ObjectReferenceEdgeRenderer.java</span></div><h1>ObjectReferenceEdgeRenderer.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.rendering.edges;
+
+import org.jetuml.diagram.DiagramElement;
+import org.jetuml.diagram.DiagramType;
+import org.jetuml.diagram.Edge;
+import org.jetuml.geom.Direction;
+import org.jetuml.geom.Line;
+import org.jetuml.geom.Point;
+import org.jetuml.geom.Rectangle;
+import org.jetuml.gui.ColorScheme;
+import org.jetuml.rendering.ArrowHead;
+import org.jetuml.rendering.DiagramRenderer;
+import org.jetuml.rendering.LineStyle;
+import org.jetuml.rendering.RenderingContext;
+import org.jetuml.rendering.GraphicsRenderingContext;
+
+import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.shape.LineTo;
+import javafx.scene.shape.MoveTo;
+import javafx.scene.shape.Path;
+import javafx.scene.shape.QuadCurveTo;
+import javafx.scene.shape.Shape;
+
+/**
+ * A viewer for an S- or C-shaped edge with an arrowhead.
+ */
+public final class ObjectReferenceEdgeRenderer extends AbstractEdgeRenderer
+{
+	private static final int ENDSIZE = 10;
+	
+	/**
+	 * @param pParent The renderer for the parent diagram.
+	 */
+	public ObjectReferenceEdgeRenderer(DiagramRenderer pParent)
+	{
+<span class="fc" id="L57">		super(pParent);</span>
+<span class="fc" id="L58">	}</span>
+	
+	@Override
+	protected Shape getShape(Edge pEdge)
+	{
+<span class="fc bfc" id="L63" title="All 2 branches covered.">		if(isSShaped(pEdge))</span>
+		{
+<span class="fc" id="L65">			return getSShape(getConnectionPoints(pEdge));</span>
+		}
+		else
+		{
+<span class="fc" id="L69">			return getCShape(getConnectionPoints(pEdge));</span>
+		}			
+	}
+	
+	private static Path getSShape(Line pConnectionPoints)
+	{
+<span class="fc" id="L75">		final int x1 = pConnectionPoints.x1() + ENDSIZE;</span>
+<span class="fc" id="L76">		final int y1 = pConnectionPoints.y1();</span>
+<span class="fc" id="L77">		final int x2 = pConnectionPoints.x2() - ENDSIZE;</span>
+<span class="fc" id="L78">		final int y2 = pConnectionPoints.y2();</span>
+<span class="fc" id="L79">		final int xmid = (pConnectionPoints.x1() + pConnectionPoints.x2()) / 2;</span>
+<span class="fc" id="L80">		final int ymid = (pConnectionPoints.y1() + pConnectionPoints.y2()) / 2;</span>
+     
+<span class="fc" id="L82">		MoveTo moveTo = new MoveTo(pConnectionPoints.x1(), y1);</span>
+<span class="fc" id="L83">		LineTo lineTo1 = new LineTo(x1, y1);</span>
+<span class="fc" id="L84">		QuadCurveTo quadTo1 = new QuadCurveTo((x1 + xmid) / 2, y1, xmid, ymid);</span>
+<span class="fc" id="L85">		QuadCurveTo quadTo2 = new QuadCurveTo((x2 + xmid) / 2, y2, x2, y2);</span>
+<span class="fc" id="L86">		LineTo lineTo2 = new LineTo(pConnectionPoints.x2(), y2);</span>
+		
+<span class="fc" id="L88">		Path path = new Path();</span>
+<span class="fc" id="L89">		path.getElements().addAll(moveTo, lineTo1, quadTo1, quadTo2, lineTo2);</span>
+<span class="fc" id="L90">		return path;</span>
+	}
+	
+	private static Path getCShape(Line pConnectionPoints)
+	{
+<span class="fc" id="L95">		final int x1 = Math.max(pConnectionPoints.x1(), pConnectionPoints.x2()) + ENDSIZE;</span>
+<span class="fc" id="L96">		final int y1 = pConnectionPoints.y1();</span>
+<span class="fc" id="L97">		final int x2 = x1 + ENDSIZE;</span>
+<span class="fc" id="L98">		final int y2 = pConnectionPoints.y2();</span>
+<span class="fc" id="L99">		final int ymid = (pConnectionPoints.y1() + pConnectionPoints.y2()) / 2;</span>
+		
+<span class="fc" id="L101">		MoveTo moveTo = new MoveTo(pConnectionPoints.x1(), y1);</span>
+<span class="fc" id="L102">		LineTo lineTo1 = new LineTo(x1, y1);</span>
+<span class="fc" id="L103">		QuadCurveTo quadTo1 = new QuadCurveTo(x2, y1, x2, ymid);</span>
+<span class="fc" id="L104">		QuadCurveTo quadTo2 = new QuadCurveTo(x2, y2, x1, y2);</span>
+<span class="fc" id="L105">		LineTo lineTo2 = new LineTo(pConnectionPoints.x2(), y2);</span>
+		
+<span class="fc" id="L107">		Path path = new Path();</span>
+<span class="fc" id="L108">		path.getElements().addAll(moveTo, lineTo1, quadTo1, quadTo2, lineTo2);</span>
+<span class="fc" id="L109">		return path;</span>
+	}
+	
+	/**
+     * 	Tests whether the node should be S- or C-shaped.
+     * 	@return true if the node should be S-shaped
+	 */
+	private boolean isSShaped(Edge pEdge)
+	{
+<span class="fc" id="L118">		Rectangle b = parent().getBounds(pEdge.end());</span>
+<span class="fc" id="L119">		Point p = parent().getConnectionPoints(pEdge.start(), Direction.EAST);</span>
+<span class="fc bfc" id="L120" title="All 2 branches covered.">		return b.x() &gt;= p.x() + 2 * ENDSIZE;</span>
+	}
+
+	@Override
+	public void draw(DiagramElement pElement, RenderingContext pContext)
+	{
+<span class="nc" id="L126">		Edge edge = (Edge) pElement;</span>
+<span class="nc" id="L127">		pContext.strokePath((Path) getShape(edge), ColorScheme.get().stroke(), LineStyle.SOLID);</span>
+<span class="nc" id="L128">		Line connectionPoints = getConnectionPoints(edge);</span>
+		
+<span class="nc bnc" id="L130" title="All 2 branches missed.">		if(isSShaped(edge))</span>
+		{
+<span class="nc" id="L132">			ArrowHeadRenderer.draw(pContext, ArrowHead.BLACK_TRIANGLE,</span>
+<span class="nc" id="L133">					new Point(connectionPoints.x2() - ENDSIZE, connectionPoints.y2()), </span>
+<span class="nc" id="L134">					new Point(connectionPoints.x2(), connectionPoints.y2()));      </span>
+		}
+		else
+		{
+<span class="nc" id="L138">			ArrowHeadRenderer.draw(pContext, ArrowHead.BLACK_TRIANGLE,</span>
+<span class="nc" id="L139">					new Point(connectionPoints.x2() + ENDSIZE, connectionPoints.y2()), </span>
+<span class="nc" id="L140">					new Point(connectionPoints.x2(), connectionPoints.y2()));      </span>
+		}
+<span class="nc" id="L142">	}</span>
+
+	@Override
+	public Line getConnectionPoints(Edge pEdge)
+	{
+<span class="fc" id="L147">		Point point = parent().getConnectionPoints(pEdge.start(), Direction.EAST);</span>
+<span class="fc bfc" id="L148" title="All 2 branches covered.">		if(isSShaped(pEdge))</span>
+		{
+<span class="fc" id="L150">			return new Line(point, parent().getConnectionPoints(pEdge.end(), Direction.WEST));</span>
+		}
+		else
+		{
+<span class="fc" id="L154">			return new Line(point, parent().getConnectionPoints(pEdge.end(), Direction.EAST));</span>
+		}
+	}
+	
+	@Override
+	public Canvas createIcon(DiagramType pType, DiagramElement pElement)
+	{   //CSOFF: Magic numbers
+<span class="nc" id="L161">		Canvas canvas = new Canvas(BUTTON_SIZE, BUTTON_SIZE);</span>
+<span class="nc" id="L162">		GraphicsContext graphics = canvas.getGraphicsContext2D();</span>
+<span class="nc" id="L163">		graphics.scale(0.6, 0.6);</span>
+<span class="nc" id="L164">		Path path = getCShape(new Line(new Point(5, 5), new Point(15,25)));</span>
+<span class="nc" id="L165">		GraphicsRenderingContext context = new GraphicsRenderingContext(graphics);</span>
+<span class="nc" id="L166">		context.strokePath(path, ColorScheme.get().stroke(), LineStyle.SOLID);</span>
+<span class="nc" id="L167">		ArrowHeadRenderer.draw(context, ArrowHead.BLACK_TRIANGLE, new Point(20,25), new Point(15, 25));</span>
+<span class="nc" id="L168">		return canvas;</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
