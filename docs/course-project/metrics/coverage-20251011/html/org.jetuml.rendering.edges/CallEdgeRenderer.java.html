@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CallEdgeRenderer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.rendering.edges</a> &gt; <span class="el_source">CallEdgeRenderer.java</span></div><h1>CallEdgeRenderer.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.rendering.edges;
+
+import java.util.ArrayList;
+
+import org.jetuml.diagram.DiagramElement;
+import org.jetuml.diagram.DiagramType;
+import org.jetuml.diagram.Edge;
+import org.jetuml.diagram.Node;
+import org.jetuml.diagram.edges.CallEdge;
+import org.jetuml.diagram.edges.ConstructorEdge;
+import org.jetuml.diagram.nodes.CallNode;
+import org.jetuml.geom.Dimension;
+import org.jetuml.geom.Direction;
+import org.jetuml.geom.Line;
+import org.jetuml.geom.Point;
+import org.jetuml.geom.Rectangle;
+import org.jetuml.geom.Alignment;
+import org.jetuml.gui.ColorScheme;
+import org.jetuml.rendering.ArrowHead;
+import org.jetuml.rendering.DiagramRenderer;
+import org.jetuml.rendering.GraphicsRenderingContext;
+import org.jetuml.rendering.LineStyle;
+import org.jetuml.rendering.RenderingContext;
+import org.jetuml.rendering.StringRenderer;
+
+import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.shape.LineTo;
+import javafx.scene.shape.MoveTo;
+import javafx.scene.shape.Path;
+import javafx.scene.shape.Shape;
+
+/**
+ * A renderer to show call edges in a sequence diagrams. These are labeled
+ * edges that are either straight or self-edges, in a solid line, and 
+ * have either a V or half-V arrow head.
+ */
+public final class CallEdgeRenderer extends AbstractEdgeRenderer
+{	
+<span class="fc" id="L60">	private static final StringRenderer CENTERED_STRING_VIEWER = new StringRenderer(Alignment.CENTER);</span>
+<span class="fc" id="L61">	private static final StringRenderer TOP_CENTER_STRING_RENDERER = new StringRenderer(Alignment.LEFT);</span>
+
+	private static final int LEFT_MARGIN = 5;
+	
+	/**
+	 * @param pParent The renderer for the parent diagram.
+	 */
+	public CallEdgeRenderer(DiagramRenderer pParent)
+	{
+<span class="fc" id="L70">		super(pParent);</span>
+<span class="fc" id="L71">	}</span>
+	
+	@Override
+	protected Shape getShape(Edge pEdge)
+	{
+<span class="fc" id="L76">		Point[] points = getPoints(pEdge);</span>
+<span class="fc" id="L77">		Path path = new Path();</span>
+<span class="fc" id="L78">		Point point = points[points.length - 1];</span>
+<span class="fc" id="L79">		MoveTo moveTo = new MoveTo(point.x(), point.y());</span>
+<span class="fc" id="L80">		path.getElements().add(moveTo);</span>
+<span class="fc bfc" id="L81" title="All 2 branches covered.">		for(int i = points.length - 2; i &gt;= 0; i--)</span>
+		{
+<span class="fc" id="L83">			point = points[i];</span>
+<span class="fc" id="L84">			LineTo lineTo = new LineTo(point.x(), point.y());</span>
+<span class="fc" id="L85">			path.getElements().add(lineTo);</span>
+		}
+<span class="fc" id="L87">		return path;</span>
+	}
+	
+	@Override
+	public Line getConnectionPoints(Edge pEdge)
+	{
+<span class="fc" id="L93">		Point[] points = getPoints(pEdge);</span>
+<span class="pc bpc" id="L94" title="1 of 2 branches missed.">		assert points.length &gt;= 2;</span>
+<span class="fc" id="L95">		return new Line(points[0], points[points.length-1]);</span>
+	}
+	
+	private static ArrowHead getArrowHead(CallEdge pEdge)
+	{
+<span class="fc bfc" id="L100" title="All 2 branches covered.">		if(pEdge.isSignal())</span>
+		{
+<span class="fc" id="L102">			return ArrowHead.HALF_V;</span>
+		}
+		else
+		{
+<span class="fc" id="L106">			return ArrowHead.V;</span>
+		}
+	}
+	
+	@Override
+	public Rectangle getBounds(DiagramElement pElement)
+	{
+<span class="fc" id="L113">		Rectangle bounds = super.getBounds(pElement);</span>
+<span class="fc" id="L114">		Edge edge = (Edge) pElement;</span>
+		
+<span class="fc" id="L116">		bounds = bounds.add(ArrowHeadRenderer.getBounds(getArrowHead((CallEdge)edge), getConnectionPoints(edge)));</span>
+<span class="fc" id="L117">		final String label = ((CallEdge)edge).getMiddleLabel();</span>
+<span class="fc bfc" id="L118" title="All 2 branches covered.">		if( label.length() &gt; 0 )</span>
+		{
+<span class="fc" id="L120">			bounds = bounds.add(getStringBounds((CallEdge)edge));</span>
+		}
+<span class="fc" id="L122">		return bounds;</span>
+	}
+
+	@Override
+	public void draw(DiagramElement pElement, RenderingContext pContext)
+	{
+<span class="nc" id="L128">		Edge edge = (Edge) pElement;</span>
+<span class="nc" id="L129">		pContext.strokePath((Path) getShape(edge), ColorScheme.get().stroke(), LineStyle.SOLID);</span>
+		
+<span class="nc" id="L131">		Point[] points = getPoints(edge); // TODO already called by getShape(), find a way to avoid having to do 2 calls.</span>
+<span class="nc" id="L132">		ArrowHeadRenderer.draw(pContext, getArrowHead((CallEdge)edge), points[points.length - 2], points[points.length - 1]);</span>
+<span class="nc" id="L133">		drawLabel((CallEdge)edge, pContext);</span>
+<span class="nc" id="L134">	}</span>
+	
+	/*
+	 * The label for the self edge is centered on the middle of the &quot;knee&quot; in the self edge,
+	 * with a LEFT_MARGIN space to the left.
+	 */
+	private Rectangle getSelfEdgeLabelBox(CallEdge pEdge)
+	{
+<span class="fc" id="L142">		Dimension dimensions = TOP_CENTER_STRING_RENDERER.getDimension(pEdge.getMiddleLabel());</span>
+<span class="fc" id="L143">		Point[] points = getPoints(pEdge);</span>
+<span class="fc" id="L144">		int x = points[1].x() + LEFT_MARGIN; // The extent of the self edge plus a margin</span>
+<span class="fc" id="L145">		int y = (points[1].y() + points[2].y())/2 -dimensions.height() / 2; // Align box with center of edge</span>
+<span class="fc" id="L146">		return new Rectangle(x, y, dimensions.width(), dimensions.height());		</span>
+	}
+	
+	/*
+	 * The label for the normal edge is centered horizontally along the call edge
+	 * and placed a bit above so the descendants don't cross the edge.
+	 */
+	private Rectangle getNormalEdgeLabelBox(CallEdge pEdge)
+	{
+<span class="fc" id="L155">		Rectangle spanning = getConnectionPoints(pEdge).spanning();</span>
+<span class="fc" id="L156">		int lineHeight = CENTERED_STRING_VIEWER.getDimension(pEdge.getMiddleLabel()).height();</span>
+<span class="fc" id="L157">		return new Rectangle(spanning.x(), spanning.y() - lineHeight, spanning.width(), lineHeight);</span>
+
+	}
+	
+	private Rectangle getStringBounds(CallEdge pEdge)
+	{
+<span class="pc bpc" id="L163" title="1 of 2 branches missed.">		assert pEdge != null;</span>
+<span class="fc bfc" id="L164" title="All 2 branches covered.">		if( pEdge.isSelfEdge() )</span>
+		{
+<span class="fc" id="L166">			return getSelfEdgeLabelBox(pEdge);</span>
+		}
+		else
+		{
+<span class="fc" id="L170">			return getNormalEdgeLabelBox(pEdge);</span>
+		}
+	}
+
+	private void drawLabel(CallEdge pEdge, RenderingContext pContext)
+	{
+<span class="nc bnc" id="L176" title="All 2 branches missed.">		if( pEdge.isSelfEdge() )</span>
+		{
+<span class="nc" id="L178">			TOP_CENTER_STRING_RENDERER.draw(pEdge.getMiddleLabel(), getSelfEdgeLabelBox(pEdge), pContext);</span>
+		}
+		else
+		{
+<span class="nc" id="L182">			CENTERED_STRING_VIEWER.draw(pEdge.getMiddleLabel(), getNormalEdgeLabelBox(pEdge), pContext);</span>
+		}
+<span class="nc" id="L184">	}</span>
+	
+	/* Gets the points on a segmented path */ 
+	private Point[] getPoints(Edge pEdge)
+	{
+<span class="fc" id="L189">		ArrayList&lt;Point&gt; points = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L190">		Node endNode = pEdge.end();</span>
+<span class="fc bfc" id="L191" title="All 2 branches covered.">		if( pEdge.getClass() == ConstructorEdge.class )</span>
+		{
+<span class="fc" id="L193">			endNode = pEdge.end().getParent();</span>
+		}
+<span class="fc" id="L195">		Rectangle start = parent().getBounds(pEdge.start());	</span>
+<span class="fc" id="L196">		Rectangle end = parent().getBounds(endNode);</span>
+<span class="fc bfc" id="L197" title="All 2 branches covered.">		if( ((CallEdge)pEdge).isSelfEdge() )</span>
+		{
+<span class="fc" id="L199">			Point p = new Point(start.maxX(), end.y() - CallNode.CALL_YGAP / 2);</span>
+<span class="fc" id="L200">			Point q = new Point(end.maxX(), end.y());</span>
+<span class="fc" id="L201">			Point s = new Point(q.x() + end.width(), q.y());</span>
+<span class="fc" id="L202">			Point r = new Point(s.x(), p.y());</span>
+
+<span class="fc" id="L204">			points.add(p);</span>
+<span class="fc" id="L205">			points.add(r);</span>
+<span class="fc" id="L206">			points.add(s);</span>
+<span class="fc" id="L207">			points.add(q);</span>
+<span class="fc" id="L208">		}</span>
+		else     
+		{
+<span class="fc" id="L211">			Direction direction = Direction.WEST;</span>
+<span class="fc bfc" id="L212" title="All 2 branches covered.">			if( start.x() &gt; end.x() )</span>
+			{
+<span class="fc" id="L214">				direction = Direction.EAST;</span>
+			}
+<span class="fc" id="L216">			Point endPoint = parent().getConnectionPoints(endNode, direction);</span>
+         
+<span class="pc bpc" id="L218" title="1 of 2 branches missed.">			if(start.center().x() &lt; endPoint.x())</span>
+			{
+<span class="fc" id="L220">				points.add(new Point(start.maxX(), endPoint.y()));</span>
+			}
+			else
+			{
+<span class="nc" id="L224">				points.add(new Point(start.x(), endPoint.y()));</span>
+			}
+<span class="fc" id="L226">			points.add(endPoint);</span>
+		}
+<span class="fc" id="L228">		return points.toArray(new Point[points.size()]);</span>
+	}
+	
+	@Override
+	public Canvas createIcon(DiagramType pDiagramType, DiagramElement pElement)
+	{
+<span class="nc" id="L234">		final float scale = 0.6f;</span>
+<span class="nc" id="L235">		final int offset = 15;</span>
+<span class="nc" id="L236">		Canvas canvas = new Canvas(BUTTON_SIZE, BUTTON_SIZE);</span>
+<span class="nc" id="L237">		GraphicsContext graphics = canvas.getGraphicsContext2D();</span>
+<span class="nc" id="L238">		canvas.getGraphicsContext2D().scale(scale, scale);</span>
+<span class="nc" id="L239">		Path path = new Path();</span>
+<span class="nc" id="L240">		path.getElements().addAll(new MoveTo(1, offset), new LineTo(BUTTON_SIZE*(1/scale)-1, offset));</span>
+<span class="nc" id="L241">		GraphicsRenderingContext context = new GraphicsRenderingContext(graphics);</span>
+<span class="nc" id="L242">		context.strokePath(path, ColorScheme.get().stroke(), LineStyle.SOLID);</span>
+<span class="nc" id="L243">		ArrowHeadRenderer.draw(context, ArrowHead.V, new Point(1, offset), new Point((int)(BUTTON_SIZE*(1/scale)-1), offset));</span>
+<span class="nc" id="L244">		return canvas;</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

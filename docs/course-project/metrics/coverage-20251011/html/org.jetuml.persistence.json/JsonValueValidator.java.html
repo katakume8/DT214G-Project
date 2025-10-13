@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JsonValueValidator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.persistence.json</a> &gt; <span class="el_source">JsonValueValidator.java</span></div><h1>JsonValueValidator.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ * 
+ * See: https://github.com/prmr/JetUML
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *******************************************************************************/
+package org.jetuml.persistence.json;
+
+import java.util.Set;
+
+/**
+ * Utility methods to uniformly validate and access
+ * Object instances as Json values.
+ */
+final class JsonValueValidator
+{
+<span class="fc" id="L30">	private static final Set&lt;Class&lt;?&gt;&gt; VALID_VALUE_TYPES = Set.of(</span>
+			String.class,
+			Boolean.class,
+			Integer.class,
+			JsonObject.class,
+			JsonArray.class);
+	
+	private JsonValueValidator() {}
+	
+	/**
+	 * Validates that pValue is a non-null instance that represents a valid
+	 * JSON value: String, Boolean, Integer, JsonObject, or JsonArray.
+	 * 
+	 * @param pValue The value to check. If null, throws a JsonException
+	 * @throws JsonException is pValue is null or an instance of an object
+	 * not recognized as a valid JSON value.
+	 */
+	static void validateType(Object pValue)
+	{
+<span class="fc bfc" id="L49" title="All 2 branches covered.">		if( pValue == null )</span>
+		{
+<span class="fc" id="L51">			throw new JsonException(&quot;Null value&quot;);</span>
+		}
+<span class="pc bpc" id="L53" title="1 of 2 branches missed.">		if( !VALID_VALUE_TYPES.contains(pValue.getClass()) )</span>
+		{
+<span class="nc" id="L55">			throw new JsonException(&quot;Invalid value type: &quot; + pValue.getClass().getSimpleName());</span>
+		}
+<span class="fc" id="L57">	}</span>
+	
+	/**
+	 * @param pValue The value to obtain as an int.
+	 * @return The value as an int
+	 * @throws JsonException if pValue is null or not an Integer.
+	 */
+	static int asInt(Object pValue)
+	{
+<span class="fc bfc" id="L66" title="All 2 branches covered.">		if( pValue.getClass() != Integer.class )</span>
+		{
+<span class="fc" id="L68">			throw new JsonException(String.format(&quot;Attempting to retrieve an %s as an int&quot;,</span>
+<span class="fc" id="L69">					pValue.getClass().getSimpleName()));</span>
+		}
+<span class="fc" id="L71">		return (int) pValue;</span>
+	}
+	
+	/**
+	 * @param pValue The value to obtain as a String.
+	 * @return The value as a String.
+	 * @throws JsonException if pValue is null or not an String.
+	 */
+	static String asString(Object pValue)
+	{
+<span class="fc bfc" id="L81" title="All 2 branches covered.">		if( pValue.getClass() != String.class )</span>
+		{
+<span class="fc" id="L83">			throw new JsonException(String.format(&quot;Attempting to retrieve an %s as a String&quot;,</span>
+<span class="fc" id="L84">					pValue.getClass().getSimpleName()));</span>
+		}
+<span class="fc" id="L86">		return (String) pValue;</span>
+	}
+	
+	/**
+	 * @param pValue The value to obtain as a boolean.
+	 * @return The value as a boolean.
+	 * @throws JsonException if pValue is null or not a Boolean.
+	 */
+	static boolean asBoolean(Object pValue)
+	{
+<span class="nc bnc" id="L96" title="All 2 branches missed.">		if( pValue.getClass() != Boolean.class )</span>
+		{
+<span class="nc" id="L98">			throw new JsonException(String.format(&quot;Attempting to retrieve an %s as a boolean&quot;,</span>
+<span class="nc" id="L99">					pValue.getClass().getSimpleName()));</span>
+		}
+<span class="nc" id="L101">		return (boolean) pValue;</span>
+	}
+	
+	/**
+	 * @param pValue The value to obtain as a JsonObject.
+	 * @return The value as a JsonObject.
+	 * @throws JsonException if pValue is null or not a JsonObject.
+	 */
+	static JsonObject asJsonObject(Object pValue)
+	{
+<span class="fc bfc" id="L111" title="All 2 branches covered.">		if( pValue.getClass() != JsonObject.class )</span>
+		{
+<span class="fc" id="L113">			throw new JsonException(String.format(&quot;Attempting to retrieve an %s as a JsonObject&quot;,</span>
+<span class="fc" id="L114">					pValue.getClass().getSimpleName()));</span>
+		}
+<span class="fc" id="L116">		return (JsonObject) pValue;</span>
+	}
+	
+	/**
+	 * @param pValue The value to obtain as a JsonArray.
+	 * @return The value as a JsonArray.
+	 * @throws JsonException if pValue is null or not a JsonArray.
+	 */
+	static JsonArray asJsonArray(Object pValue)
+	{
+<span class="fc bfc" id="L126" title="All 2 branches covered.">		if( pValue.getClass() != JsonArray.class )</span>
+		{
+<span class="fc" id="L128">			throw new JsonException(String.format(&quot;Attempting to retrieve an %s as a JsonArray&quot;,</span>
+<span class="fc" id="L129">					pValue.getClass().getSimpleName()));</span>
+		}
+<span class="fc" id="L131">		return (JsonArray) pValue;</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

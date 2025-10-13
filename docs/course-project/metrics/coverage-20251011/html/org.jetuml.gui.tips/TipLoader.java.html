@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TipLoader.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.gui.tips</a> &gt; <span class="el_source">TipLoader.java</span></div><h1>TipLoader.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ * 
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option) any later
+ * version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+ * details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * this program. If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.gui.tips;
+
+import static org.jetuml.application.ApplicationResources.RESOURCES;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.jetuml.persistence.json.JsonObject;
+import org.jetuml.persistence.json.JsonParser;
+
+/**
+ * Class that statically loads the tips.
+ */
+final class TipLoader
+{
+<span class="fc" id="L39">	public static final int NUM_TIPS = Integer.parseInt(RESOURCES.getString(&quot;tips.quantity&quot;));</span>
+
+	private static final int BYTES_IN_KILOBYTE = 1024;
+<span class="fc" id="L42">	private static final String TIP_FILE_PATH_FORMAT = RESOURCES.getString(&quot;tips.jsons.directory&quot;) + &quot;/tip-%d.json&quot;;</span>
+
+	private TipLoader() {}
+
+	/**
+	 * Returns the tip associated with the given tip id.
+	 * 
+	 * @param pId id of the tip to return
+	 * @return the tip with id pId.
+	 * 
+	 * @pre pId &gt;= 1 &amp;&amp; pId &lt;= NUM_TIPS
+	 */
+	public static Tip loadTip(int pId)
+	{
+<span class="pc bpc" id="L56" title="2 of 4 branches missed.">		assert pId &gt;= 1 &amp;&amp; pId &lt;= NUM_TIPS;</span>
+
+		// Running the unit tests ensures that all resources can be correctly
+		// loaded
+		// in the tool.
+<span class="fc" id="L61">		try (InputStream tipsInputStream = TipLoader.class</span>
+<span class="fc" id="L62">				.getResourceAsStream(String.format(TIP_FILE_PATH_FORMAT, pId)))</span>
+		{
+<span class="fc" id="L64">			JsonObject jsonObject = JsonParser.parse(inputStreamToString(tipsInputStream));</span>
+<span class="fc" id="L65">			Tip tip = new Tip(pId, jsonObject);</span>
+<span class="fc" id="L66">			return tip;</span>
+		}
+<span class="nc" id="L68">		catch (IOException e)</span>
+		{
+<span class="nc" id="L70">			assert false;</span>
+<span class="nc" id="L71">			return null;</span>
+		}
+	}
+
+	private static String inputStreamToString(InputStream pStream) throws IOException
+	{
+<span class="fc" id="L77">		ByteArrayOutputStream result = new ByteArrayOutputStream();</span>
+<span class="fc" id="L78">		byte[] buffer = new byte[BYTES_IN_KILOBYTE];</span>
+<span class="fc bfc" id="L79" title="All 2 branches covered.">		for(int length; (length = pStream.read(buffer)) != -1; )</span>
+		{
+<span class="fc" id="L81">			result.write(buffer, 0, length);</span>
+		}
+<span class="fc" id="L83">		return result.toString(&quot;UTF-8&quot;);</span>
+	}
+
+	/**
+	 * A tip that contains TipElement instances.
+	 */
+<span class="fc" id="L89">	public static final class Tip</span>
+	{
+		private final int aId;
+		private final String aTitle;
+		private final List&lt;TipElement&gt; aElements;
+		private final List&lt;TipCategory&gt; aCategories;
+
+		/**
+		 * @param pId the id associated with the tip (number in the tip's file's
+		 * name)
+		 * @param pTip the JSONObject obtained from the file tip-pId.json, where
+		 * pId is the same as the pId parameter.
+		 */
+		private Tip(int pId, JsonObject pTip)
+<span class="fc" id="L103">		{</span>
+
+<span class="fc" id="L105">			aId = pId;</span>
+<span class="fc" id="L106">			aTitle = (String) pTip.get(TipFieldName.TITLE.asString());</span>
+<span class="fc" id="L107">			aElements = convertJsonObjectToTipElements(pTip);</span>
+<span class="fc" id="L108">			aCategories = convertJsonObjectToTipCategories(pTip);</span>
+<span class="fc" id="L109">		}</span>
+
+		/**
+		 * @return the tip's id
+		 */
+		public int getId()
+		{
+<span class="fc" id="L116">			return aId;</span>
+		}
+
+		/**
+		 * @return the tip's title
+		 */
+		public String getTitle()
+		{
+<span class="fc" id="L124">			return aTitle;</span>
+		}
+
+		/**
+		 * @return List of TipElements contained in the Tip
+		 */
+		public List&lt;TipElement&gt; getElements()
+		{
+<span class="fc" id="L132">			return new ArrayList&lt;&gt;(aElements);</span>
+		}
+		
+		public List&lt;TipCategory&gt; getCategories()
+		{
+<span class="nc" id="L137">			return new ArrayList&lt;&gt;(aCategories);</span>
+		}
+
+		/**
+		 * @param pTip A JsonObject obtained from the JsonArray gotten by
+		 * loading the tips.
+		 */
+		private static List&lt;TipElement&gt; convertJsonObjectToTipElements(JsonObject pTip)
+		{
+<span class="fc" id="L146">			List&lt;TipElement&gt; elements = new ArrayList&lt;&gt;();</span>
+
+<span class="fc bfc" id="L148" title="All 2 branches covered.">			for(Object contentObject : pTip.getJsonArray(TipFieldName.CONTENT.asString()))</span>
+			{
+<span class="fc" id="L150">				JsonObject contentJsonObject = (JsonObject) contentObject;</span>
+<span class="fc" id="L151">				Media media = discoverMediaUsed(contentJsonObject);</span>
+<span class="fc" id="L152">				elements.add(new TipElement(media, contentJsonObject.getString(media.name().toLowerCase())));</span>
+<span class="fc" id="L153">			}</span>
+<span class="fc" id="L154">			return elements;</span>
+		}
+		
+		private static List&lt;TipCategory&gt; convertJsonObjectToTipCategories(JsonObject pTip)
+		{
+<span class="fc" id="L159">			List&lt;TipCategory&gt; categories = new ArrayList&lt;&gt;();</span>
+			
+<span class="fc bfc" id="L161" title="All 2 branches covered.">			for(Object tagsObject : pTip.getJsonArray(TipFieldName.TAGS.asString()))</span>
+			{
+<span class="fc" id="L163">				JsonObject tagsJsonObject = (JsonObject) tagsObject;</span>
+<span class="fc" id="L164">				TipCategory category = discoverCategory(tagsJsonObject);</span>
+<span class="fc" id="L165">				categories.add(category);</span>
+<span class="fc" id="L166">			}</span>
+<span class="fc" id="L167">			return categories;</span>
+		}
+		
+		/*
+	     * A tip content contains one property whose name is any Media value
+	     * in lower case: discover which one it is.
+		 */
+		private static Media discoverMediaUsed(JsonObject pTipContent)
+		{
+<span class="pc bpc" id="L176" title="1 of 2 branches missed.">			for(Media media : Media.values())</span>
+			{
+<span class="fc bfc" id="L178" title="All 2 branches covered.">				if(pTipContent.hasProperty(media.name().toLowerCase()))</span>
+				{
+<span class="fc" id="L180">					return media;</span>
+				}
+			}
+<span class="nc" id="L183">			assert false;</span>
+<span class="nc" id="L184">			return null;</span>
+		}
+		
+		/*
+	     * A tip view contains one property whose name is any View value
+	     * in lower case: discover which one it is.
+		 */
+		private static TipCategory discoverCategory(JsonObject pTipContent)
+		{
+<span class="pc bpc" id="L193" title="1 of 2 branches missed.">			for(View view : View.values())</span>
+			{
+<span class="fc bfc" id="L195" title="All 2 branches covered.">				if(pTipContent.hasProperty(view.name().toLowerCase()))</span>
+				{
+<span class="fc" id="L197">					return TipCategory.valueOf(pTipContent.getString(view.name().toLowerCase()).toUpperCase());</span>
+				}
+			}
+<span class="nc" id="L200">			assert false;</span>
+<span class="nc" id="L201">			return null;</span>
+		}
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

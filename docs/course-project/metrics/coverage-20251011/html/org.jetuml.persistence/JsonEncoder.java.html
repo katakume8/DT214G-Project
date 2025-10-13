@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JsonEncoder.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.persistence</a> &gt; <span class="el_source">JsonEncoder.java</span></div><h1>JsonEncoder.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.persistence;
+
+import org.jetuml.JetUML;
+import org.jetuml.diagram.Diagram;
+import org.jetuml.diagram.Edge;
+import org.jetuml.diagram.Node;
+import org.jetuml.diagram.Properties;
+import org.jetuml.diagram.Property;
+import org.jetuml.persistence.json.JsonArray;
+import org.jetuml.persistence.json.JsonObject;
+
+/**
+ * Converts a graph to JSON notation. The notation includes:
+ * * The JetUML version
+ * * The graph type
+ * * An array of node encodings
+ * * An array of edge encodings
+ */
+<span class="fc" id="L39">public final class JsonEncoder</span>
+{
+	private JsonEncoder() {}
+	
+	/**
+	 * @param pDiagram The diagram to serialize.
+	 * @return A JSON object that encodes the diagram.
+	 */
+	public static JsonObject encode(Diagram pDiagram)
+	{
+<span class="pc bpc" id="L49" title="1 of 2 branches missed.">		assert pDiagram != null;</span>
+		
+<span class="fc" id="L51">		JsonObject object = new JsonObject();</span>
+<span class="fc" id="L52">		object.put(&quot;version&quot;, JetUML.VERSION.toString());</span>
+<span class="fc" id="L53">		object.put(&quot;diagram&quot;, pDiagram.getName());</span>
+<span class="fc" id="L54">		SerializationContext context = new SerializationContext(pDiagram);</span>
+<span class="fc" id="L55">		object.put(&quot;nodes&quot;, encodeNodes(context));</span>
+<span class="fc" id="L56">		object.put(&quot;edges&quot;, encodeEdges(context));</span>
+<span class="fc" id="L57">		return object;</span>
+	}
+	
+	private static JsonArray encodeNodes(SerializationContext pContext)
+	{
+<span class="fc" id="L62">		JsonArray nodes = new JsonArray();</span>
+<span class="fc bfc" id="L63" title="All 2 branches covered.">		for( Node node : pContext ) </span>
+		{
+<span class="fc" id="L65">			nodes.add(encodeNode(node, pContext));</span>
+<span class="fc" id="L66">		}</span>
+<span class="fc" id="L67">		return nodes;</span>
+	}
+	
+	private static JsonObject encodeNode(Node pNode, SerializationContext pContext)
+	{
+<span class="fc" id="L72">		JsonObject object = toJSONObject(pNode.properties());</span>
+<span class="fc" id="L73">		object.put(&quot;id&quot;, pContext.getId(pNode));</span>
+<span class="fc" id="L74">		object.put(&quot;type&quot;, pNode.getClass().getSimpleName());</span>
+<span class="fc" id="L75">		object.put(&quot;x&quot;, pNode.position().x());</span>
+<span class="fc" id="L76">		object.put(&quot;y&quot;, pNode.position().y());</span>
+<span class="fc bfc" id="L77" title="All 2 branches covered.">		if( pNode.getChildren().size() &gt; 0 )</span>
+		{
+<span class="fc" id="L79">			object.put(&quot;children&quot;, encodeChildren(pNode, pContext));</span>
+		}
+<span class="fc" id="L81">		return object;</span>
+	}
+	
+	private static JsonArray encodeChildren(Node pNode, SerializationContext pContext)
+	{
+<span class="fc" id="L86">		JsonArray children = new JsonArray();</span>
+<span class="fc" id="L87">		pNode.getChildren().forEach(child -&gt; children.add(pContext.getId(child)));</span>
+<span class="fc" id="L88">		return children;</span>
+	}
+	
+	private static JsonArray encodeEdges(AbstractContext pContext)
+	{
+<span class="fc" id="L93">		JsonArray edges = new JsonArray();</span>
+<span class="fc bfc" id="L94" title="All 2 branches covered.">		for( Edge edge : pContext.diagram().edges() ) </span>
+		{
+<span class="fc" id="L96">			JsonObject object = toJSONObject(edge.properties());</span>
+<span class="fc" id="L97">			object.put(&quot;type&quot;, edge.getClass().getSimpleName());</span>
+<span class="fc" id="L98">			object.put(&quot;start&quot;, pContext.getId(edge.start()));</span>
+<span class="fc" id="L99">			object.put(&quot;end&quot;, pContext.getId(edge.end()));</span>
+			
+<span class="fc" id="L101">			edges.add(object);</span>
+<span class="fc" id="L102">		}</span>
+<span class="fc" id="L103">		return edges;</span>
+	}
+	
+	private static JsonObject toJSONObject(Properties pProperties)
+	{
+<span class="fc" id="L108">		JsonObject object = new JsonObject();</span>
+<span class="fc bfc" id="L109" title="All 2 branches covered.">		for( Property property : pProperties )</span>
+		{
+<span class="fc" id="L111">			Object value = property.get();</span>
+<span class="fc bfc" id="L112" title="All 4 branches covered.">			if( value instanceof String || value instanceof Enum )</span>
+			{
+<span class="fc" id="L114">				object.put(property.name().external(), value.toString());</span>
+			}
+<span class="pc bpc" id="L116" title="1 of 2 branches missed.">			else if( value instanceof Integer)</span>
+			{
+<span class="nc" id="L118">				object.put(property.name().external(), value);</span>
+			}
+<span class="pc bpc" id="L120" title="1 of 2 branches missed.">			else if( value instanceof Boolean)</span>
+			{
+<span class="fc" id="L122">				object.put(property.name().external(), value);</span>
+			}
+<span class="fc" id="L124">		}</span>
+<span class="fc" id="L125">		return object;</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

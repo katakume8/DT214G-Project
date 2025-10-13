@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JsonStringParser.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.persistence.json</a> &gt; <span class="el_source">JsonStringParser.java</span></div><h1>JsonStringParser.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ * 
+ * See: https://github.com/prmr/JetUML
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *******************************************************************************/
+package org.jetuml.persistence.json;
+
+import static java.lang.Character.isISOControl;
+
+/**
+ * Parses strings in JSON document according to the ECMA-404 2nd
+ * edition December 2017. Also provides support for writing strings 
+ * in JSON standard.
+ */
+<span class="fc" id="L29">final class JsonStringParser implements JsonValueParser</span>
+{
+<span class="fc" id="L31">	private static final CharacterEscapes CHARACTER_ESCAPES = new CharacterEscapes();</span>
+	private static final int NUMBER_OF_UNICODE_DIGITS = 4;
+	private static final int RADIX_HEXADECIMAL = 16;
+	
+	private static final char CHAR_QUOTE = '&quot;';
+	private static final char CHAR_ESCAPE = '\\';
+	private static final char CHAR_UNICODE_ESCAPE = 'u';
+
+	/*
+	 * Attempts to retrieve a valid JSON escaped character by reading characters
+	 * starting at the next available position, or throws an exception. This
+	 * method has a side effect on the character buffer. For this method to
+	 * succeed, the first character in the buffer must be the escape character
+	 * '\\' (\u005C). The buffer will be left at the position of the last
+	 * character in the escape.
+	 * 
+	 * @param pInput A buffer from which to read an escape.
+	 * @return A character that corresponds to the next escaped character read
+	 * from pInput
+	 * @pre pInput != null
+	 * @throws JsonException if it is not possible to parse an escape from
+	 * pInput.
+	 */
+	private static char parseEscape(ParsableCharacterBuffer pInput)
+	{
+<span class="pc bpc" id="L56" title="1 of 2 branches missed.">		assert pInput != null;</span>
+
+<span class="fc" id="L58">		pInput.consume(CHAR_ESCAPE);</span>
+<span class="fc" id="L59">		char next = pInput.next();</span>
+<span class="fc bfc" id="L60" title="All 2 branches covered.">		if( CHARACTER_ESCAPES.isSymbol(next) )</span>
+		{
+<span class="fc" id="L62">			return CHARACTER_ESCAPES.getCodePoint(next);</span>
+		}
+<span class="fc bfc" id="L64" title="All 2 branches covered.">		else if( next == CHAR_UNICODE_ESCAPE )</span>
+		{
+<span class="fc" id="L66">			return parseUnicode(pInput);</span>
+		}
+		else
+		{
+<span class="fc" id="L70">			throw new JsonParsingException(pInput.position());</span>
+		}
+	}
+
+	/*
+	 * Attempts to retrieve a valid unicode value by reading characters starting
+	 * at the next available position, or throws an exception. This method has a
+	 * side effect on the character buffer. For this method to succeed, the
+	 * first character in the buffer must be a hexadecimal digit (0-A) in either
+	 * lower or upper case. The buffer will be left at the position of the last
+	 * character in the escape.
+	 * 
+	 * @param pInput A buffer from which to read a four-digit hexadecimal value.
+	 * 
+	 * @return A character that corresponds to the unicode code point represented
+	 * by the escape.
+	 * 
+	 * @pre pInput != null
+	 * 
+	 * @throws JsonException if it is not possible to parse an escape from
+	 * pInput.
+	 */
+	private static char parseUnicode(ParsableCharacterBuffer pInput)
+	{
+<span class="fc bfc" id="L94" title="All 2 branches covered.">		if(!pInput.hasMore(NUMBER_OF_UNICODE_DIGITS))</span>
+		{
+<span class="fc" id="L96">			throw new JsonParsingException(pInput.position());</span>
+		}
+		try
+		{
+<span class="fc" id="L100">			return (char) Integer.parseInt(pInput.next(NUMBER_OF_UNICODE_DIGITS), RADIX_HEXADECIMAL);</span>
+		}
+<span class="fc" id="L102">		catch (NumberFormatException exception)</span>
+		{
+<span class="fc" id="L104">			throw new JsonParsingException(pInput.position());</span>
+		}
+	}
+
+	/**
+	 * To be applicable the next character must be a quote, i.e., the opening
+	 * quote for the string.
+	 */
+	@Override
+	public boolean isApplicable(ParsableCharacterBuffer pInput)
+	{
+<span class="fc" id="L115">		return pInput.isNext(CHAR_QUOTE);</span>
+	}
+
+	/**
+	 * Attempts to retrieve a valid JSON string from pBuffer by reading
+	 * characters starting at the next available position, or throws an
+	 * exception. This method has a side effect on the character buffer. For
+	 * this method to succeed, the first character in the buffer must be the
+	 * quote character '&quot;' (\u0022), but it is not necessary for the last
+	 * character to also be a quote. Characters beyond the closing quote will
+	 * simply not be read. The buffer will be left at the position of the
+	 * closing quote.
+	 * 
+	 * @param pInput A buffer from which to read a string.
+	 * @return A valid string
+	 * @pre pInput != null
+	 * @throws JsonException if it is not possible to parse a string from
+	 * pInput.
+	 */
+	@Override
+	public String parse(ParsableCharacterBuffer pInput)
+	{
+<span class="pc bpc" id="L137" title="1 of 2 branches missed.">		assert pInput != null;</span>
+<span class="fc" id="L138">		pInput.consume(CHAR_QUOTE);</span>
+
+<span class="fc" id="L140">		StringBuilder result = new StringBuilder();</span>
+<span class="fc bfc" id="L141" title="All 2 branches covered.">		while (pInput.hasMore())</span>
+		{
+<span class="fc" id="L143">			char next = pInput.next();</span>
+<span class="fc bfc" id="L144" title="All 2 branches covered.">			if(isISOControl(next))</span>
+			{
+<span class="fc" id="L146">				throw new JsonParsingException(pInput.position());</span>
+			}
+<span class="fc bfc" id="L148" title="All 2 branches covered.">			else if(next == CHAR_ESCAPE)</span>
+			{
+<span class="fc" id="L150">				pInput.backUp();</span>
+<span class="fc" id="L151">				result.append(parseEscape(pInput));</span>
+			}
+<span class="fc bfc" id="L153" title="All 2 branches covered.">			else if(next == CHAR_QUOTE)</span>
+			{
+<span class="fc" id="L155">				return result.toString();</span>
+			}
+			else
+			{
+<span class="fc" id="L159">				result.append(next);</span>
+			}
+<span class="fc" id="L161">		}</span>
+<span class="fc" id="L162">		throw new JsonParsingException(pInput.position());</span>
+	}
+	
+	/**
+	 * Escapes characters that need to be escaped so that the string
+	 * is a proper JSON format string.
+	 * 
+	 * @param pString The string to escape.
+	 * @return The escaped string.
+	 * @throws JsonException if pString is not an instance of String.
+	 */
+	static String writeJsonString(Object pString)
+	{
+<span class="fc" id="L175">		StringBuilder result = new StringBuilder();</span>
+<span class="fc" id="L176">		result.append(CHAR_QUOTE);</span>
+<span class="fc bfc" id="L177" title="All 2 branches covered.">		for( char character : JsonValueValidator.asString(pString).toCharArray())</span>
+		{
+<span class="fc bfc" id="L179" title="All 2 branches covered.">			if( CHARACTER_ESCAPES.isEscapableCodePoint(character))</span>
+			{
+<span class="fc" id="L181">				result.append(CHARACTER_ESCAPES.getEscape(character));</span>
+			}
+<span class="fc bfc" id="L183" title="All 2 branches covered.">			else if( Character.isISOControl(character))</span>
+			{
+<span class="fc" id="L185">				result.append(toUnicodeString(character));</span>
+			}
+			else
+			{
+<span class="fc" id="L189">				result.append(character);</span>
+			}
+		}
+<span class="fc" id="L192">		result.append(CHAR_QUOTE);</span>
+<span class="fc" id="L193">		return result.toString();</span>
+	}
+	
+	private static String toUnicodeString(char pCharacter)
+	{
+<span class="fc" id="L198">		return &quot;\\u&quot; + String.format(&quot;%04x&quot;, (int)pCharacter);</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

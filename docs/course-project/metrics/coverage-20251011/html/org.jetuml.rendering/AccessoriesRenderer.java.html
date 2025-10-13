@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AccessoriesRenderer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.rendering</a> &gt; <span class="el_source">AccessoriesRenderer.java</span></div><h1>AccessoriesRenderer.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ * 
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option) any later
+ * version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+ * details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * this program. If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.rendering;
+
+import java.util.Optional;
+
+import org.jetuml.geom.Line;
+import org.jetuml.geom.Rectangle;
+import org.jetuml.gui.ColorScheme;
+
+import javafx.scene.paint.Color;
+
+/**
+ * Render visual objects that are not part of the diagram.
+ */
+public class AccessoriesRenderer
+{
+	private static final int HANDLE_SIZE = 6; // The length in pixel of one side of the handle.
+	private static final int GRID_SIZE = 10;
+<span class="fc" id="L38">	private static final Color SELECTION_COLOR = Color.rgb(77, 115, 153);</span>
+<span class="fc" id="L39">	private static final Color SELECTION_FILL_COLOR = Color.rgb(173, 193, 214);</span>
+<span class="fc" id="L40">	private static final Color SELECTION_FILL_TRANSPARENT = Color.rgb(173, 193, 214, 0.75);</span>
+	
+	private final RenderingContext aContext;
+	
+	/**
+	 * Creates a new grid renderer for a given context.
+	 * 
+	 * @param pContext The rendering context.
+	 */
+	public AccessoriesRenderer(RenderingContext pContext)
+<span class="fc" id="L50">	{</span>
+<span class="pc bpc" id="L51" title="1 of 2 branches missed.">		assert pContext != null;</span>
+<span class="fc" id="L52">		aContext = pContext;</span>
+<span class="fc" id="L53">	}</span>
+	
+	/**
+     * Draws this grid inside a rectangle.
+     * @param pBounds the bounding rectangle
+     */
+	public void drawGrid(Rectangle pBounds)
+	{
+<span class="nc bnc" id="L61" title="All 2 branches missed.">		assert pBounds != null;</span>
+		
+<span class="nc bnc" id="L63" title="All 2 branches missed.">		for (int x = pBounds.x(); x &lt; pBounds.maxX(); x += GRID_SIZE)</span>
+		{
+<span class="nc" id="L65">			aContext.strokeLine(x, pBounds.y(), x, pBounds.maxY(), ColorScheme.get().grid(), LineStyle.SOLID);</span>
+		}
+<span class="nc bnc" id="L67" title="All 2 branches missed.">		for (int y = pBounds.y(); y &lt; pBounds.maxY(); y += GRID_SIZE)</span>
+		{
+<span class="nc" id="L69">			aContext.strokeLine(pBounds.x(), y, pBounds.maxX(), y, ColorScheme.get().grid(), LineStyle.SOLID);</span>
+		}
+<span class="nc" id="L71">	}</span>
+	
+	/**
+	 * Draws a &quot;rubberband&quot; line on pGraphics. A rubberband line is a straight line
+	 * in the color of the selection tools.
+	 * 
+	 * @param pLine The line that represents the rubberband.
+	 */
+	public void drawRubberband(Line pLine)
+	{
+<span class="nc" id="L81">		aContext.strokeLine(pLine.x1(), pLine.y1(), pLine.x2(), pLine.y2(), SELECTION_FILL_COLOR, LineStyle.SOLID);</span>
+<span class="nc" id="L82">	}</span>
+	
+	/**
+	 * Draws a &quot;lasso&quot; rectangle. A lasso rectangle is a semi-transparent
+	 * rectangle in the color of the selection tools.
+	 * 
+	 * @param pRectangle The rectangle that defines the lasso.
+	 */
+	public void drawLasso(Rectangle pRectangle)
+	{
+<span class="nc" id="L92">		aContext.drawRectangle(pRectangle, SELECTION_FILL_TRANSPARENT, SELECTION_COLOR, Optional.empty());</span>
+<span class="nc" id="L93">	}</span>
+	
+	/**
+	 * Draws four handles on pGraphics centered at the four corners of 
+	 * pBounds.
+	 * 
+	 * @param pBounds Defines the four points where to draw the handles
+	 */
+	public void drawHandles(Rectangle pBounds)
+	{
+<span class="fc" id="L103">		drawHandle(pBounds.x(), pBounds.y());</span>
+<span class="fc" id="L104">		drawHandle(pBounds.x(), pBounds.maxY());</span>
+<span class="fc" id="L105">		drawHandle(pBounds.maxX(), pBounds.y());</span>
+<span class="fc" id="L106">		drawHandle(pBounds.maxX(), pBounds.maxY());</span>
+<span class="fc" id="L107">	}</span>
+	
+	/**
+	 * Draws two handles on pGraphics centered at the two ends of 
+	 * pBounds.
+	 * 
+	 * @param pBounds Defines the two points where to draw the handles
+	 */
+	public void drawHandles(Line pBounds)
+	{
+<span class="nc" id="L117">		drawHandle(pBounds.x1(), pBounds.y1());</span>
+<span class="nc" id="L118">		drawHandle(pBounds.x2(), pBounds.y2());</span>
+<span class="nc" id="L119">	}</span>
+	
+	/*
+	 * Draws a handle on pGraphics that is centered at the position
+	 * (pX, pY).
+	 * 
+	 * @param pX The x-coordinate of the center of the handle.
+	 * @param pY The y-coordinate of the center of the handle.
+	 */
+	private void drawHandle(int pX, int pY)
+	{
+<span class="fc" id="L130">		Rectangle handle = new Rectangle(pX - HANDLE_SIZE / 2, pY - HANDLE_SIZE / 2, HANDLE_SIZE, HANDLE_SIZE);</span>
+<span class="fc" id="L131">		aContext.drawRectangle(handle, SELECTION_FILL_COLOR, SELECTION_COLOR, Optional.empty());</span>
+<span class="fc" id="L132">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

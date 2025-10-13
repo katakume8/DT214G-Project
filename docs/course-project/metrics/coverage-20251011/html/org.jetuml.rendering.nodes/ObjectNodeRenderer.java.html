@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ObjectNodeRenderer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.rendering.nodes</a> &gt; <span class="el_source">ObjectNodeRenderer.java</span></div><h1>ObjectNodeRenderer.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.rendering.nodes;
+
+import java.util.Optional;
+
+import org.jetuml.diagram.DiagramElement;
+import org.jetuml.diagram.Node;
+import org.jetuml.diagram.nodes.FieldNode;
+import org.jetuml.diagram.nodes.ObjectNode;
+import org.jetuml.geom.Dimension;
+import org.jetuml.geom.GridUtils;
+import org.jetuml.geom.Rectangle;
+import org.jetuml.geom.Alignment;
+import org.jetuml.gui.ColorScheme;
+import org.jetuml.rendering.DiagramRenderer;
+import org.jetuml.rendering.LineStyle;
+import org.jetuml.rendering.RenderingContext;
+import org.jetuml.rendering.StringRenderer;
+import org.jetuml.rendering.StringRenderer.Decoration;
+
+/**
+ * An object to render an object in an object diagram.
+ */
+public final class ObjectNodeRenderer extends AbstractNodeRenderer
+{
+	private static final int DEFAULT_WIDTH = 80;
+	private static final int DEFAULT_HEIGHT = 60;
+	private static final int TEXT_HORIZONTAL_MARGIN = 10;
+	private static final int XGAP = 5;
+	private static final int YGAP = 5;
+<span class="fc" id="L50">	private static final StringRenderer LABEL_RENDERER = new StringRenderer(Alignment.CENTER, </span>
+			Decoration.BOLD, Decoration.UNDERLINED);
+	
+	/**
+	 * @param pParent The renderer for the parent diagram.
+	 */
+	public ObjectNodeRenderer(DiagramRenderer pParent)
+	{
+<span class="fc" id="L58">		super(pParent);</span>
+<span class="fc" id="L59">	}</span>
+	
+	@Override
+	public Dimension getDefaultDimension(Node pNode)
+	{
+<span class="fc" id="L64">		return new Dimension(DEFAULT_WIDTH, DEFAULT_HEIGHT);</span>
+	}
+	
+	@Override
+	public void draw(DiagramElement pElement, RenderingContext pContext)
+	{
+<span class="nc" id="L70">		final Rectangle bounds = getBounds(pElement);</span>
+<span class="nc" id="L71">		Node node = (Node) pElement;</span>
+<span class="nc" id="L72">		final Rectangle topRectangle = getTopRectangle(node);</span>
+<span class="nc" id="L73">		int dividerPosition = topRectangle.maxY();</span>
+<span class="nc" id="L74">		pContext.drawRectangle(bounds, ColorScheme.get().fill(), ColorScheme.get().stroke(),</span>
+<span class="nc" id="L75">				Optional.of(ColorScheme.get().dropShadow()));</span>
+<span class="nc bnc" id="L76" title="All 2 branches missed.">		if( ((ObjectNode)node).getChildren().size() &gt; 0 ) </span>
+		{
+<span class="nc" id="L78">			pContext.strokeLine(bounds.x(), dividerPosition, bounds.maxX(), dividerPosition, </span>
+<span class="nc" id="L79">					ColorScheme.get().stroke(),</span>
+					LineStyle.SOLID);
+		}
+<span class="nc" id="L82">		Rectangle top = new Rectangle(bounds.x(), bounds.y(), bounds.width(), topRectangle.height());</span>
+<span class="nc" id="L83">		LABEL_RENDERER.draw(((ObjectNode)node).getName(), </span>
+<span class="nc" id="L84">				top.centerSlice(LABEL_RENDERER.lineHeight()), pContext);</span>
+<span class="nc" id="L85">	}</span>
+	
+	private static Rectangle getTopRectangle(Node pNode)
+	{
+<span class="fc" id="L89">		Dimension bounds = LABEL_RENDERER.getDimension(((ObjectNode)pNode).getName()); </span>
+<span class="fc" id="L90">		return new Rectangle(pNode.position().x(), pNode.position().y(), </span>
+<span class="fc" id="L91">				Math.max(DEFAULT_WIDTH, bounds.width() + TEXT_HORIZONTAL_MARGIN),</span>
+<span class="fc" id="L92">				Math.max(DEFAULT_HEIGHT,  bounds.height()));</span>
+	}
+	
+	/**
+	 * @param pNode The node
+	 * @return The position that represents the split between the name and value fields.
+	 */
+	public static int getSplitPosition(Node pNode)
+	{
+<span class="pc bpc" id="L101" title="1 of 2 branches missed.">		assert ObjectNode.class.isInstance(pNode);</span>
+<span class="fc" id="L102">		int leftWidth = 0;</span>
+<span class="fc bfc" id="L103" title="All 2 branches covered.">		for(Node field : ((ObjectNode)pNode).getChildren())</span>
+		{
+<span class="fc" id="L105">			leftWidth = Math.max(leftWidth, FieldNodeRenderer.leftWidth(field));</span>
+<span class="fc" id="L106">		}</span>
+<span class="fc" id="L107">		return pNode.position().x() + leftWidth + XGAP;</span>
+	}
+	
+	@Override
+	protected Rectangle internalGetBounds(Node pNode)
+	{
+<span class="fc" id="L113">		Rectangle bounds = getTopRectangle(pNode);</span>
+<span class="fc" id="L114">		int leftWidth = 0;</span>
+<span class="fc" id="L115">		int rightWidth = 0;</span>
+<span class="fc" id="L116">		int height = 0;</span>
+<span class="fc bfc" id="L117" title="All 2 branches covered.">		if( ((ObjectNode)pNode).getChildren().size() &gt; 0 )</span>
+		{
+<span class="fc" id="L119">			height = YGAP;</span>
+		}
+<span class="fc bfc" id="L121" title="All 2 branches covered.">		for(Node field : ((ObjectNode)pNode).getChildren())</span>
+		{
+<span class="fc" id="L123">			height += FieldNodeRenderer.getHeight(field) + YGAP;   </span>
+<span class="fc" id="L124">			leftWidth = Math.max(leftWidth, FieldNodeRenderer.leftWidth(field));</span>
+<span class="fc" id="L125">			rightWidth = Math.max(rightWidth, FieldNodeRenderer.rightWidth(field));</span>
+<span class="fc" id="L126">		}</span>
+<span class="fc" id="L127">		int width = Math.max(bounds.width(), leftWidth + rightWidth + 2 * XGAP);</span>
+<span class="fc" id="L128">		width = GridUtils.toMultiple(width);</span>
+<span class="fc" id="L129">		return new Rectangle(bounds.x(), bounds.y(), width, GridUtils.toMultiple(bounds.height() + height));</span>
+	}
+	
+	/**
+	 * @param pNode The object node.
+	 * @param pFieldNode The node whose position to compute.
+	 * @return The y position of a child node.
+	 */
+	public static int getYPosition(Node pNode, FieldNode pFieldNode)
+	{
+<span class="pc bpc" id="L139" title="1 of 2 branches missed.">		assert ((ObjectNode)pNode).getChildren().contains(pFieldNode);</span>
+<span class="fc" id="L140">		Rectangle bounds = getTopRectangle(pNode);</span>
+<span class="fc" id="L141">		int yPosition = bounds.maxY() + YGAP; </span>
+<span class="pc bpc" id="L142" title="1 of 2 branches missed.">		for( Node field : ((ObjectNode)pNode).getChildren() )</span>
+		{
+<span class="fc" id="L144">			yPosition += YGAP;</span>
+<span class="fc bfc" id="L145" title="All 2 branches covered.">			if( field == pFieldNode )</span>
+			{
+<span class="fc" id="L147">				return yPosition;</span>
+			}
+<span class="fc" id="L149">			yPosition += FieldNodeRenderer.getHeight(field);</span>
+<span class="fc" id="L150">		}</span>
+<span class="nc" id="L151">		return yPosition;</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

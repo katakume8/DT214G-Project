@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NotificationTimeDialog.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.gui</a> &gt; <span class="el_source">NotificationTimeDialog.java</span></div><h1>NotificationTimeDialog.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.gui;
+
+import static org.jetuml.application.ApplicationResources.RESOURCES;
+
+import org.jetuml.application.UserPreferences;
+import org.jetuml.application.UserPreferences.IntegerPreference;
+
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
+import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
+import javafx.scene.image.Image;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Pane;
+import javafx.stage.Stage;
+
+/**
+ * A modal dialog that allows users to change the duration (in seconds) that
+ * notifications remain visible.
+ */
+public class NotificationTimeDialog 
+{
+	private static final int SPACING = 10;
+	private static final int VSPACE = 20;
+	private static final int MIN_DURATION = 0;
+	private static final int MAX_DURATION = 10;
+	private final Stage aStage;
+<span class="nc" id="L53">	private final TextField aDurationField = new TextField();</span>
+	
+	/**
+	 * Creates a new dialog.
+	 * 
+	 * @param pDialogStage The stage that owns this dialog.
+	 */
+	public NotificationTimeDialog( Stage pDialogStage )
+<span class="nc" id="L61">	{</span>
+<span class="nc" id="L62">		aStage = pDialogStage;</span>
+<span class="nc" id="L63">		prepareStage();</span>
+<span class="nc" id="L64">		aStage.getScene().setRoot(createRoot());</span>
+<span class="nc" id="L65">	}</span>
+	
+	private void prepareStage() 
+	{
+<span class="nc" id="L69">		aStage.setTitle(RESOURCES.getString(&quot;dialog.notifications.title&quot;));</span>
+<span class="nc" id="L70">		aStage.getIcons().add(new Image(RESOURCES.getString(&quot;application.icon&quot;)));</span>
+<span class="nc" id="L71">	}</span>
+	
+	private Pane createRoot() 
+	{
+<span class="nc" id="L75">		BorderPane layout = new BorderPane();</span>
+<span class="nc" id="L76">		layout.setPadding( new Insets(SPACING));</span>
+		
+<span class="nc" id="L78">		String message = RESOURCES.getString(&quot;dialog.notifications.message&quot;);</span>
+<span class="nc" id="L79">		message = message.replace(&quot;#1&quot;, Integer.toString(MIN_DURATION));</span>
+<span class="nc" id="L80">		message = message.replace(&quot;#2&quot;, Integer.toString(MAX_DURATION));</span>
+
+<span class="nc" id="L82">		HBox top = new HBox(new Label(message));</span>
+<span class="nc" id="L83">		top.setAlignment(Pos.CENTER);</span>
+<span class="nc" id="L84">		layout.setTop(top);</span>
+<span class="nc" id="L85">		layout.setCenter(createForm());</span>
+<span class="nc" id="L86">		layout.setBottom(createButtons());</span>
+		
+<span class="nc" id="L88">		return layout;</span>
+	}
+	
+	private Pane createForm()
+	{
+<span class="nc" id="L93">		HBox pane = new HBox();</span>
+<span class="nc" id="L94">		pane.setAlignment(Pos.CENTER);</span>
+<span class="nc" id="L95">		pane.setPadding(new Insets(SPACING));</span>
+<span class="nc" id="L96">		pane.setSpacing(SPACING);</span>
+				
+<span class="nc" id="L98">		aDurationField.setPrefColumnCount((int)Math.log10(MAX_DURATION)+1);</span>
+<span class="nc" id="L99">		aDurationField.setText(durationAsString());</span>
+<span class="nc" id="L100">		HBox size = new HBox(new Label(RESOURCES.getString(&quot;dialog.notifications.value&quot;)), aDurationField);</span>
+<span class="nc" id="L101">		size.setAlignment(Pos.CENTER);</span>
+<span class="nc" id="L102">		size.setSpacing(2);</span>
+<span class="nc" id="L103">		aDurationField.setOnAction(event -&gt; onInput());</span>
+		
+<span class="nc" id="L105">		Button defaultButton = new Button(RESOURCES.getString(&quot;dialog.notifications.default&quot;));</span>
+<span class="nc" id="L106">		defaultButton.setOnAction( pEvent -&gt; </span>
+		{
+<span class="nc" id="L108">			aDurationField.setText(UserPreferences.IntegerPreference.notificationDuration.getDefault());</span>
+<span class="nc" id="L109">		});</span>
+				
+<span class="nc" id="L111">		pane.getChildren().addAll(size, defaultButton);</span>
+				
+<span class="nc" id="L113">		return pane;</span>
+	}
+	
+	private static boolean isValid(String pSize) 
+	{
+		try
+		{
+<span class="nc" id="L120">			int parsedSize = Integer.parseInt(pSize);</span>
+<span class="nc bnc" id="L121" title="All 4 branches missed.">			return MIN_DURATION &lt;= parsedSize &amp;&amp; parsedSize &lt;= MAX_DURATION;</span>
+		}
+<span class="nc" id="L123">		catch ( NumberFormatException exception )</span>
+		{
+<span class="nc" id="L125">			return false;</span>
+		}
+	}
+
+	private static String durationAsString()
+	{
+<span class="nc" id="L131">		return Integer.toString(UserPreferences.instance().</span>
+<span class="nc" id="L132">				getInteger(IntegerPreference.notificationDuration));</span>
+	}
+	
+	private void showInvalidDurationAlert()
+	{
+<span class="nc" id="L137">		String content = RESOURCES.getString(&quot;dialog.notifications.error_content&quot;);</span>
+<span class="nc" id="L138">		content = content.replace(&quot;#1&quot;, Integer.toString(MIN_DURATION));</span>
+<span class="nc" id="L139">		content = content.replace(&quot;#2&quot;, Integer.toString(MAX_DURATION));</span>
+<span class="nc" id="L140">		Alert alert = new Alert(AlertType.ERROR, content, ButtonType.OK);</span>
+<span class="nc" id="L141">		alert.setTitle(RESOURCES.getString(&quot;alert.error.title&quot;));</span>
+<span class="nc" id="L142">		alert.setHeaderText(RESOURCES.getString(&quot;dialog.notifications.error_header&quot;));</span>
+<span class="nc" id="L143">		alert.initOwner(aStage);</span>
+<span class="nc" id="L144">		alert.showAndWait();</span>
+<span class="nc" id="L145">	}</span>
+	
+	private Pane createButtons()
+	{
+<span class="nc" id="L149">		Button ok = new Button(RESOURCES.getString(&quot;dialog.notifications.ok&quot;));</span>
+<span class="nc" id="L150">		Button cancel = new Button(RESOURCES.getString(&quot;dialog.notifications.cancel&quot;));</span>
+<span class="nc" id="L151">		ok.setOnAction(event -&gt; onInput());</span>
+<span class="nc" id="L152">		cancel.setOnAction( pEvent -&gt; aStage.close() );</span>
+
+<span class="nc" id="L154">		HBox box = new HBox(ok, cancel);</span>
+<span class="nc" id="L155">		box.setSpacing(SPACING);</span>
+<span class="nc" id="L156">		box.setAlignment(Pos.CENTER_RIGHT);</span>
+<span class="nc" id="L157">		box.setPadding(new Insets(VSPACE, 0, 0, 0));</span>
+<span class="nc" id="L158">		return box;</span>
+	}
+	
+	private void onInput()
+	{
+<span class="nc bnc" id="L163" title="All 2 branches missed.">		if( isValid(aDurationField.getText()) )</span>
+		{
+<span class="nc" id="L165">			UserPreferences.instance().setInteger(IntegerPreference.notificationDuration, Integer.parseInt(aDurationField.getText()));</span>
+<span class="nc" id="L166">			aStage.close();</span>
+		}
+		else
+		{
+<span class="nc" id="L170">			aDurationField.setText(durationAsString());</span>
+<span class="nc" id="L171">			showInvalidDurationAlert();</span>
+		}
+<span class="nc" id="L173">	}</span>
+	
+	/**
+	 * Shows the dialog and blocks the remainder of the UI
+	 * until it is closed.
+	 */
+	public void show() 
+	{
+<span class="nc" id="L181">        aStage.showAndWait();</span>
+<span class="nc" id="L182">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

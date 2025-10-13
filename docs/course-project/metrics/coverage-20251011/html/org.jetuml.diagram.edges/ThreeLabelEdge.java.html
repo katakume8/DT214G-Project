@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ThreeLabelEdge.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.diagram.edges</a> &gt; <span class="el_source">ThreeLabelEdge.java</span></div><h1>ThreeLabelEdge.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ *     
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.diagram.edges;
+
+import org.jetuml.diagram.PropertyName;
+
+/**
+ * An edge with three labels.
+ */
+<span class="fc" id="L28">public abstract class ThreeLabelEdge extends SingleLabelEdge</span>
+{
+<span class="fc" id="L30">	private String aStartLabel = &quot;&quot;;</span>
+<span class="fc" id="L31">	private String aEndLabel = &quot;&quot;;</span>
+	
+	/**
+	 * @param pLabel The new start label.
+	 */
+	public void setStartLabel(String pLabel)
+	{
+<span class="fc" id="L38">		aStartLabel = pLabel;</span>
+<span class="fc" id="L39">	}</span>
+	
+	/**
+	 * @param pLabel The new end label.
+	 */
+	public void setEndLabel(String pLabel)
+	{
+<span class="fc" id="L46">		aEndLabel = pLabel;</span>
+<span class="fc" id="L47">	}</span>
+	
+	/**
+	 * @return The start label.
+	 */
+	public String getStartLabel()
+	{
+<span class="fc" id="L54">		return aStartLabel;</span>
+	}
+	
+	/**
+	 * @return The middle label.
+	 */
+	public String getEndLabel()
+	{
+<span class="fc" id="L62">		return aEndLabel;</span>
+	}
+	
+	@Override
+	protected void buildProperties()
+	{
+<span class="fc" id="L68">		super.buildProperties();</span>
+<span class="fc" id="L69">		properties().addAt(PropertyName.START_LABEL, ()-&gt; aStartLabel, pLabel -&gt; aStartLabel = (String) pLabel, 0);</span>
+<span class="fc" id="L70">		properties().add(PropertyName.END_LABEL, ()-&gt; aEndLabel, pLabel -&gt; aEndLabel = (String) pLabel);</span>
+<span class="fc" id="L71">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

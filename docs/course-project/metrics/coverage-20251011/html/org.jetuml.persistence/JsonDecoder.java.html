@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JsonDecoder.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JetUML</a> &gt; <a href="index.source.html" class="el_package">org.jetuml.persistence</a> &gt; <span class="el_source">JsonDecoder.java</span></div><h1>JsonDecoder.java</h1><pre class="source lang-java linenums">/*******************************************************************************
+ * JetUML - A desktop application for fast UML diagramming.
+ *
+ * Copyright (C) 2025 by McGill University.
+ * 
+ * See: https://github.com/prmr/JetUML
+ *
+ * This program is free software: you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option) any later
+ * version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+ * details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * this program. If not, see http://www.gnu.org/licenses.
+ *******************************************************************************/
+package org.jetuml.persistence;
+
+import org.jetuml.application.Version;
+import org.jetuml.diagram.Diagram;
+import org.jetuml.diagram.DiagramType;
+import org.jetuml.diagram.Edge;
+import org.jetuml.diagram.Node;
+import org.jetuml.diagram.Property;
+import org.jetuml.geom.Point;
+import org.jetuml.persistence.DeserializationException.Category;
+import org.jetuml.persistence.json.JsonArray;
+import org.jetuml.persistence.json.JsonException;
+import org.jetuml.persistence.json.JsonObject;
+
+/**
+ * Converts a JSONObject to a diagram. Instances of this class are intended to be
+ * used as a single-use wrapper around a JSON object that is to be decoded, as such
+ * new JsonDecoder(pInputObject).decode()
+ * 
+ * The version information stored in a diagram file is purposefully discarded 
+ * as JetUML no longer migrates versions. Storing and handling version numbers
+ * is deemed not to be worth the complexity. In very rare cases were an decoding
+ * issue might be due to versioning, users can always look at the text of the 
+ * diagram file to recover the version number.
+ */
+<span class="fc" id="L46">public final class JsonDecoder</span>
+{
+	private static final String PREFIX_NODES = &quot;org.jetuml.diagram.nodes.&quot;;
+	private static final String PREFIX_EDGES = &quot;org.jetuml.diagram.edges.&quot;;
+	
+	private static final String PROPERTY_DIAGRAM = &quot;diagram&quot;;
+	private static final String PROPERTY_NODES = &quot;nodes&quot;;
+	private static final String PROPERTY_EDGES = &quot;edges&quot;;
+	private static final String PROPERTY_VERSION = &quot;version&quot;;
+	private static final String PROPERTY_TYPE = &quot;type&quot;;
+	private static final String PROPERTY_X = &quot;x&quot;;
+	private static final String PROPERTY_Y = &quot;y&quot;;
+	private static final String PROPERTY_ID = &quot;id&quot;;
+	private static final String PROPERTY_CHILDREN = &quot;children&quot;;
+	private static final String PROPERTY_START = &quot;start&quot;;
+	private static final String PROPERTY_END = &quot;end&quot;;
+
+	/* 
+	 * The object that will be decoded.
+	 */
+	private final JsonObject aInputObject;
+	private DeserializationContext aContext; // Wraps the diagram
+	
+	/**
+	 * @param pInputObject The object to decode into a diagram.
+	 * @pre pInputObject != null;
+	 */
+	public JsonDecoder(JsonObject pInputObject) 
+<span class="fc" id="L74">	{</span>
+<span class="pc bpc" id="L75" title="1 of 2 branches missed.">		assert pInputObject != null;</span>
+<span class="fc" id="L76">		aInputObject = pInputObject;</span>
+<span class="fc" id="L77">	}</span>
+
+	/**
+	 * @param pDiagram A JSON object that encodes the diagram.
+	 * @return The decoded diagram.
+	 * @throws DeserializationException If it's not possible to decode the
+	 * object into a valid diagram.
+	 */
+	public Diagram decode()
+	{
+<span class="fc" id="L87">		extractVersion();</span>
+<span class="fc" id="L88">		extractDiagram();</span>
+		try
+		{
+<span class="fc" id="L91">			decodeNodes();</span>
+<span class="fc" id="L92">			restoreChildren();</span>
+<span class="fc" id="L93">			restoreRootNodes();</span>
+<span class="fc" id="L94">			decodeEdges();</span>
+<span class="fc" id="L95">			return aContext.diagram();</span>
+		}
+<span class="fc" id="L97">		catch( JsonException exception )</span>
+		{
+			// Just to be extra safe, but normally all exceptions should be 
+			// handled in the individual methods of the algorithm.
+<span class="fc" id="L101">			throw new DeserializationException(Category.STRUCTURAL, exception.getMessage());</span>
+		}
+	}
+	
+	private void extractVersion()
+	{
+		try
+		{
+			// We make sure that the version number can be parse as an integrity check on the 
+			// diagram file, but we do not store the information.
+<span class="fc" id="L111">			Version.parse(extractString(PROPERTY_VERSION));</span>
+		}
+<span class="fc" id="L113">		catch(IllegalArgumentException exception)</span>
+		{
+<span class="fc" id="L115">			throw new DeserializationException(Category.STRUCTURAL, &quot;Cannot parse version number&quot;);</span>
+<span class="fc" id="L116">		}</span>
+<span class="fc" id="L117">	}</span>
+	
+	private void extractDiagram()
+	{
+		try
+		{
+<span class="fc" id="L123">			aContext = new DeserializationContext(new Diagram(DiagramType.fromName(extractString(PROPERTY_DIAGRAM))));</span>
+		}
+<span class="fc" id="L125">		catch(IllegalArgumentException exception)</span>
+		{
+<span class="fc" id="L127">			throw new DeserializationException(Category.STRUCTURAL, &quot;Invalid diagram type: &quot; + extractString(PROPERTY_DIAGRAM));</span>
+<span class="fc" id="L128">		}</span>
+<span class="fc" id="L129">	}</span>
+	
+	/*
+	 * Extracts a string value for the given property name, and raises
+	 * a structural DeserializationException if the property is not found
+	 * or was not stored as a string.
+	 */
+	private String extractString(String pPropertyName)
+	{
+		try
+		{
+<span class="fc" id="L140">			return aInputObject.getString(pPropertyName);</span>
+		}
+<span class="fc" id="L142">		catch(JsonException exception)</span>
+		{
+<span class="fc" id="L144">			throw new DeserializationException(Category.STRUCTURAL, String.format(&quot;Cannot obtain value of property '%s'&quot;, pPropertyName));</span>
+		}
+	}
+	
+	/*
+	 * Extracts a JsonArray value for the given property name, and raises
+	 * a structural DeserializationException if the property is not found
+	 * or was not stored as an array.
+	 */
+	private JsonArray extractArray(String pPropertyName)
+	{
+		try
+		{
+<span class="fc" id="L157">			return aInputObject.getJsonArray(pPropertyName);</span>
+		}
+<span class="fc" id="L159">		catch(JsonException exception)</span>
+		{
+<span class="fc" id="L161">			throw new DeserializationException(Category.STRUCTURAL, String.format(&quot;Cannot obtain value of property '%s'&quot;, pPropertyName));</span>
+		}
+	}
+	
+	/*
+	 * Extracts information about nodes from pObject and creates new objects to
+	 * represent them. throws Deserialization Exception
+	 */
+	private void decodeNodes()
+	{
+<span class="fc" id="L171">		JsonArray nodes = extractArray(PROPERTY_NODES);</span>
+<span class="fc bfc" id="L172" title="All 2 branches covered.">		for( int i = 0; i &lt; nodes.size(); i++ )</span>
+		{
+			try
+			{
+<span class="fc" id="L176">				JsonObject object = nodes.getJsonObject(i);</span>
+<span class="fc" id="L177">				Class&lt;?&gt; nodeClass = Class.forName(PREFIX_NODES + object.getString(PROPERTY_TYPE));</span>
+<span class="fc" id="L178">				Node node = (Node) nodeClass.getDeclaredConstructor().newInstance();</span>
+<span class="fc" id="L179">				node.moveTo(new Point(object.getInt(PROPERTY_X), object.getInt(PROPERTY_Y)));</span>
+<span class="fc bfc" id="L180" title="All 2 branches covered.">				for( Property property : node.properties() )</span>
+				{
+<span class="fc" id="L182">					property.set(object.get(property.name().external()));</span>
+<span class="fc" id="L183">				}</span>
+<span class="fc" id="L184">				aContext.addNode(node, object.getInt(PROPERTY_ID));</span>
+			}
+<span class="fc" id="L186">			catch(ReflectiveOperationException | JsonException exception)</span>
+			{
+<span class="fc" id="L188">				throw new DeserializationException(Category.STRUCTURAL, &quot;Cannot instantiate serialized object&quot;, exception);</span>
+<span class="fc" id="L189">			}</span>
+		}
+<span class="fc" id="L191">	}</span>
+
+	/*
+	 * Discovers the root nodes and stores them in the diagram.
+	 */
+	private void restoreRootNodes()
+	{
+<span class="fc bfc" id="L198" title="All 2 branches covered.">		for( Node node : aContext )</span>
+		{
+<span class="fc bfc" id="L200" title="All 2 branches covered.">			if( !node.hasParent() )</span>
+			{
+<span class="fc" id="L202">				aContext.diagram().addRootNode(node);</span>
+			}
+<span class="fc" id="L204">		}</span>
+<span class="fc" id="L205">	}</span>
+
+	/*
+	 * Restores the parent-child hierarchy within the context's diagram. Assumes
+	 * the context has been initialized with all the nodes.
+	 */
+	private void restoreChildren()
+	{
+<span class="fc" id="L213">		JsonArray nodes = extractArray(PROPERTY_NODES);</span>
+<span class="fc bfc" id="L214" title="All 2 branches covered.">		for( int i = 0; i &lt; nodes.size(); i++ )</span>
+		{
+<span class="fc" id="L216">			JsonObject object = nodes.getJsonObject(i);</span>
+<span class="fc bfc" id="L217" title="All 2 branches covered.">			if( object.hasProperty(PROPERTY_CHILDREN) )</span>
+			{
+<span class="fc" id="L219">				Node node = aContext.getNode(object.getInt(PROPERTY_ID));</span>
+<span class="fc" id="L220">				JsonArray children = object.getJsonArray(PROPERTY_CHILDREN);</span>
+<span class="fc bfc" id="L221" title="All 2 branches covered.">				for( int j = 0; j &lt; children.size(); j++ )</span>
+				{
+<span class="fc" id="L223">					int childNodeId = children.getInt(j);</span>
+<span class="fc bfc" id="L224" title="All 2 branches covered.">					if( !aContext.idExists(childNodeId))</span>
+					{
+<span class="fc" id="L226">						throw new DeserializationException(Category.STRUCTURAL, &quot;Invalid node id found in children nodes&quot;);</span>
+					}
+<span class="fc" id="L228">					Node childNode = aContext.getNode(childNodeId);</span>
+<span class="fc bfc" id="L229" title="All 2 branches covered.">					if( !node.allowsAsChild(childNode) )</span>
+					{
+<span class="fc" id="L231">						throw new DeserializationException(Category.STRUCTURAL, &quot;Invalid parent-child relation&quot;);</span>
+					}
+<span class="fc" id="L233">					node.addChild(aContext.getNode(childNodeId));</span>
+				}
+			}
+		}
+<span class="fc" id="L237">	}</span>
+
+	/*
+	 * Extracts information about nodes from pObject and creates new objects to
+	 * represent them. throws Deserialization Exception
+	 */
+	private void decodeEdges()
+	{
+<span class="fc" id="L245">		JsonArray edges = extractArray(PROPERTY_EDGES);</span>
+<span class="fc bfc" id="L246" title="All 2 branches covered.">		for( int i = 0; i &lt; edges.size(); i++ )</span>
+		{
+			try
+			{
+<span class="fc" id="L250">				JsonObject object = edges.getJsonObject(i);</span>
+<span class="fc" id="L251">				Class&lt;?&gt; edgeClass = Class.forName(PREFIX_EDGES + object.getString(PROPERTY_TYPE));</span>
+<span class="fc" id="L252">				Edge edge = (Edge) edgeClass.getDeclaredConstructor().newInstance();</span>
+
+<span class="fc bfc" id="L254" title="All 2 branches covered.">				for( Property property : edge.properties() )</span>
+				{
+<span class="fc" id="L256">					property.set(object.get(property.name().external()));</span>
+<span class="fc" id="L257">				}</span>
+<span class="fc" id="L258">				int startNodeId = object.getInt(PROPERTY_START);</span>
+<span class="fc" id="L259">				int endNodeId = object.getInt(PROPERTY_END);</span>
+<span class="pc bpc" id="L260" title="1 of 4 branches missed.">				if( !aContext.idExists(startNodeId) || !aContext.idExists(endNodeId))</span>
+				{
+<span class="fc" id="L262">					throw new DeserializationException(Category.STRUCTURAL, &quot;At least one edge vertex cannot be found&quot;);</span>
+				}
+<span class="fc" id="L264">				edge.connect(aContext.getNode(startNodeId), aContext.getNode(endNodeId));</span>
+<span class="fc" id="L265">				aContext.diagram().addEdge(edge);</span>
+			}
+<span class="fc" id="L267">			catch (ReflectiveOperationException exception)</span>
+			{
+<span class="fc" id="L269">				throw new DeserializationException(Category.STRUCTURAL, &quot;Cannot instantiate serialized object&quot;, exception);</span>
+<span class="fc" id="L270">			}</span>
+		}
+<span class="fc" id="L272">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
