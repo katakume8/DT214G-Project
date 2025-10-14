@@ -72,13 +72,18 @@ public class SvgRenderingContext implements RenderingContext
 				+ "</filter></defs>"
 				+ "<g transform=\"translate(0.5,0.5)\" stroke-width=\"0.75\">";
 		
-		aSvg.add(String.format(rootStartTemplate, 
-				pViewport.x() - MARGIN, 
-				pViewport.y() - MARGIN, 
+//		aSvg.add(String.format(rootStartTemplate,
+//				pViewport.x() - MARGIN,
+//				pViewport.y() - MARGIN,
+//				pViewport.width() + MARGIN * 2,
+//				pViewport.height() + MARGIN * 2,
+//				(pViewport.width() + MARGIN) * 2,
+//				(pViewport.width() + MARGIN) * 2));
+		aSvg.add(String.format(rootStartTemplate,
+				pViewport.x() - MARGIN,
+				pViewport.y() - MARGIN,
 				pViewport.width() + MARGIN * 2,
-				pViewport.height() + MARGIN * 2,
-				(pViewport.width() + MARGIN) * 2,
-				(pViewport.width() + MARGIN) * 2));
+				pViewport.height() + MARGIN * 2));
 	}
 	
 	@Override
