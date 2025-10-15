@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -93,5 +94,15 @@ public class TestJsonAnyValueParser
 	void testParse_Invalid()
 	{
 		assertThrows(JsonParsingException.class, ()-> PARSER.parse(new ParsableCharacterBuffer("x[2,3, false ]")));
+	}
+
+	@Test
+	@DisplayName("Should return correct problematic position")
+	void shouldReturnCorrectProblematicPosition() {
+		try {
+			PARSER.parse(new ParsableCharacterBuffer("{[1,2]}"));
+		} catch (JsonParsingException exception) {
+			assertEquals(1, exception.position());
+		}
 	}
 }

@@ -25,9 +25,14 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 
 public class TestJsonIntegerParser
 {
@@ -105,5 +110,14 @@ public class TestJsonIntegerParser
 	void testParse_IntegerUnderflow()
 	{
 		assertThrows(JsonParsingException.class, () -> PARSER.parse(new ParsableCharacterBuffer("-2147483649")));
+	}
+
+	@Test
+	@DisplayName("Should return false on empty strings")
+	void shouldReturnFalseOnEmptyString() throws Exception {
+		Method method = JsonIntegerParser.class.getDeclaredMethod("illegalNumber", String.class);
+		method.setAccessible(true);
+		boolean result = (boolean) method.invoke(PARSER, "");
+		assertTrue(result);
 	}
 }
