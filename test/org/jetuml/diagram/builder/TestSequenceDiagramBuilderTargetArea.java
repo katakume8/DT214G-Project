@@ -59,4 +59,41 @@ public class TestSequenceDiagramBuilderTargetArea {
         // Assert (after undo): still no children
         assertEquals(0, life.getChildren().size());
     }
+
+    @Test
+    void addCallEdge_lifelineToLifeline_createsCallNodesAndEdge() {
+        // Arrange
+        var b = new SequenceDiagramBuilder(new Diagram(DiagramType.SEQUENCE));
+        var left = new ImplicitParameterNode();
+        var right = new ImplicitParameterNode();
+
+        // أضِف lifelines
+        b.createAddNodeOperation(left,  new Point(80,  20)).execute();
+        b.createAddNodeOperation(right, new Point(260, 20)).execute();
+
+        // Act: أضِف CallEdge من lifeline يسار إلى lifeline يمين (نقاط داخل مساراتهما)
+        var addEdge = b.createAddEdgeOperation(new org.jetuml.diagram.edges.CallEdge(),
+                new Point(80,  120),   // داخل منطقة left (تحت التوب)
+                new Point(260, 120));  // داخل منطقة right
+        assertNotNull(addEdge);
+        addEdge.execute();
+
+        // Assert: انضاف CallNode تحت كل lifeline، وانرسمت وصلة بينهم
+        assertEquals(1, left.getChildren().size(),  "left should have a call child");
+        assertEquals(1, right.getChildren().size(), "right should have a call child");
+
+        var edge = b.diagram().edges().get(0);
+        assertTrue(edge instanceof org.jetuml.diagram.edges.CallEdge);
+
+        var startCall = left.getChildren().get(0);
+        var endCall   = right.getChildren().get(0);
+        assertSame(startCall, edge.start());
+        assertSame(endCall,   edge.end());
+
+        // Undo يرجّع الحالة
+        addEdge.undo();
+        assertEquals(0, left.getChildren().size());
+        assertEquals(0, right.getChildren().size());
+        assertTrue(b.diagram().edges().isEmpty());
+    }
 }

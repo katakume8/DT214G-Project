@@ -9,7 +9,7 @@
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <maven.compiler.release>21</maven.compiler.release>
 
-    <argLine></argLine>
+    <!-- <argLine></argLine> -->
   </properties>
 
   <dependencies>
