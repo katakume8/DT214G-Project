@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 public class TestCharacterBuffer
@@ -155,5 +156,28 @@ public class TestCharacterBuffer
 		assertTrue(aBuffer1.hasMore());
 		aBuffer1.next();
 		assertFalse(aBuffer1.hasMore());
+	}
+
+	@Test
+	@DisplayName("Should return correct position of CharacterBuffer")
+	void shouldReturnCorrectPosition() {
+		aBuffer1.next();
+		aBuffer1.next();
+		assertEquals(1, aBuffer1.position());
+	}
+
+	@Test
+	@DisplayName("Should return correct string at the beginning of CharacterBuffer")
+	void shouldReturnCorrectToStringAtBeginning() {
+		assertEquals("Positioned at the beginning", aBuffer1.toString());
+	}
+
+	@Test
+	@DisplayName("Should return correct string at any arbitrary position of CharacterBuffer")
+	void shouldReturnCorrectToString() {
+		aBuffer1.next();
+		aBuffer1.next();
+
+		assertEquals("At position 1 [b]", aBuffer1.toString());
 	}
 }

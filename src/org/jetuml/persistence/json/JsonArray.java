@@ -100,7 +100,7 @@ public class JsonArray implements Iterable<Object>
 	 */
 	public int getInt(int pIndex)
 	{
-		validateIndex(pIndex);
+		//validateIndex(pIndex);
 		return JsonValueValidator.asInt(get(pIndex));
 	}
 	
@@ -114,7 +114,7 @@ public class JsonArray implements Iterable<Object>
 	 */
 	public String getString(int pIndex)
 	{
-		validateIndex(pIndex);
+		//validateIndex(pIndex);
 		return JsonValueValidator.asString(get(pIndex));
 	}
 	
@@ -128,7 +128,7 @@ public class JsonArray implements Iterable<Object>
 	 */
 	public boolean getBoolean(int pIndex)
 	{
-		validateIndex(pIndex);
+		//validateIndex(pIndex);
 		return JsonValueValidator.asBoolean(get(pIndex));
 	}
 	
@@ -142,7 +142,7 @@ public class JsonArray implements Iterable<Object>
 	 */
 	public JsonObject getJsonObject(int pIndex)
 	{
-		validateIndex(pIndex);
+		//validateIndex(pIndex);
 		return JsonValueValidator.asJsonObject(get(pIndex));
 	}
 	
@@ -156,7 +156,7 @@ public class JsonArray implements Iterable<Object>
 	 */
 	public JsonArray getJsonArray(int pIndex)
 	{
-		validateIndex(pIndex);
+		//validateIndex(pIndex);
 		return JsonValueValidator.asJsonArray(get(pIndex));
 	}
 	

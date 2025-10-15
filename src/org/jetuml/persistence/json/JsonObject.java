@@ -92,7 +92,7 @@ public class JsonObject
 	 */
 	public int getInt(String pName)
 	{
-		validateProperty(pName);
+		//validateProperty(pName);
 		return JsonValueValidator.asInt(get(pName));
 	}
 
@@ -106,7 +106,7 @@ public class JsonObject
 	 */
 	public JsonArray getJsonArray(String pName)
 	{
-		validateProperty(pName);
+		//validateProperty(pName);
 		return JsonValueValidator.asJsonArray(get(pName));
 	}
 	
@@ -120,7 +120,7 @@ public class JsonObject
 	 */
 	public JsonObject getJsonObject(String pName)
 	{
-		validateProperty(pName);
+		//validateProperty(pName);
 		return JsonValueValidator.asJsonObject(get(pName));
 	}
 
@@ -134,7 +134,7 @@ public class JsonObject
 	 */
 	public String getString(String pName)
 	{
-		validateProperty(pName);
+		//validateProperty(pName);
 		return JsonValueValidator.asString(get(pName));
 	}
 	
@@ -148,7 +148,7 @@ public class JsonObject
 	 */
 	public boolean getBoolean(String pName)
 	{
-		validateProperty(pName);
+		//validateProperty(pName);
 		return JsonValueValidator.asBoolean(get(pName));
 	}
 
