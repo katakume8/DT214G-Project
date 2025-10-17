@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 public class TestRectangle
@@ -135,4 +136,23 @@ public class TestRectangle
 		assertEquals(expected, actual);
 	}
 
+	@Test
+	@DisplayName("Should only return true for rectangles on the inside")
+	void shouldReturnTrueForInsideRectanglesOnly() {
+		Rectangle rectangle = new Rectangle(0,10,40,50);
+		Rectangle outside = new Rectangle(100,150,10,12);
+
+		assertTrue(rectangle.contains(rectangle));
+		assertFalse(rectangle.contains(outside));
+	}
+
+	@Test
+	@DisplayName("Should expand a rectangle correctly using points on the outside")
+	void shouldExpandRectangleCorrectly() {
+		final Rectangle original = new Rectangle(10,10,10,10);
+		final Rectangle expected = new Rectangle(9,9,12,12);
+
+		Rectangle modified = original.add(new Point(9, 9)).add(new Point(21, 21));
+		assertEquals(expected, modified);
+	}
 }
