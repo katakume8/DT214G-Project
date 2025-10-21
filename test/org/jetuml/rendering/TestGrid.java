@@ -24,7 +24,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.jetuml.geom.GridUtils;
 import org.jetuml.geom.Point;
+import org.jetuml.geom.Rectangle;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 public class TestGrid
 {
@@ -117,5 +122,14 @@ public class TestGrid
 		assertEquals(new Point(0,10), GridUtils.snapped(new Point(3,6)));
 		assertEquals(new Point(0,10), GridUtils.snapped(new Point(4,6)));
 		assertEquals(new Point(10,10), GridUtils.snapped(new Point(5,6)));
+	}
+
+	@Test
+	@DisplayName("Should snap rectangles correctly")
+	void shouldCorrectlySnapRectangles() {
+		Rectangle expected = new Rectangle(10, 10, 20, 20);
+		Rectangle actual = GridUtils.snapped(new Rectangle(8, 8, 18, 18));
+
+		assertEquals(expected, actual);
 	}
 }

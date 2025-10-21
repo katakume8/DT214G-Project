@@ -310,4 +310,14 @@ public class TestLine
 	{
 		assertTrue(new Line(pX1, pY1, pX2, pY2).isVertical());
 	}
+
+	@ParameterizedTest
+	@CsvSource({"0,0, 1,0",
+		"0,0, 10,0",
+		"10,0, 0,0",
+		"25,0, 50,0"})
+	@DisplayName("Should return false for non vertical lines")
+	void shouldReturnFalseForNonVerticalLines(int pX1, int pY1, int pX2, int pY2) {
+		assertFalse(new Line(pX1, pY1, pX2, pY2).isVertical());
+	}
 }
