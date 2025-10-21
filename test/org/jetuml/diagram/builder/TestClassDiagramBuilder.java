@@ -35,13 +35,10 @@ import org.jetuml.diagram.DiagramType;
 import org.jetuml.diagram.Node;
 import org.jetuml.diagram.edges.DependencyEdge;
 import org.jetuml.diagram.edges.NoteEdge;
-import org.jetuml.diagram.nodes.ClassNode;
-import org.jetuml.diagram.nodes.InterfaceNode;
-import org.jetuml.diagram.nodes.NoteNode;
-import org.jetuml.diagram.nodes.PackageNode;
-import org.jetuml.diagram.nodes.PointNode;
+import org.jetuml.diagram.nodes.*;
 import org.jetuml.geom.Dimension;
 import org.jetuml.geom.Point;
+import org.jetuml.geom.Rectangle;
 import org.junit.jupiter.api.Test;
 
 /* 
@@ -432,5 +429,175 @@ public class TestClassDiagramBuilder
 		aBuilder.createRemoveElementsOperation(List.of(noteNode)).execute();
 		assertFalse(aDiagram.contains(edge));
 		assertFalse(aDiagram.contains(pointNode));
+	}
+
+	/**
+	 * Ensure the second child inside a package keeps its requested position
+	 */
+	@Test
+	public void testAddSecondChild_RespectsRequestedPosition_WhenPackageHasChildren() {
+		// Arrange
+		Diagram d = new Diagram(DiagramType.CLASS);
+		ClassDiagramBuilder b = new ClassDiagramBuilder(d);
+
+		PackageNode pkg = new PackageNode();
+		b.createAddNodeOperation(pkg, new Point(100, 100)).execute();
+
+		ClassNode first = new ClassNode();
+		b.createAddNodeOperation(first, new Point(120, 130)).execute(); // now pkg has a child
+
+		ClassNode second = new ClassNode();
+		Point requested = new Point(180, 160);
+
+		// Act
+		b.createAddNodeOperation(second, requested).execute();
+
+		// Assert
+		assertEquals(requested, second.position());
+		assertTrue(pkg.getChildren().contains(second));
+	}
+
+	/**
+	 * Ensure createLinkToPackageOperation actually links parent/child
+	 */
+	@Test
+	public void testCreateLinkToPackageOperation_LinksParentRelation() {
+		// Arrange
+		Diagram d = new Diagram(DiagramType.CLASS);
+		ClassDiagramBuilder b = new ClassDiagramBuilder(d);
+
+		PackageNode pkg = new PackageNode();
+		ClassNode n = new ClassNode();
+
+		b.createAddNodeOperation(pkg, new Point(80, 80)).execute();
+		b.createAddNodeOperation(n, new Point(10, 10)).execute();
+
+		// Move the node to a point inside the package so canLinkToPackage becomes true
+		n.moveTo(new Point(90, 100));
+		assertTrue(b.canLinkToPackage(List.of(n)));
+
+		// Act
+		DiagramOperation op = b.createLinkToPackageOperation(List.of(n));
+		op.execute();
+
+		// Assert
+		assertEquals(pkg, n.getParent());
+		assertTrue(pkg.getChildren().contains(n));
+	}
+
+
+	// Unlink without an outer parent: child becomes a root node
+	@Test
+	public void testUnlinkFromPackage_NoOuterParent_DetachesToRoot() {
+		// Arrange
+		Diagram d = new Diagram(DiagramType.CLASS);
+		ClassDiagramBuilder b = new ClassDiagramBuilder(d);
+
+		PackageNode pkg = new PackageNode();
+		b.createAddNodeOperation(pkg, new Point(200, 150)).execute();
+
+		ClassNode n = new ClassNode();
+		b.createAddNodeOperation(n, new Point(210, 180)).execute();
+
+		// Act
+		DiagramOperation op = b.createUnlinkFromPackageOperation(List.of(n));
+		op.execute();
+
+		// Assert
+		assertTrue(d.rootNodes().contains(n));
+		assertFalse(pkg.getChildren().contains(n));
+
+		// Arrange/Act (Undo)
+		op.undo();
+
+		// Assert (after undo)
+		assertFalse(d.rootNodes().contains(n));
+		assertTrue(pkg.getChildren().contains(n));
+		assertEquals(pkg, n.getParent());
+	}
+
+	// Unlink with an outer parent: child is attached to the outer parent, and undo restores it
+	@Test
+	public void testUnlinkFromPackage_WithOuterParent_AttachesToOuterParent() {
+		// Arrange
+		Diagram d = new Diagram(DiagramType.CLASS);
+		ClassDiagramBuilder b = new ClassDiagramBuilder(d);
+
+		PackageNode outer = new PackageNode();
+		b.createAddNodeOperation(outer, new Point(50, 50)).execute();
+
+		PackageNode pkg = new PackageNode();
+		b.createAddNodeOperation(pkg, new Point(60, 60)).execute();
+
+		ClassNode n = new ClassNode();
+		b.createAddNodeOperation(n, new Point(70, 80)).execute();
+
+		// Act
+		DiagramOperation op = b.createUnlinkFromPackageOperation(List.of(n));
+		op.execute();
+
+		// Assert
+		assertEquals(outer, n.getParent());
+		assertTrue(outer.getChildren().contains(n));
+		assertFalse(pkg.getChildren().contains(n));
+
+		// Arrange/Act (Undo)
+		op.undo();
+
+		// Assert (after undo)
+		assertEquals(pkg, n.getParent());
+		assertTrue(pkg.getChildren().contains(n));
+	}
+
+	// Parent without outer parent: package is moved back to its stored bounds after unlink
+	@Test
+	public void testUnlinkFromPackage_NoOuterParent_MovesParentBackToBounds() {
+		// Arrange
+		Diagram d = new Diagram(DiagramType.CLASS);
+		ClassDiagramBuilder b = new ClassDiagramBuilder(d);
+
+		PackageNode pkg = new PackageNode();
+		b.createAddNodeOperation(pkg, new Point(200, 150)).execute();
+
+		TypeNode t = new ClassNode();
+
+		b.createAddNodeOperation(t, new Point(210, 180)).execute();
+
+		Rectangle before = b.packageNodeRenderer().getBounds(pkg);
+
+		// Act
+		DiagramOperation op = b.createUnlinkFromPackageOperation(List.of(t));
+		op.execute();
+
+		// Assert
+		assertEquals(before.x(), pkg.position().x());
+		assertEquals(before.y(), pkg.position().y());
+	}
+
+	// With outer parent: package is moved back to its stored bounds after unlink to outer
+	@Test
+	public void testUnlinkFromPackage_WithOuterParent_MovesParentBackToBounds() {
+		// Arrange
+		Diagram d = new Diagram(DiagramType.CLASS);
+		ClassDiagramBuilder b = new ClassDiagramBuilder(d);
+
+		PackageNode outer = new PackageNode();
+		b.createAddNodeOperation(outer, new Point(50, 50)).execute();
+
+		PackageNode pkg = new PackageNode();
+		b.createAddNodeOperation(pkg, new Point(60, 60)).execute();
+
+		TypeNode t = new ClassNode();
+		b.createAddNodeOperation(t, new Point(70, 80)).execute();
+
+		Rectangle before = b.packageNodeRenderer().getBounds(pkg);
+
+		// Act
+		DiagramOperation op = b.createUnlinkFromPackageOperation(List.of(t));
+		op.execute();
+
+		// Assert
+		assertEquals(before.x(), pkg.position().x());
+		assertEquals(before.y(), pkg.position().y());
 	}
 }
