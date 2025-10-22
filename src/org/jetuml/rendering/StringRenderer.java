@@ -101,7 +101,7 @@ public final class StringRenderer
 		pContext.drawText(pString, pBoundingBox, aAlign, ColorScheme.get().stroke(),
 				font(), fontDimension());
 
-		if( aDecorations.contains(Decoration.UNDERLINED) && pString.trim().length() > 0 )
+		if( aDecorations.contains(Decoration.UNDERLINED))
 		{
 			final int textWidth = getDimension(pString).width();
 			int x1 = pBoundingBox.x();
